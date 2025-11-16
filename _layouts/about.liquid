@@ -7,18 +7,36 @@ layout: default
       {% if site.title == 'blank' %}
         <span class="font-weight-bold">{{ site.first_name }}</span> {{ site.middle_name }}
         {{ site.last_name }}
+        <a href="javascript:void(0);" onclick="playNamePronunciation()" style="margin-left: 10px; font-size: 0.6em; color: var(--global-theme-color); text-decoration: none;" title="听我的名字发音">
+          <i class="fa-solid fa-volume-high"></i>
+        </a>
       {% else %}
         {{ site.title }}
       {% endif %}
     </h1>
     <p class="desc">{{ page.subtitle }}</p>
   </header>
+  
+  <audio id="name-pronunciation" preload="auto">
+    <source src="{{ '/assets/audio/runqiuw.m4a' | relative_url }}" type="audio/mp4">
+  </audio>
+  
+  <script>
+    function playNamePronunciation() {
+      var audio = document.getElementById('name-pronunciation');
+      audio.currentTime = 0;
+      audio.play();
+    }
+  </script>
 
   <article>
     {% if page.profile %}
       <div class="profile float-{% if page.profile.align == 'left' %}left{% else %}right{% endif %}">
         {% if page.profile.image %}
           {% assign profile_image_path = page.profile.image | prepend: 'assets/img/' %}
+          {% if page.profile.fun_image %}
+            {% assign fun_image_path = page.profile.fun_image | prepend: 'assets/img/' %}
+          {% endif %}
           {% if page.profile.image_circular %}
             {% assign profile_image_class = 'img-fluid z-depth-1 rounded-circle' %}
           {% else %}
@@ -27,10 +45,27 @@ layout: default
           {% endif %}
           {% capture sizes %}(min-width: {{ site.max_width }}) {{ site.max_width | minus: 30 | times: 0.3}}px, (min-width: 576px)
       30vw, 95vw"{% endcapture %}
-          {%
-            include figure.liquid loading="eager" path=profile_image_path class=profile_image_class sizes=sizes alt=page.profile.image
-            cache_bust=true
-          %}
+          
+          {% if page.profile.fun_image %}
+            <div class="profile-image-container" style="position: relative; cursor: pointer;">
+              <img src="{{ profile_image_path | relative_url }}" class="{{ profile_image_class }} profile-image-normal" alt="profile" loading="eager">
+              <img src="{{ fun_image_path | relative_url }}" class="{{ profile_image_class }} profile-image-fun" alt="just for fun" loading="eager" style="position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.3s ease;">
+            </div>
+            <style>
+              .profile-image-container:hover .profile-image-normal {
+                opacity: 0;
+                transition: opacity 0.3s ease;
+              }
+              .profile-image-container:hover .profile-image-fun {
+                opacity: 1 !important;
+              }
+            </style>
+          {% else %}
+            {%
+              include figure.liquid loading="eager" path=profile_image_path class=profile_image_class sizes=sizes alt=page.profile.image
+              cache_bust=true
+            %}
+          {% endif %}
         {% endif %}
         {% if page.profile.more_info %}
           <div class="more-info">{{ page.profile.more_info }}</div>
@@ -59,7 +94,7 @@ layout: default
     <!-- Selected papers -->
     {% if page.selected_papers %}
       <h2>
-        <a href="{{ '/publications/' | relative_url }}" style="color: inherit">selected publications</a>
+        <a href="{{ '/publications/' | relative_url }}" style="color: inherit">Publications</a>
       </h2>
       {% include selected_papers.liquid %}
     {% endif %}

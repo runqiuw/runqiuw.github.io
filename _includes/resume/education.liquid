@@ -35,11 +35,18 @@
           </table>
         </div>
         <div class="col-xs-10 cl-sm-10 col-md-10 mt-2 mt-md-0">
-          <h6 class="title font-weight-bold ml-1 ml-md-4">
-            <a href="{{ content.url }}">{{ content.studyType }}</a>
-          </h6>
-          <h6 class="ml-1 ml-md-4" style="font-size: 0.95rem">{{ content.institution }}</h6>
-          <h6 class="ml-1 ml-md-4" style="font-size: 0.95rem; font-style: italic">{{ content.area }}</h6>
+          <div class="d-flex justify-content-between align-items-start ml-1 ml-md-4">
+            <div>
+              <h6 class="title font-weight-bold mb-1">
+                <a href="{{ content.url }}">{{ content.studyType }}</a>
+              </h6>
+              <h6 style="font-size: 0.95rem; margin-bottom: 0.2rem;">{{ content.institution }}</h6>
+              <h6 style="font-size: 0.95rem; font-style: italic; margin-bottom: 0;">{{ content.area }}</h6>
+            </div>
+            {% if content.image %}
+              <img src="{{ content.image | relative_url }}" alt="{{ content.institution }} logo" style="width: 50px; height: 50px; margin-left: 15px; border-radius: 4px; object-fit: contain; flex-shrink: 0;">
+            {% endif %}
+          </div>
           <ul class="items">
             {% for item in content.courses %}
               <li>
