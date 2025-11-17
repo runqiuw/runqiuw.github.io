@@ -7,6 +7,8 @@ redirect: https://github.com/runqiuw/context_chatbot_telegram
 importance: 6
 category: fun
 github: https://github.com/runqiuw/context_chatbot_telegram
+timeline: Jan 2024
+labels: ["LLM"]
 ---
 
 ## Overview

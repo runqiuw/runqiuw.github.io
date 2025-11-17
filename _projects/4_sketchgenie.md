@@ -4,9 +4,11 @@ title: SketchGenie
 description: AI-Driven AR Drawing Assistant
 img: assets/img/projects/sketchgenie-logo.jpeg
 redirect: https://github.com/runqiuw/SketchGenie
-importance: 4
+importance: 3
 category: work
 github: https://github.com/runqiuw/SketchGenie
+timeline: Jan 2025 - Apr 2025
+labels: ["MR", "LLM"]
 ---
 
 ## Overview

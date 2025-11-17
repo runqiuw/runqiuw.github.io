@@ -3,8 +3,10 @@ layout: page
 title: Network Simulation
 description: Implementing key networking components and experiments
 img: assets/img/projects/eecs489-logo.png
-importance: 3
+importance: 4
 category: work
+timeline: Jan 2025 - Apr 2025
+labels: ["Network"]
 ---
 
 ## Overview

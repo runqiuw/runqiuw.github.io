@@ -26,7 +26,29 @@
     }
     .project-card-footer {
       margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+    .project-labels {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .project-label {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: white;
+    }
+    .label-cvml { background-color: #3498db; }
+    .label-embedded { background-color: #e74c3c; }
+    .label-mechanical { background-color: #95a5a6; }
+    .label-mr { background-color: #9b59b6; }
+    .label-llm { background-color: #f39c12; }
+    .label-network { background-color: #27ae60; }
   </style>
   <a href="{% if project.redirect %}{{ project.redirect }}{% else %}{{ project.url | relative_url }}{% endif %}">
     <div class="card h-100 hoverable">
@@ -40,20 +62,46 @@
       <div class="card-body project-card-body">
         <h2 class="card-title project-card-title">{{ project.title }}</h2>
         <p class="card-text project-card-text">{{ project.description }}</p>
-        <div class="row ml-1 mr-1 p-0 project-card-footer">
-          {% if project.github %}
-            <div class="github-icon">
-              <div class="icon" data-toggle="tooltip" title="Code Repository">
-                <a href="{{ project.github }}"><i class="fa-brands fa-github gh-icon"></i></a>
-              </div>
-              {% if project.github_stars %}
-                <span class="stars" data-toggle="tooltip" title="GitHub Stars">
-                  <i class="fa-solid fa-star"></i>
-                  <span id="{{ project.github_stars }}-stars"></span>
-                </span>
-              {% endif %}
-            </div>
+        {% if project.timeline %}
+          {% assign date_parts = project.timeline | split: ' - ' %}
+          {% if date_parts.size > 1 %}
+            {% assign end_date = date_parts[1] %}
+            {% if end_date contains 'Present' %}
+              {% assign display_date = 'Ongoing' %}
+            {% else %}
+              {% assign display_date = end_date %}
+            {% endif %}
+          {% else %}
+            {% assign display_date = project.timeline %}
           {% endif %}
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+            <i class="fa-regular fa-calendar"></i> {{ display_date }}
+          </p>
+        {% endif %}
+        <div class="project-card-footer ml-1 mr-1 p-0">
+          <div class="project-labels">
+            {% if project.labels %}
+              {% for label in project.labels %}
+                {% assign label_class = label | downcase | replace: '/', '' | prepend: 'label-' %}
+                <span class="project-label {{ label_class }}">{{ label }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <div>
+            {% if project.github %}
+              <div class="github-icon">
+                <div class="icon" data-toggle="tooltip" title="Code Repository">
+                  <a href="{{ project.github }}"><i class="fa-brands fa-github gh-icon"></i></a>
+                </div>
+                {% if project.github_stars %}
+                  <span class="stars" data-toggle="tooltip" title="GitHub Stars">
+                    <i class="fa-solid fa-star"></i>
+                    <span id="{{ project.github_stars }}-stars"></span>
+                  </span>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>

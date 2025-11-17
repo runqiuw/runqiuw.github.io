@@ -1,10 +1,12 @@
 ---
 layout: page
-title: Diffusion-Based Emoji Generation
-description: Yellow-Face Emoji Generation using Diffusion Models
+title: This Emoji Does Not Exist (Yet)
+description: Learning to Create Emoji Faces with Diffusion Model
 img: assets/img/projects/emoji-logo.png
 importance: 2
 category: work
+timeline: Mar 2025 - Apr 2025
+labels: ["CV/ML"]
 ---
 
 ## Overview
@@ -19,4 +21,18 @@ Course project for EECS 553 (Machine Learning) on diffusion-based emoji generati
 **Timeline:** Mar 2025 - Apr 2025
 
 **Course:** EECS 553 (Machine Learning)
+
+---
+
+## Project Poster
+
+<div style="width: 100%; height: 800px; margin-top: 20px; border: 1px solid #ddd;">
+  <embed src="{{ '/assets/pdf/emoji-generation-poster.pdf' | relative_url }}" type="application/pdf" width="100%" height="100%">
+</div>
+
+<p style="margin-top: 10px; text-align: center;">
+  <a href="{{ '/assets/pdf/emoji-generation-poster.pdf' | relative_url }}" target="_blank" style="font-size: 1rem;">
+    <i class="fa-solid fa-file-pdf"></i> View PDF
+  </a>
+</p>
 

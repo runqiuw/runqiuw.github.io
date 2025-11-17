@@ -29,7 +29,7 @@
     {
       "institution": "University of Michigan",
       "location": "Ann Arbor, MI, USA",
-      "url": "https://umich.edu",
+      "url": "https://cse.engin.umich.edu/",
       "area": "Computer Science",
       "studyType": "B.S.E.",
       "startDate": "2024-08-01",
@@ -44,7 +44,7 @@
     {
       "institution": "Shanghai Jiao Tong University",
       "location": "Shanghai, China",
-      "url": "https://en.sjtu.edu.cn",
+      "url": "https://www.ji.sjtu.edu.cn/",
       "area": "Mechanical Engineering",
       "studyType": "B.S.",
       "startDate": "2022-09-01",
@@ -104,7 +104,7 @@
       "summary": ""
     },
     {
-      "title": "First Prize, 13th \"Liming Cup\" SJTU Freshman Mechanical Innovation Competition",
+      "title": "First Prize, 13th SJTU \"Liming Cup\" Mechanical Innovation Competition For Freshmen",
       "date": "2023",
       "awarder": "Shanghai Jiao Tong University",
       "url": "",
