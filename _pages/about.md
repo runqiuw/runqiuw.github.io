@@ -15,6 +15,7 @@ profile:
     <p><a href="mailto:runqiu@umich.edu">runqiu@umich.edu</a></p>
 
 selected_papers: true # includes a list of papers marked as "selected={true}"
+featured_projects: true # includes a list of featured projects
 social: true # includes social icons at the bottom of the page
 
 announcements:
