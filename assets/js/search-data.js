@@ -432,6 +432,11 @@ ninja.data = [{
           description: "A Telegram chatbot that can interact with users, maintain chat history, and provide summaries of past conversations.",
           section: "Projects",handler: () => {
               window.location.href = "/projects/6_telegram_chatbot/";
+            },},{id: "projects-me250-robotic-arm-with-flexible-grippers",
+          title: 'ME250 Robotic Arm with Flexible Grippers',
+          description: "Designed and manufactured a 5 DOF robotic arm with soft silicone grippers and Arduino-based mobile control system",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/7_me250_robotic_arm/";
             },},{
         id: 'social-email',
         title: 'email',
