@@ -437,6 +437,11 @@ ninja.data = [{
           description: "Designed and manufactured a 5 DOF robotic arm with soft silicone grippers and Arduino-based mobile control system",
           section: "Projects",handler: () => {
               window.location.href = "/projects/7_me250_robotic_arm/";
+            },},{id: "projects-data-driven-optimization",
+          title: 'Data-Driven Optimization',
+          description: "Built and structured a Jekyll-based website with interactive content and data visualization",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/8_data_driven_optimization/";
             },},{
         id: 'social-email',
         title: 'email',
