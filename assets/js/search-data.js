@@ -407,9 +407,9 @@ ninja.data = [{
           description: "High-Fidelity Subject Animation with Dynamic Motion Control",
           section: "Projects",handler: () => {
               window.location.href = "/projects/1_dreammotion/";
-            },},{id: "projects-diffusion-based-emoji-generation",
-          title: 'Diffusion-Based Emoji Generation',
-          description: "Yellow-Face Emoji Generation using Diffusion Models",
+            },},{id: "projects-this-emoji-does-not-exist-yet",
+          title: 'This Emoji Does Not Exist (Yet)',
+          description: "Learning to Create Emoji Faces with Diffusion Model",
           section: "Projects",handler: () => {
               window.location.href = "/projects/2_emoji_generation/";
             },},{id: "projects-network-simulation",
