@@ -26,6 +26,8 @@ Course project for EECS 553 (Machine Learning) on diffusion-based emoji generati
 
 ## Project Poster
 
+*The names are ordered by last name.*
+
 <div style="width: 100%; height: 800px; margin-top: 20px; border: 1px solid #ddd;">
   <embed src="{{ '/assets/pdf/emoji-generation-poster.pdf' | relative_url }}" type="application/pdf" width="100%" height="100%">
 </div>

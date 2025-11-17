@@ -41,3 +41,19 @@ Course project for ME250, leading a four-person team to design and manufacture a
   </div>
 </div>
 
+<div class="row mt-3">
+  <div class="col-md-6 mt-3 mt-md-0">
+    {% include figure.liquid
+       path="assets/img/projects/250-circuit.jpeg"
+       title="Circuit Design"
+       class="img-fluid rounded z-depth-1" %}
+  </div>
+
+  <div class="col-md-6 mt-3 mt-md-0">
+    {% include figure.liquid
+       path="assets/img/projects/250-demo.jpeg"
+       title="Demo"
+       class="img-fluid rounded z-depth-1" %}
+  </div>
+</div>
+

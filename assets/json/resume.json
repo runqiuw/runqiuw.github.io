@@ -83,7 +83,7 @@
       "location": "Shanghai, China",
       "summary": "Advisor: Youyi Bi",
       "highlights": [
-        "<strong>Project 1: Transformer-Based Motion Planning via Sequence-to-Sequence Generation</strong>",
+        "<strong>Transformer-Based Motion Planning via Sequence-to-Sequence Generation</strong>",
         "Worked on transformer-based motion planning, integrating geometric and collision-aware loss terms and building visualization tools to analyze how attention over obstacles affects path feasibility and trajectory quality."
       ]
     }
@@ -185,15 +185,15 @@
       "name": "Sensing & Mobile Computing",
       "icon": "",
       "keywords": [
-        "Environmental perception",
-        "Sensor fusion"
+        "Ubiquitous Sensing",
+        "Mobile/XR Systems"
       ]
     },
     {
       "name": "Computer Vision & Machine Learning",
       "icon": "",
       "keywords": [
-        "Applied ML"
+        "Applied ML/CV"
       ]
     }
   ],

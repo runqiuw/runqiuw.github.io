@@ -35,10 +35,10 @@ latest_posts:
 
 <!-- Link to your social media connections, too. This theme is set up to use [Font Awesome icons](https://fontawesome.com/) and [Academicons](https://jpswalsh.github.io/academicons/), like the ones below. Add your Facebook, Twitter, LinkedIn, Google Scholar, or just disable all of them. -->
 
-Hi! I’m **Runqiu Wang**, a senior undergraduate student pursuing a dual degree in **Computer Science** at the [**University of Michigan**](https://cse.engin.umich.edu/) and **Mechanical Engineering** at [**Shanghai Jiao Tong University**](https://www.ji.sjtu.edu.cn/). 
+Hi!👋 I’m **Runqiu Wang**, a senior undergraduate student pursuing a [dual degree](https://www.ji.sjtu.edu.cn/academics/ipo/study-abroad/degree-programs/) in **Computer Science** at the [**University of Michigan**](https://cse.engin.umich.edu/) and **Mechanical Engineering** at [**Shanghai Jiao Tong University**](https://www.ji.sjtu.edu.cn/). 
 
 I enjoy building systems where sensing, hardware, and machine learning actually meet the messiness of the physical world. I’m currently working in the **AMI Lab** on sensing systems and applied machine learning, advised by [**Prof. Ke Sun**](https://samsonsjarkal.github.io/KeSun/). 
 
-Broadly, my interests lie in **applied machine learning, ubiquitous sensing, mobile systems, and computer vision–driven environmental perception**, and I am preparing applications for **PhD programs in CS/ECE (Fall 2026)**.
+I am interested in **applied machine learning and computer vision for ubiquitous and ambient sensing, as well as XR / mixed reality systems**, and I am currently seeking **PhD positions in CS/ECE starting Fall 2026**.
 
 My first name "Runqiu" is pronounced like "Roon-chyo".
