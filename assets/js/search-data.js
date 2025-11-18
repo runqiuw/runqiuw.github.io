@@ -432,16 +432,21 @@ ninja.data = [{
           description: "A Telegram chatbot that can interact with users, maintain chat history, and provide summaries of past conversations.",
           section: "Projects",handler: () => {
               window.location.href = "/projects/6_telegram_chatbot/";
-            },},{id: "projects-me250-robotic-arm-with-flexible-grippers",
-          title: 'ME250 Robotic Arm with Flexible Grippers',
+            },},{id: "projects-robotic-arm-with-flexible-grippers",
+          title: 'Robotic Arm with Flexible Grippers',
           description: "Designed and manufactured a 5 DOF robotic arm with soft silicone grippers and Arduino-based mobile control system",
           section: "Projects",handler: () => {
               window.location.href = "/projects/7_me250_robotic_arm/";
+            },},{id: "projects-transformable-rover",
+          title: 'Transformable Rover',
+          description: "Designed and built a sensor-driven transformable rover whose hook-shaped rotatable wheels switch between driving and climbing modes to traverse stairs, sand, and height-constrained environments.",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/8_me350_transformable_rover/";
             },},{id: "projects-data-driven-optimization",
           title: 'Data-Driven Optimization',
           description: "Built and structured a Jekyll-based website with interactive content and data visualization",
           section: "Projects",handler: () => {
-              window.location.href = "/projects/8_data_driven_optimization/";
+              window.location.href = "/projects/9_data_driven_optimization/";
             },},{
         id: 'social-email',
         title: 'email',
