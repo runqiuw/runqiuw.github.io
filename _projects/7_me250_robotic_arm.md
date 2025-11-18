@@ -1,6 +1,6 @@
 ---
 layout: page
-title: ME250 Robotic Arm with Flexible Grippers
+title: Robotic Arm with Flexible Grippers
 description: Designed and manufactured a 5 DOF robotic arm with soft silicone grippers and Arduino-based mobile control system
 img: assets/img/projects/vm250.png
 importance: 6

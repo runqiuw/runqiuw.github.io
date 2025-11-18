@@ -4,10 +4,10 @@ title: Data-Driven Optimization
 description: Built and structured a Jekyll-based website with interactive content and data visualization
 img: assets/img/projects/jupyter-logo.jpg
 website: https://runqiuw.github.io/just-the-docs-template/
-importance: 10
+importance: 9
 category: work
 timeline: Dec 2022 - Jan 2023
-labels: ["Web Development", "Data Visualization"]
+labels: []
 ---
 
 ## Overview
