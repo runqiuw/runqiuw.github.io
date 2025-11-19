@@ -39,6 +39,6 @@ Hi!👋 I’m **Runqiu Wang**, a senior undergraduate student pursuing a [dual d
 
 I enjoy building systems where sensing, hardware, and machine learning actually meet the messiness of the physical world. I’m currently working in the **AMI Lab** on sensing systems and applied machine learning, advised by [**Prof. Ke Sun**](https://samsonsjarkal.github.io/KeSun/). 
 
-I am interested in **applied machine learning and computer vision for ubiquitous and ambient sensing, as well as XR / mixed reality systems**, and I am currently seeking **PhD positions in CS/ECE starting Fall 2026**.
+I am interested in **applied machine learning and computer vision for ubiquitous and ambient sensing, as well as XR systems**, and I am currently seeking **PhD positions in CS/ECE starting Fall 2026**.
 
-My first name "Runqiu" is pronounced like "Roon-chyo".
+My first name "Runqiu" is pronounced like "Roon-chio".
