@@ -20,15 +20,12 @@
 
 <div class="projects featured-projects">
   <div class="row row-cols-1 row-cols-md-3">
-    {% assign sorted_projects = site.projects | sort: "importance" %}
-    {% for project in sorted_projects limit:3 %}
+    {% assign sorted_projects = site.projects | sort: 'importance' %}
+    {% for project in sorted_projects limit: 3 %}
       {% include projects.liquid %}
     {% endfor %}
   </div>
   <div class="text-center mt-4">
-    <a href="{{ '/projects/' | relative_url }}" class="btn btn-outline-primary btn-sm">
-      View All Projects <i class="fa-solid fa-arrow-right"></i>
-    </a>
+    <a href="{{ '/projects/' | relative_url }}" class="btn btn-outline-primary btn-sm"> View All Projects <i class="fa-solid fa-arrow-right"></i> </a>
   </div>
 </div>
-

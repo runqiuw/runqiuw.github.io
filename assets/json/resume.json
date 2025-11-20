@@ -36,10 +36,7 @@
       "endDate": "2026-05-01 (Expected)",
       "score": "3.97/4.0",
       "image": "assets/img/umich-logo.png",
-      "courses": [
-        "Coursework: Computer Vision, Computer Networks, Machine Learning, Database Systems",
-        "GPA: 3.97/4.0"
-      ]
+      "courses": ["Coursework: Computer Vision, Computer Networks, Machine Learning, Database Systems", "GPA: 3.97/4.0"]
     },
     {
       "institution": "Shanghai Jiao Tong University",
@@ -51,10 +48,7 @@
       "endDate": "2026-08-01 (Expected)",
       "score": "3.57/4.0",
       "image": "assets/img/sjtu-logo.png",
-      "courses": [
-        "Coursework: Design and Manufacturing, Dynamic Systems, Laboratory",
-        "GPA: 3.57/4.0"
-      ]
+      "courses": ["Coursework: Design and Manufacturing, Dynamic Systems, Laboratory", "GPA: 3.57/4.0"]
     }
   ],
   "work": [
@@ -125,25 +119,13 @@
       "name": "Programming",
       "level": "Advanced",
       "icon": "",
-      "keywords": [
-        "C/C++",
-        "Python",
-        "MATLAB",
-        "SQLite",
-        "Bash"
-      ]
+      "keywords": ["C/C++", "Python", "MATLAB", "SQLite", "Bash"]
     },
     {
       "name": "Hardware & Prototyping",
       "level": "Intermediate",
       "icon": "",
-      "keywords": [
-        "SolidWorks",
-        "3D printing",
-        "Arduino",
-        "Raspberry Pi",
-        "Mechanical Design"
-      ]
+      "keywords": ["SolidWorks", "3D printing", "Arduino", "Raspberry Pi", "Mechanical Design"]
     }
   ],
   "languages": [
@@ -184,17 +166,12 @@
     {
       "name": "Sensing & Mobile Computing",
       "icon": "",
-      "keywords": [
-        "Ubiquitous Sensing",
-        "Mobile/XR Systems"
-      ]
+      "keywords": ["Ubiquitous Sensing", "Mobile/XR Systems"]
     },
     {
       "name": "Computer Vision & Machine Learning",
       "icon": "",
-      "keywords": [
-        "Applied ML/CV"
-      ]
+      "keywords": ["Applied ML/CV"]
     }
   ],
   "references": [],

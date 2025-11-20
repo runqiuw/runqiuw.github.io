@@ -25,4 +25,3 @@ Course project for EECS 498 (AI-Enabled Mixed Reality) building an AR system tha
 **Course:** EECS 498 (AI-Enabled Mixed Reality)
 
 **GitHub:** [https://github.com/runqiuw/SketchGenie](https://github.com/runqiuw/SketchGenie)
-

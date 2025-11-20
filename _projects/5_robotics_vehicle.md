@@ -51,7 +51,6 @@ Freshman mechanical innovation competition project at SJTU, developing a Bluetoo
          title="First Prize Award"
          class="img-fluid rounded z-depth-1" %}
     </div>
+
   </div>
 </div>
-
-

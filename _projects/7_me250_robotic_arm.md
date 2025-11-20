@@ -56,4 +56,3 @@ Course project for ME250, leading a four-person team to design and manufacture a
        class="img-fluid rounded z-depth-1" %}
   </div>
 </div>
-

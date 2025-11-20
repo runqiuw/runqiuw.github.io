@@ -7,7 +7,12 @@ layout: default
       {% if site.title == 'blank' %}
         <span class="font-weight-bold">{{ site.first_name }}</span> {{ site.middle_name }}
         {{ site.last_name }}
-        <a href="javascript:void(0);" onclick="playNamePronunciation()" style="margin-left: 10px; font-size: 0.6em; color: var(--global-theme-color); text-decoration: none;" title="听我的名字发音">
+        <a
+          href="javascript:void(0);"
+          onclick="playNamePronunciation()"
+          style="margin-left: 10px; font-size: 0.6em; color: var(--global-theme-color); text-decoration: none;"
+          title="听我的名字发音"
+        >
           <i class="fa-solid fa-volume-high"></i>
         </a>
       {% else %}
@@ -16,11 +21,11 @@ layout: default
     </h1>
     <p class="desc">{{ page.subtitle }}</p>
   </header>
-  
+
   <audio id="name-pronunciation" preload="auto">
     <source src="{{ '/assets/audio/runqiuw.m4a' | relative_url }}" type="audio/mp4">
   </audio>
-  
+
   <script>
     function playNamePronunciation() {
       var audio = document.getElementById('name-pronunciation');
@@ -45,11 +50,17 @@ layout: default
           {% endif %}
           {% capture sizes %}(min-width: {{ site.max_width }}) {{ site.max_width | minus: 30 | times: 0.3}}px, (min-width: 576px)
       30vw, 95vw"{% endcapture %}
-          
+
           {% if page.profile.fun_image %}
             <div class="profile-image-container" style="position: relative; cursor: pointer;">
               <img src="{{ profile_image_path | relative_url }}" class="{{ profile_image_class }} profile-image-normal" alt="profile" loading="eager">
-              <img src="{{ fun_image_path | relative_url }}" class="{{ profile_image_class }} profile-image-fun" alt="just for fun" loading="eager" style="position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.3s ease;">
+              <img
+                src="{{ fun_image_path | relative_url }}"
+                class="{{ profile_image_class }} profile-image-fun"
+                alt="just for fun"
+                loading="eager"
+                style="position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.3s ease;"
+              >
             </div>
             <style>
               .profile-image-container:hover .profile-image-normal {

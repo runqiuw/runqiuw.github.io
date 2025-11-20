@@ -43,12 +43,24 @@
       font-weight: 500;
       color: white;
     }
-    .label-cvml { background-color: #3498db; }
-    .label-embedded { background-color: #e74c3c; }
-    .label-mechanical { background-color: #95a5a6; }
-    .label-mr { background-color: #9b59b6; }
-    .label-llm { background-color: #f39c12; }
-    .label-network { background-color: #27ae60; }
+    .label-cvml {
+      background-color: #3498db;
+    }
+    .label-embedded {
+      background-color: #e74c3c;
+    }
+    .label-mechanical {
+      background-color: #95a5a6;
+    }
+    .label-mr {
+      background-color: #9b59b6;
+    }
+    .label-llm {
+      background-color: #f39c12;
+    }
+    .label-network {
+      background-color: #27ae60;
+    }
   </style>
   <a href="{% if project.redirect %}{{ project.redirect }}{% else %}{{ project.url | relative_url }}{% endif %}">
     <div class="card h-100 hoverable">
@@ -74,9 +86,7 @@
           {% else %}
             {% assign display_date = project.timeline %}
           {% endif %}
-          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-            <i class="fa-regular fa-calendar"></i> {{ display_date }}
-          </p>
+          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-regular fa-calendar"></i> {{ display_date }}</p>
         {% endif %}
         <div class="project-card-footer ml-1 mr-1 p-0">
           <div class="project-labels">

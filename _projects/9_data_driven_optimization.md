@@ -15,4 +15,3 @@ labels: []
 Built and structured a Jekyll-based website, integrating interactive content and reports to enhance accessibility. Implemented a Python program to analyze user data and visualized the results with Plotly library.
 
 **Timeline:** Dec 2022 - Jan 2023
-

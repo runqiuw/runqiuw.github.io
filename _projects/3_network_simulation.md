@@ -22,4 +22,3 @@ Course project for EECS 489 (Computer Networks) implementing key networking comp
 **Timeline:** Jan 2025 - Apr 2025
 
 **Course:** EECS 489 (Computer Networks)
-

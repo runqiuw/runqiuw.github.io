@@ -19,7 +19,6 @@ This ME350 project develops a small mobile rover with rotatable, hook-shaped whe
 
 ## Project Gallery
 
-
 <div class="row mt-3">
   <div class="col-md-6 mt-3 mt-md-0">
     {% include figure.liquid
