@@ -6,7 +6,7 @@ img: assets/img/publication_preview/moirelens-logo.png
 importance: 0
 category: work
 timeline: May 2025 - Nov 2025
-labels: ["Sensing", "ML/CV"]
+labels: ["Sensing", "CV/ML"]
 ---
 
 ## Overview
@@ -22,7 +22,8 @@ MoiréLens is a practical Schlieren-like imaging system that brings refractive-i
 
 - Build a Moiré-to-Schlieren processing pipeline that extracts flow-like fields from raw videos and feeds them into compact 3D CNNs for downstream tasks.
 
-- Demonstrate end-to-end applications including meter-scale low-pressure gas-leak localization and cooking automation (dry vs. moist heat classification and oil-temperature regression) using only video.
+- Demonstrate end-to-end applications using only video from a commodity camera, including meter-scale localization of low-pressure gas leaks and cooking automation tasks such as dry vs. moist heat classification and oil-temperature regression.
 
 **Timeline:** May 2025 - Nov 2025
 
+**Status.** Manuscript under double-blind review for a flagship ACM conference on mobile computing.  
