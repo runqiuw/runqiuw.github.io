@@ -380,7 +380,12 @@ ninja.data = [{
             },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
           title: 'A simple inline announcement with Markdown emoji! :sparkles: :smile:',
           description: "",
-          section: "News",},{id: "projects-dreammotion",
+          section: "News",},{id: "projects-moirélens",
+          title: 'MoiréLens',
+          description: "Visualizing Invisible Airflows with Commodity Cameras",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/0_moirelens/";
+            },},{id: "projects-dreammotion",
           title: 'DreamMotion',
           description: "High-Fidelity Subject Animation with Dynamic Motion Control",
           section: "Projects",handler: () => {
