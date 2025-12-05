@@ -380,8 +380,8 @@ ninja.data = [{
             },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
           title: 'A simple inline announcement with Markdown emoji! :sparkles: :smile:',
           description: "",
-          section: "News",},{id: "projects-moirélens",
-          title: 'MoiréLens',
+          section: "News",},{id: "projects-moiré-based-visualization-of-airflows",
+          title: 'Moiré-Based Visualization of Airflows',
           description: "Visualizing Invisible Airflows with Commodity Cameras",
           section: "Projects",handler: () => {
               window.location.href = "/projects/0_moirelens/";
