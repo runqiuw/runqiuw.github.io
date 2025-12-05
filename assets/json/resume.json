@@ -62,8 +62,8 @@
       "summary": "Advisor: Ke Sun",
       "image": "assets/img/ami-logo.jpg",
       "highlights": [
-        "<strong>Project 1: Moiré-Based Schlieren Sensing in Real-World Environments</strong>",
-        "Developed MoiréLens, a Moiré-based Schlieren sensing framework that uses wallpaper patterns and low-cost cameras to visualize otherwise invisible heat plumes and gas-like flows in real kitchens, including an AutoMoiré calibration module and end-to-end pipelines for cooking-related ML tasks.",
+        "<strong>Project 1: Towards Practical Moiré-Based Visualization of Airflows with Commodity Cameras </strong>",
+        "Developed a Moiré-based Schlieren sensing framework that uses wallpaper patterns and low-cost cameras to visualize otherwise invisible heat plumes and gas-like flows in real kitchens, including an AutoMoiré calibration module and end-to-end pipelines for cooking-related ML tasks.",
         "<strong>Project 2: Wearable IMU-based Activity Recognition and Motion Transcription</strong>",
         "Explored wearable IMU-based activity recognition and motion transcription by surveying prior work, reproducing representative baselines, and prototyping transformer-based IMU localization that supports flexible device configurations."
       ]
