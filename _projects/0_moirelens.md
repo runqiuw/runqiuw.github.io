@@ -7,6 +7,7 @@ importance: 0
 category: work
 timeline: May 2025 - Nov 2025
 labels: ["Sensing", "CV/ML"]
+published: false
 ---
 
 ## Overview

@@ -27,6 +27,11 @@
     .project-card-footer {
       margin-top: auto;
       display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .project-card-footer-row {
+      display: flex;
       justify-content: space-between;
       align-items: center;
     }
@@ -77,30 +82,31 @@
       <div class="card-body project-card-body">
         <h2 class="card-title project-card-title">{{ project.title }}</h2>
         <p class="card-text project-card-text">{{ project.description }}</p>
-        {% if project.timeline %}
-          {% assign date_parts = project.timeline | split: ' - ' %}
-          {% if date_parts.size > 1 %}
-            {% assign end_date = date_parts[1] %}
-            {% if end_date contains 'Present' %}
-              {% assign display_date = 'Ongoing' %}
-            {% else %}
-              {% assign display_date = end_date %}
-            {% endif %}
-          {% else %}
-            {% assign display_date = project.timeline %}
-          {% endif %}
-          <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;"><i class="fa-regular fa-calendar"></i> {{ display_date }}</p>
-        {% endif %}
         <div class="project-card-footer ml-1 mr-1 p-0">
-          <div class="project-labels">
-            {% if project.labels %}
-              {% for label in project.labels %}
-                {% assign label_class = label | downcase | replace: '/', '' | prepend: 'label-' %}
-                <span class="project-label {{ label_class }}">{{ label }}</span>
-              {% endfor %}
+          {% if project.timeline %}
+            {% assign date_parts = project.timeline | split: ' - ' %}
+            {% if date_parts.size > 1 %}
+              {% assign end_date = date_parts[1] %}
+              {% if end_date contains 'Present' %}
+                {% assign display_date = 'Ongoing' %}
+              {% else %}
+                {% assign display_date = end_date %}
+              {% endif %}
+            {% else %}
+              {% assign display_date = project.timeline %}
             {% endif %}
-          </div>
-          <div style="display: flex; gap: 10px; align-items: center;">
+            <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0;"><i class="fa-regular fa-calendar"></i> {{ display_date }}</p>
+          {% endif %}
+          <div class="project-card-footer-row">
+            <div class="project-labels">
+              {% if project.labels %}
+                {% for label in project.labels %}
+                  {% assign label_class = label | downcase | replace: '/', '' | prepend: 'label-' %}
+                  <span class="project-label {{ label_class }}">{{ label }}</span>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
             {% if project.website %}
               <div class="website-icon" style="z-index: 10; position: relative;">
                 <div class="icon" data-toggle="tooltip" title="Visit Website">
@@ -123,6 +129,7 @@
                 {% endif %}
               </div>
             {% endif %}
+            </div>
           </div>
         </div>
       </div>
