@@ -380,16 +380,11 @@ ninja.data = [{
             },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
           title: 'A simple inline announcement with Markdown emoji! :sparkles: :smile:',
           description: "",
-          section: "News",},{id: "projects-moiré-based-visualization-of-airflows",
-          title: 'Moiré-Based Visualization of Airflows',
-          description: "Visualizing Invisible Airflows with Commodity Cameras",
+          section: "News",},{id: "projects-imu-on-body-localization",
+          title: 'IMU On-Body Localization',
+          description: "A transformer-based system that localizes multiple wearable IMU devices on the human body",
           section: "Projects",handler: () => {
-              window.location.href = "/projects/0_moirelens/";
-            },},{id: "projects-dreammotion",
-          title: 'DreamMotion',
-          description: "High-Fidelity Subject Animation with Dynamic Motion Control",
-          section: "Projects",handler: () => {
-              window.location.href = "/projects/1_dreammotion/";
+              window.location.href = "/projects/10_imu_localization/";
             },},{id: "projects-this-emoji-does-not-exist-yet",
           title: 'This Emoji Does Not Exist (Yet)',
           description: "Learning to Create Emoji Faces with Diffusion Model",
