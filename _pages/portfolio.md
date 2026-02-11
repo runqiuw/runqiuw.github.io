@@ -12,7 +12,7 @@ nav_order: 4
   <div class="row mb-5">
     <div class="col-sm-12 col-md-6">
       <div class="project-image">
-        <a href="https://cdn.destructoid.com//ul/317824-zelda%20memes.jpg" target="_blank">
+        <a href="https://runqiu.itch.io/the-legend-of-zelda" target="_blank">
           <img src="{{ '/assets/portforlio/zelda.png' | relative_url }}" class="img-fluid rounded z-depth-1" alt="The Legend of Zelda (Unity Remaster)">
         </a>
       </div>
