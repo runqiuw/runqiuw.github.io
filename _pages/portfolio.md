@@ -57,6 +57,7 @@ nav_order: 4
       <div class="project-description">
         <h3>Bargain Brawl</h3>
         <p>Bargain Brawl is a chaotic two-player party game set in a supermarket. The goal sounds simple: finish your shopping first. The problem is that the other player is also free to ram into you, steal space, throw things around, and make your life miserable. I wanted this game to feel silly, competitive, and just a little bit mean in the best way.</p>
+        <p><strong>Authors:</strong> Anqi Dai, Jingzhe Zhou, Runqiu Wang</p>
         <p><strong>Contributions:</strong></p>
         <ul>
           <li><strong>UI & Game Flow:</strong> Developed all core menus, UI navigation, and game loop transitions.</li>
