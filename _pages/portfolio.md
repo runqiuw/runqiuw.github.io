@@ -52,6 +52,12 @@ nav_order: 4
           <img src="{{ '/assets/portforlio/bargin_brawl.png' | relative_url }}" class="img-fluid rounded z-depth-1" alt="Bargain Brawl">
         </a>
       </div>
+      <!-- YouTube Trailer -->
+      <div class="project-trailer mt-3">
+        <div class="embed-responsive embed-responsive-16by9 rounded z-depth-1">
+          <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/Mxd6trUlRZo" allowfullscreen></iframe>
+        </div>
+      </div>
     </div>
     <div class="col-sm-12 col-md-6 d-flex align-items-center">
       <div class="project-description">
