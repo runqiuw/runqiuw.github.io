@@ -1,8 +1,8 @@
 ---
 layout: page
-title: portfolio
-header_title: Portfolio of Runqiu Wang
-permalink: /portfolio/
+title: games
+header_title: Games by Runqiu Wang
+permalink: /games/
 nav: true
 nav_order: 4
 ---
@@ -62,7 +62,7 @@ nav_order: 4
     <div class="col-sm-12 col-md-6 d-flex align-items-center">
       <div class="project-description">
         <h3>Bargain Brawl</h3>
-        <p>Bargain Brawl is a chaotic two-player party game set in a supermarket. The goal sounds simple: finish your shopping first. The problem is that the other player is also free to ram into you, steal space, throw things around, and make your life miserable. I wanted this game to feel silly, competitive, and just a little bit mean in the best way.</p>
+        <p>A fast-paced, competitive split-screen party game. Set in a colorful supermarket, players take turns to checked out required items. Use different items to speed up, create foggy zones, and spill liquid on the ground! Think carefully and find your way in this chaotic store!</p>
         <p><strong>Authors:</strong> Anqi Dai, Jingzhe Zhou, Runqiu Wang</p>
         <p><strong>Contributions:</strong></p>
         <ul>
