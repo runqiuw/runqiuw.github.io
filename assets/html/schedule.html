@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>2026 夏季学期课表</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #f9fafb; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+
+// ---- Inline SVG icon components (replacing lucide-react) ----
+const Icon = ({ size = 16, children, className = '' }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >{children}</svg>
+);
+const MapPin = (p) => <Icon {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Icon>;
+const Clock = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+const Calendar = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></Icon>;
+const X = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
+const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
+const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
+const User = (p) => <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
+
+// ==========================================
+// 1. 课程数据配置
+// ==========================================
+const scheduleData = [
+  {
+    id: 'ME4500J',
+    name: '设计与制造 (3)',
+    englishName: 'Design and Manufacture III',
+    code: 'ME4500J',
+    instructor: 'Chengbin Ma, Yigang Wu, Yanan Wang, Yunlong Jian, Ting Sun',
+    color: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
+    tagColor: 'bg-blue-500',
+    sessions: [
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w >= 1 && w <= 13, note: '第1-13周', location: 'DZY 1-106' },
+      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w >= 1 && w <= 13, note: '第1-13周', location: (w) => w <= 8 ? 'ZY413' : 'DZY 1-106' },
+      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w >= 1 && w <= 13 && w % 2 === 0, note: '第1-13周 (双周)', location: 'DZY 1-106' }
+    ]
+  },
+  {
+    id: 'ME3350J',
+    name: '传热学 (J类)',
+    englishName: 'Heat Transfer',
+    code: 'ME3350J',
+    instructor: 'Zhaoguang Wang',
+    color: 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100',
+    tagColor: 'bg-pink-500',
+    sessions: [
+      { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 13, note: '第1-13周', location: 'DSY 101' },
+      { day: 5, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 13, note: '第1-13周', location: 'DSY 101' }
+    ]
+  },
+  {
+    id: 'ME4950J',
+    name: '实验二',
+    englishName: 'Laboratory II',
+    code: 'ME4950J',
+    instructor: 'Peixue Huang',
+    color: 'bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100',
+    tagColor: 'bg-orange-500',
+    sessions: [
+      { day: 2, start: '09:30', end: '11:45', validWeeks: (w) => w >= 2 && w <= 12, note: '实验 S1 (第2-12周)', location: 'F310' },
+      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 12, note: '第1-12周', location: (w) => w <= 8 ? 'DZY 1-109' : 'DZY 1-108' },
+      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 12, note: '第1-12周', location: (w) => w <= 8 ? 'DZY 1-109' : 'DZY 1-108' }
+    ]
+  },
+  {
+    id: 'MUSI1500J',
+    name: '中国音乐概论',
+    englishName: 'Introduction to Chinese Music',
+    code: 'MUSI1500J',
+    instructor: 'Yan Xu',
+    color: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100',
+    tagColor: 'bg-emerald-500',
+    sessions: [
+      { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 8, note: '第1-8周', location: 'DZY 3-205' },
+      { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 8, note: '第1-8周', location: 'DZY 3-205' }
+    ]
+  }
+];
+
+// ==========================================
+// 2. 日期与假期配置
+// ==========================================
+const semesterStartDate = new Date(2026, 4, 11); // 2026年5月11日
+const holidays = {
+  '2026-06-19': '端午节'
+};
+
+const getShanghaiTime = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+
+function App() {
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [currentTime, setCurrentTime] = useState(getShanghaiTime());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(getShanghaiTime());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentYear = currentTime.getFullYear();
+  const currentMonth = String(currentTime.getMonth() + 1).padStart(2, '0');
+  const currentDayStr = String(currentTime.getDate()).padStart(2, '0');
+  const currentDateString = `${currentYear}-${currentMonth}-${currentDayStr}`;
+
+  const actualCurrentWeek = useMemo(() => {
+    const start = new Date(semesterStartDate);
+    const current = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
+    const diffTime = current.getTime() - start.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 1;
+    return Math.floor(diffDays / 7) + 1;
+  }, []);
+
+  const [currentWeek, setCurrentWeek] = useState(Math.max(1, Math.min(13, actualCurrentWeek)));
+
+  const startHour = 8;
+  const endHour = 18;
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+
+  const getDaysDataForWeek = (week) => {
+    return [1, 2, 3, 4, 5].map(dayIndex => {
+      const date = new Date(semesterStartDate);
+      date.setDate(semesterStartDate.getDate() + (week - 1) * 7 + (dayIndex - 1));
+
+      const year = date.getFullYear();
+      const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(date.getDate()).padStart(2, '0');
+
+      const dateString = `${year}-${monthStr}-${dayStr}`;
+      const displayDate = `${monthStr}/${dayStr}`;
+      const dayNames = ['周一', '周二', '周三', '周四', '周五'];
+
+      return {
+        day: dayIndex,
+        name: dayNames[dayIndex - 1],
+        displayDate: displayDate,
+        dateString: dateString,
+        isHoliday: !!holidays[dateString],
+        holidayName: holidays[dateString]
+      };
+    });
+  };
+
+  const currentDaysData = getDaysDataForWeek(currentWeek);
+
+  const getEventStyle = (start, end) => {
+    const [startH, startM] = start.split(':').map(Number);
+    const [endH, endM] = end.split(':').map(Number);
+
+    const topMinutes = ((startH - startHour) * 60) + startM;
+    const durationMinutes = ((endH - startH) * 60) + (endM - startM);
+
+    return {
+      top: `${topMinutes}px`,
+      height: `${durationMinutes}px`,
+    };
+  };
+
+  const currentHour = currentTime.getHours();
+  const currentMinute = currentTime.getMinutes();
+  const timeOffsetMinutes = ((currentHour - startHour) * 60) + currentMinute;
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto">
+
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Calendar className="text-indigo-600" />
+                2026 夏季学期课表
+              </h1>
+              <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
+                <Clock size={14} />
+                <span>
+                  当前北京时间: {currentDateString} {String(currentHour).padStart(2, '0')}:{String(currentMinute).padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
+              <button
+                onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
+                className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                disabled={currentWeek === 1}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="w-48 px-4 text-center">
+                <div className="font-semibold text-indigo-700">第 {currentWeek} 周</div>
+                <div className="text-xs text-gray-500">
+                  {currentDaysData[0].displayDate} - {currentDaysData[4].displayDate}
+                </div>
+              </div>
+              <button
+                onClick={() => setCurrentWeek(Math.min(13, currentWeek + 1))}
+                className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                disabled={currentWeek === 13}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <input
+              type="range"
+              min="1"
+              max="13"
+              value={currentWeek}
+              onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
+              className="w-full accent-indigo-600 cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-400 px-1 mt-2">
+              <span>W1</span><span>W3</span><span>W5</span><span className="font-bold text-red-400">W6(端午)</span><span>W7</span><span>W9</span><span>W11</span><span>W13(Final)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Schedule grid */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-[800px] flex">
+
+              <div className="w-16 flex-shrink-0 bg-gray-50/50 border-r border-gray-100 relative">
+                <div className="h-14 border-b border-gray-100 bg-white"></div>
+                {hours.map(hour => (
+                  <div key={hour} className="h-[60px] border-b border-gray-100 relative text-xs text-gray-400 font-medium">
+                    <span className="absolute -top-2.5 w-full text-center bg-gray-50/50 block">{hour}:00</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex-1 flex bg-gray-50/30">
+                {currentDaysData.map((dayData, index) => {
+                  const isToday = dayData.dateString === currentDateString;
+                  const showIndicator = isToday && currentHour >= startHour && currentHour <= endHour + 2;
+
+                  return (
+                    <div key={dayData.day} className={`flex-1 border-r border-gray-100 last:border-r-0 relative min-w-[140px] ${dayData.isHoliday ? 'bg-red-50/30' : isToday ? 'bg-indigo-50/20' : ''}`}>
+
+                      <div className={`h-14 border-b border-gray-100 flex flex-col items-center justify-center sticky top-0 z-20 transition-colors ${dayData.isHoliday ? 'bg-red-50' : isToday ? 'bg-indigo-50' : 'bg-white'}`}>
+                        {isToday && <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500"></div>}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-sm font-bold ${dayData.isHoliday ? 'text-red-600' : isToday ? 'text-indigo-700' : 'text-gray-700'}`}>
+                            {dayData.name}
+                          </span>
+                          <span className={`text-xs ${dayData.isHoliday ? 'text-red-400' : isToday ? 'text-indigo-500 font-semibold' : 'text-gray-400'}`}>
+                            {dayData.displayDate}
+                          </span>
+                        </div>
+                        {dayData.isHoliday && (
+                          <span className="text-[10px] font-bold text-red-500 mt-0.5 bg-red-100 px-1.5 rounded-sm">
+                            {dayData.holidayName}放假
+                          </span>
+                        )}
+                        {isToday && !dayData.isHoliday && (
+                          <span className="text-[10px] font-bold text-indigo-500 mt-0.5 px-1.5">
+                            今天
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative w-full" style={{ height: `${hours.length * 60}px` }}>
+                        <div className="absolute inset-0 flex flex-col pointer-events-none">
+                          {hours.map(h => <div key={`grid-${h}`} className="h-[60px] border-b border-gray-100/50 w-full" />)}
+                        </div>
+
+                        {dayData.isHoliday && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden">
+                            <div className="text-4xl font-black text-red-500/10 -rotate-45 whitespace-nowrap">
+                              休 息
+                            </div>
+                          </div>
+                        )}
+
+                        {showIndicator && (
+                          <div
+                            className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
+                            style={{ top: `${timeOffsetMinutes}px` }}
+                          >
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm -ml-1.5 relative z-10"></div>
+                            <div className="flex-1 h-[2px] bg-red-500 shadow-sm -ml-1 opacity-80"></div>
+                          </div>
+                        )}
+
+                        {!dayData.isHoliday && scheduleData.map(course =>
+                          course.sessions
+                            .filter(s => s.day === index + 1 && s.validWeeks(currentWeek))
+                            .map((session, i) => (
+                              <div
+                                key={`${course.id}-${i}`}
+                                onClick={() => setSelectedEvent({ ...course, session, specificDate: dayData.dateString })}
+                                className={`absolute left-1 right-1 rounded-lg p-2 cursor-pointer border border-l-4 overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.02] shadow-sm z-20 ${course.color}`}
+                                style={{
+                                  ...getEventStyle(session.start, session.end),
+                                  borderLeftColor: 'currentColor'
+                                }}
+                              >
+                                <div className="font-bold text-xs sm:text-sm leading-tight truncate">
+                                  {course.name}
+                                </div>
+                                <div className="mt-1 flex flex-col gap-0.5 text-[10px] sm:text-[11px] opacity-90">
+                                  <div className="flex items-center gap-1 font-medium">
+                                    <MapPin size={11} className="flex-shrink-0" />
+                                    <span className="truncate">
+                                      {typeof session.location === 'function' ? session.location(currentWeek) : session.location}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock size={11} className="flex-shrink-0" />
+                                    {session.start} - {session.end}
+                                  </div>
+                                  <div className="mt-0.5 px-1 py-0.5 bg-black/5 rounded-sm inline-block w-max font-semibold">
+                                    {session.note}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detail modal */}
+      {selectedEvent && (
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setSelectedEvent(null)}>
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={`${selectedEvent.tagColor} h-2 w-full`}></div>
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedEvent.name}</h2>
+                  <p className="text-sm text-gray-500 font-medium">{selectedEvent.englishName}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4 mt-6">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <Calendar size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">上课日期</div>
+                    <div className="text-sm text-gray-600">{selectedEvent.specificDate} (第{currentWeek}周)</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">时间安排</div>
+                    <div className="text-sm text-gray-600">
+                      星期{['一','二','三','四','五'][selectedEvent.session.day - 1]} {selectedEvent.session.start} - {selectedEvent.session.end}
+                    </div>
+                    <div className="text-xs text-indigo-600 font-medium mt-0.5 bg-indigo-50 inline-block px-2 py-0.5 rounded">
+                      {selectedEvent.session.note}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">上课地点</div>
+                    <div className="text-sm text-gray-600">
+                      {typeof selectedEvent.session.location === 'function'
+                        ? selectedEvent.session.location(currentWeek)
+                        : selectedEvent.session.location}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                    <User size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">授课教师</div>
+                    <div className="text-sm text-gray-600">{selectedEvent.instructor}</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg shadow-sm transition-colors"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
