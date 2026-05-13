@@ -35,7 +35,7 @@ latest_posts:
 
 <!-- Link to your social media connections, too. This theme is set up to use [Font Awesome icons](https://fontawesome.com/) and [Academicons](https://jpswalsh.github.io/academicons/), like the ones below. Add your Facebook, Twitter, LinkedIn, Google Scholar, or just disable all of them. -->
 
-Hi!👋 I’m **Runqiu Wang**, a senior undergraduate student pursuing a [dual degree](https://www.ji.sjtu.edu.cn/academics/ipo/study-abroad/degree-programs/) in **Computer Science** at the [**University of Michigan**](https://cse.engin.umich.edu/) and **Mechanical Engineering** at [**Shanghai Jiao Tong University**](https://www.ji.sjtu.edu.cn/). I’m currently working in the **AMI Lab** on sensing systems and applied machine learning, advised by [**Prof. Ke Sun**](https://samsonsjarkal.github.io/KeSun/).
+Hi!👋 I’m **Runqiu Wang**, a senior undergraduate student pursuing a [dual degree](https://www.ji.sjtu.edu.cn/academics/ipo/study-abroad/degree-programs/) in **Computer Science** at the [**University of Michigan**](https://cse.engin.umich.edu/) and **Mechanical Engineering** at [**Shanghai Jiao Tong University**](https://www.ji.sjtu.edu.cn/). I worked in the **AMI Lab** led by [**Prof. Ke Sun**](https://samsonsjarkal.github.io/KeSun/) on sensing systems and applied machine learning.
 
 I am interested in applied machine learning and computer vision for ubiquitous and ambient sensing, as well as wearable devices and XR systems that tightly couple the physical and digital worlds.
 
