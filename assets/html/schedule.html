@@ -9,12 +9,18 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  html, body { margin: 0; padding: 0; background: #f9fafb; }
+  html, body { margin: 0; padding: 0; background: #f9fafb; overflow: hidden; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+  #scale-wrapper { width: 880px; transform-origin: top left; }
+  #scale-outer { width: 100%; overflow: hidden; }
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="scale-outer">
+  <div id="scale-wrapper">
+    <div id="root"></div>
+  </div>
+</div>
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo } = React;
@@ -187,7 +193,7 @@ function App() {
   const timeOffsetMinutes = ((currentHour - startHour) * 60) + currentMinute;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
+    <div className="bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
@@ -247,7 +253,7 @@ function App() {
 
         {/* Schedule grid */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-hidden">
             <div className="min-w-[800px] flex">
 
               <div className="w-16 flex-shrink-0 bg-gray-50/50 border-r border-gray-100 relative">
@@ -262,7 +268,7 @@ function App() {
               <div className="flex-1 flex bg-gray-50/30">
                 {currentDaysData.map((dayData, index) => {
                   const isToday = dayData.dateString === currentDateString;
-                  const showIndicator = isToday && currentHour >= startHour && currentHour <= endHour + 2;
+                  const showIndicator = isToday && timeOffsetMinutes >= 0 && timeOffsetMinutes <= (endHour - startHour) * 60;
 
                   return (
                     <div key={dayData.day} className={`flex-1 border-r border-gray-100 last:border-r-0 relative min-w-[140px] ${dayData.isHoliday ? 'bg-red-50/30' : isToday ? 'bg-indigo-50/20' : ''}`}>
@@ -447,6 +453,38 @@ function App() {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
+</script>
+
+<script>
+(function () {
+  const DESIGN_WIDTH = 880;
+  const wrapper = document.getElementById('scale-wrapper');
+  const outer = document.getElementById('scale-outer');
+
+  function applyScale() {
+    const available = window.innerWidth;
+    const scale = Math.min(1, available / DESIGN_WIDTH);
+    wrapper.style.transform = 'scale(' + scale + ')';
+    const scaledHeight = Math.ceil(wrapper.getBoundingClientRect().height);
+    outer.style.height = scaledHeight + 'px';
+    try {
+      window.parent.postMessage(
+        { type: 'schedule-resize', height: scaledHeight },
+        '*'
+      );
+    } catch (e) {}
+  }
+
+  window.addEventListener('resize', applyScale);
+  window.addEventListener('load', applyScale);
+  if (window.ResizeObserver) {
+    new ResizeObserver(applyScale).observe(wrapper);
+  }
+  // Run once after React mounts
+  setTimeout(applyScale, 0);
+  setTimeout(applyScale, 100);
+  setTimeout(applyScale, 500);
+})();
 </script>
 </body>
 </html>

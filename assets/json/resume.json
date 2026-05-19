@@ -34,7 +34,7 @@
       "studyType": "Ph.D. Student",
       "startDate": "2026-08-17",
       "endDate": "?",
-      "image": "assets/img/uw-logo.png"
+      "image": "assets/img/logos/uw-logo.png"
     }
     ,
     {
@@ -46,7 +46,7 @@
       "startDate": "2024-08-01",
       "endDate": "2026-05-01",
       "score": "3.89/4.0",
-      "image": "assets/img/umich-logo.png",
+      "image": "assets/img/logos/umich-logo.png",
       "courses": ["Coursework: Computer Vision, Computer Networks, Machine Learning, Database Systems, Game Dev", "GPA: 3.89/4.0"]
     },
     {
@@ -58,7 +58,7 @@
       "startDate": "2022-09-01",
       "endDate": "2026-08-01",
       "score": "3.57/4.0",
-      "image": "assets/img/sjtu-logo.png",
+      "image": "assets/img/logos/sjtu-logo.png",
       "courses": ["Coursework: Design and Manufacturing, Laboratory", "GPA: 3.57/4.0"]
     }
   ],
@@ -71,9 +71,10 @@
       "endDate": "2026-3-13",
       "location": "Ann Arbor, MI",
       "summary": "Advisor: Ke Sun",
-      "image": "assets/img/ami-logo.jpg",
+      "image": "assets/img/logos/ami-logo.jpg",
       "highlights": [
-        "<strong>Project 2: Moiré-based Tactile Sensor </strong>",
+        "<strong>Project 2: Moiré-based Ultra-Sensitive Visuo-Tactile Sensor</strong>",
+        "Engineered an automated data collection pipeline to curate a robust dataset of >20k samples, and drafted evaluation sections and analytical diagrams for the manuscript. Designed and conducted experiments to benchmark the sensor's perception and force estimation.",
         "<strong>Project 1: Practical Moiré-Based Visualization of Airflows with Commodity Cameras </strong>",
         "Developed a Moiré-based Schlieren sensing framework that uses wallpaper patterns and low-cost cameras to visualize otherwise invisible heat plumes and gas-like flows in real kitchens, including an AutoMoiré calibration module and end-to-end pipelines for cooking-related ML tasks.",
         "<strong>Project 0: Wearable IMU-based Activity Recognition and Motion Transcription</strong>",

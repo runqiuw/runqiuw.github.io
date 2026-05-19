@@ -7,8 +7,8 @@ subtitle: "<a href='https://cse.engin.umich.edu/' target='_blank'>CSE@UMich</a>"
 
 profile:
   align: right
-  image: runqiu.JPEG
-  fun_image: fun.jpg
+  image: profile/runqiu.JPEG
+  fun_image: profile/fun.jpg
   image_circular: false # crops the image to make it circular
   more_info: >
     <p>Ann Arbor, Michigan</p>
