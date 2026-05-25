@@ -47,6 +47,7 @@ const X = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon
 const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
 const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
 const User = (p) => <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
+const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></Icon>;
 
 // ==========================================
 // 1. Course data
@@ -58,13 +59,42 @@ const scheduleData = [
     shortName: 'ME4500J',
     englishName: 'Design and Manufacture III',
     code: 'ME4500J',
-    instructor: 'Chengbin Ma, Yigang Wu, Yanan Wang, Yunlong Jian, Ting Sun',
+    instructor: 'Jigang Wu (Coordinator), Yunlong Guo (Section)',
     color: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
     tagColor: 'bg-blue-500',
     sessions: [
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w >= 1 && w <= 13, note: 'Weeks 1-13', location: 'DZY 1-106' },
-      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w >= 1 && w <= 13, note: 'Weeks 1-13', location: (w) => w <= 8 ? 'ZY413' : 'DZY 1-106' },
-      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w >= 1 && w <= 13 && w % 2 === 0, note: 'Weeks 1-13 (even weeks)', location: 'DZY 1-106' }
+      // W1 Mon — Course Overview
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 1, location: 'DZY 1-106', note: 'Course Overview', instructor: 'Jigang Wu' },
+      // W1 Wed — Projects Information Session
+      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 1, location: 'ZY413', note: 'Projects Info Session', instructor: 'Project Sponsors', specialNote: 'Proposed projects announced; project selection form submitted shortly afterwards. Project selection due this day.' },
+      // W2 Mon — Design Process & IDEO
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 2, location: 'DZY 1-106', note: 'Design Process & IDEO', instructor: 'Jigang Wu', specialNote: 'Project assignment announced in week 2. Kickoff Meeting with sponsors should be completed afterwards and before the end of week 3.\n\n1. The purpose of the kickoff meeting is to make sure everyone on the team understands the PROBLEMS and NEEDS of your project.\n2. Suggested to present your sponsor a team profile (short PPT) including background, strengths, special skills, and the role of each team member.\n3. Professionalism: after the kick-off meeting, the team leader shall set up a chat group or email list that includes all members and the company mentor, and schedule the weekly meetings.' },
+      // W2 Wed — Engineering Specs & QFD
+      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 2, location: 'ZY413', note: 'Engineering Specs & QFD', instructor: 'Jigang Wu' },
+      // W2 Fri — Concept Generation
+      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 2, location: 'DZY 1-106', note: 'Concept Generation', instructor: 'Jigang Wu' },
+      // W3 Mon — Finance & Reporting
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 3, location: 'DZY 1-106', note: 'Finance / Risk / Report', instructor: 'Jianrong Xiao, Jigang Wu' },
+      // W4 Wed — Literature Survey
+      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 4, location: 'ZY413', note: 'Literature Survey', instructor: 'Jigang Wu', specialNote: 'Each group please prepare 4-minute presentation for the literature survey (and benchmarking) for your project. Literature survey presentation due this day.' },
+      // W4 Fri — Literature Survey
+      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 4, location: 'DZY 1-106', note: 'Literature Survey', instructor: 'Jigang Wu', specialNote: 'Each group please prepare 4-minute presentation for the literature survey (and benchmarking) for your project.' },
+      // W5 Mon — Design Review #1
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 5, location: 'DZY 1-106', note: 'Design Review #1', instructor: 'Capstone Judge Panel', specialNote: 'Business formal dress code required. DR#1 presentation slides due before class; DR#1 written report due one week later. Teams should have defined engineering specifications, benchmarked existing/competing products, and identified the state-of-the-art. Present overall understanding of the project and demonstrate initial conceptual ideas.' },
+      // W7 Mon — Design Review #2
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 7, location: 'DZY 1-106', note: 'Design Review #2', instructor: 'Capstone Judge Panel', specialNote: 'Business formal dress code required. NO written design report required for DR#2. DR#2 presentation slides due before class. Generate design concepts systematically and select the best concept. Based on instructors\' evaluation, the GC Office will send a notice to those likely to be failed. Confirm with your instructor before you make any purchases for your project.' },
+      // W9 Mon — Improving TechComm
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 9, location: 'DZY 1-106', note: 'Improving TechComm', instructor: 'Jigang Wu', specialNote: 'Each team shall prepare a 4-slide PPT for your own project: Problem, Needs, Solutions, & Concept Diagram. Improve TechComm presentation due this day.' },
+      // W9 Wed — Improving TechComm
+      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 9, location: 'DZY 1-106', note: 'Improving TechComm', instructor: 'Jigang Wu', specialNote: 'Each team shall prepare a 4-slide PPT for your own project: Problem, Needs, Solutions, & Concept Diagram.' },
+      // W10 Mon — Design Review #3
+      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 10, location: 'DZY 1-106', note: 'Design Review #3', instructor: 'Capstone Judge Panel', specialNote: 'Business formal dress code required. DR#3 presentation slides due before class; DR#3 written report due one week later. Present the final detailed design supported by modeling, analysis, and validation experiments. Include short animations and video clips of the design and experiments for the prototyping demo.' },
+      // W13 Wed — Final Oral Defense
+      { day: 3, start: '08:00', end: '12:00', validWeeks: (w) => w === 13, location: 'DZY 1-106', note: 'Final Oral Defense', instructor: 'Capstone Judge Panel', specialNote: 'Business formal dress code required. Final Oral Defense 8am-12pm. Final presentation and final thesis due.' },
+      // W13 Wed — Design Expo
+      { day: 3, start: '13:00', end: '16:00', validWeeks: (w) => w === 13, location: 'DZY 1-106', note: 'Design Expo', instructor: 'Capstone Judge Panel', specialNote: 'Business formal dress code required. Final prototype review and presentation, 1pm-4pm.' },
+      // Tuesday Instructor Meeting (W3-W11)
+      { day: 2, start: '13:00', end: '13:30', validWeeks: (w) => w >= 3 && w <= 11, location: 'Longbin 510', note: 'Instructor Meeting', instructor: 'Yunlong Guo' }
     ]
   },
   {
@@ -379,7 +409,7 @@ function App() {
               <div className="w-16 flex-shrink-0 bg-gray-50/50 border-r border-gray-100 relative">
                 <div className="h-14 border-b border-gray-100 bg-white"></div>
                 {hours.map(hour => (
-                  <div key={hour} className="h-[60px] border-b border-gray-100 relative text-xs text-gray-400 font-medium">
+                  <div key={hour} className={`h-[60px] relative text-xs text-gray-400 font-medium ${hour === 11 ? 'border-b-2 border-gray-400' : 'border-b border-gray-100'}`}>
                     <span className="absolute -top-2.5 w-full text-center bg-gray-50/50 block">{hour}:00</span>
                   </div>
                 ))}
@@ -417,7 +447,7 @@ function App() {
 
                       <div className="relative w-full" style={{ height: `${hours.length * 60}px` }}>
                         <div className="absolute inset-0 flex flex-col pointer-events-none">
-                          {hours.map(h => <div key={`grid-${h}`} className="h-[60px] border-b border-gray-100/50 w-full" />)}
+                          {hours.map(h => <div key={`grid-${h}`} className={`h-[60px] w-full ${h === 11 ? 'border-b-2 border-gray-400/60' : 'border-b border-gray-100/50'}`} />)}
                         </div>
 
                         {dayData.isHoliday && (
@@ -662,9 +692,21 @@ function App() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-900">Instructor</div>
-                    <div className="text-sm text-gray-600">{selectedEvent.instructor}</div>
+                    <div className="text-sm text-gray-600">{selectedEvent.session.instructor || selectedEvent.instructor}</div>
                   </div>
                 </div>
+
+                {selectedEvent.session.specialNote && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg flex-shrink-0">
+                      <Info size={18} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">Notes</div>
+                      <div className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.session.specialNote}</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
