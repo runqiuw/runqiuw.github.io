@@ -1,954 +1,978 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>2026 Summer Semester Schedule</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  html, body { margin: 0; padding: 0; background: #f9fafb; overflow: hidden; }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
-  #scale-wrapper { width: 880px; min-height: 600px; transform-origin: top left; }
-  #scale-outer { width: 100%; min-height: 600px; overflow: hidden; }
-</style>
-</head>
-<body>
-<div id="scale-outer">
-  <div id="scale-wrapper">
-    <div id="root">
-      <div style="min-height:600px;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#374151;background:#f9fafb;">
-        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.04);">
-          <div style="font-weight:700;color:#111827;margin-bottom:8px;">Loading schedule...</div>
-          <div style="font-size:14px;line-height:1.6;">
-            If this message stays visible, the browser could not load the schedule scripts. Check the console or network access to React/Babel CDNs.
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2026 Summer Semester Schedule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f9fafb;
+        overflow: hidden;
+      }
+      body {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          Arial,
+          "Noto Sans",
+          sans-serif;
+      }
+      #scale-wrapper {
+        width: 880px;
+        min-height: 600px;
+        transform-origin: top left;
+      }
+      #scale-outer {
+        width: 100%;
+        min-height: 600px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scale-outer">
+      <div id="scale-wrapper">
+        <div id="root">
+          <div
+            style="
+              min-height: 600px;
+              padding: 24px;
+              font-family:
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                &quot;Segoe UI&quot;,
+                Roboto,
+                &quot;Helvetica Neue&quot;,
+                Arial,
+                sans-serif;
+              color: #374151;
+              background: #f9fafb;
+            "
+          >
+            <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04)">
+              <div style="font-weight: 700; color: #111827; margin-bottom: 8px">Loading schedule...</div>
+              <div style="font-size: 14px; line-height: 1.6">
+                If this message stays visible, the browser could not load the schedule scripts. Check the console or network access to React/Babel
+                CDNs.
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<script type="text/plain" id="schedule-app-source">
-const { useState, useEffect, useMemo } = React;
+    <script type="text/plain" id="schedule-app-source">
+      const { useState, useEffect, useMemo } = React;
 
-// ---- Inline SVG icon components (replacing lucide-react) ----
-const Icon = ({ size = 16, children, className = '' }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >{children}</svg>
-);
-const MapPin = (p) => <Icon {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Icon>;
-const Clock = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
-const Calendar = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></Icon>;
-const X = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
-const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
-const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
-const User = (p) => <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
-const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></Icon>;
+      // ---- Inline SVG icon components (replacing lucide-react) ----
+      const Icon = ({ size = 16, children, className = '' }) => (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={className}
+        >{children}</svg>
+      );
+      const MapPin = (p) => <Icon {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></Icon>;
+      const Clock = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Icon>;
+      const Calendar = (p) => <Icon {...p}><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></Icon>;
+      const X = (p) => <Icon {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></Icon>;
+      const ChevronLeft = (p) => <Icon {...p}><polyline points="15 18 9 12 15 6"/></Icon>;
+      const ChevronRight = (p) => <Icon {...p}><polyline points="9 18 15 12 9 6"/></Icon>;
+      const User = (p) => <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Icon>;
+      const Info = (p) => <Icon {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></Icon>;
 
-// ==========================================
-// 1. Course data
-// ==========================================
-const scheduleData = [
-  {
-    id: 'ME4500J',
-    name: '设计与制造 (3)',
-    shortName: 'ME4500J',
-    englishName: 'Design and Manufacture III',
-    code: 'ME4500J',
-    instructor: 'Jigang Wu (Coordinator), Yunlong Guo (Section)',
-    color: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
-    tagColor: 'bg-blue-500',
-    sessions: [
-      // W1 Mon — Course Overview
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 1, location: 'DZY 1-106', note: 'Course Overview', instructor: 'Jigang Wu' },
-      // W1 Wed — Projects Information Session
-      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 1, location: 'ZY413', note: 'Projects Info Session', instructor: 'Project Sponsors', specialNote: 'Proposed projects announced; project selection form submitted shortly afterwards. Project selection due this day.' },
-      // W2 Mon — Design Process & IDEO
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 2, location: 'DZY 1-106', note: 'Design Process & IDEO', instructor: 'Jigang Wu', specialNote: 'Project assignment announced in week 2. Kickoff Meeting with sponsors should be completed afterwards and before the end of week 3.\n\n1. The purpose of the kickoff meeting is to make sure everyone on the team understands the PROBLEMS and NEEDS of your project.\n2. Suggested to present your sponsor a team profile (short PPT) including background, strengths, special skills, and the role of each team member.\n3. Professionalism: after the kick-off meeting, the team leader shall set up a chat group or email list that includes all members and the company mentor, and schedule the weekly meetings.' },
-      // W2 Wed — Engineering Specs & QFD
-      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 2, location: 'ZY413', note: 'Engineering Specs & QFD', instructor: 'Jigang Wu' },
-      // W2 Fri — Concept Generation
-      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 2, location: 'DZY 1-106', note: 'Concept Generation', instructor: 'Jigang Wu' },
-      // W3 Mon — Finance & Reporting
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 3, location: 'DZY 1-106', note: 'Finance / Risk / Report', instructor: 'Jianrong Xiao, Jigang Wu' },
-      // W4 Wed — Literature Survey
-      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 4, location: 'ZY413', note: 'Literature Survey', instructor: 'Jigang Wu', specialNote: 'Each group please prepare 4-minute presentation for the literature survey (and benchmarking) for your project. Literature survey presentation due this day.' },
-      // W4 Fri — Literature Survey
-      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 4, location: 'DZY 1-106', note: 'Literature Survey', instructor: 'Jigang Wu', specialNote: 'Each group please prepare 4-minute presentation for the literature survey (and benchmarking) for your project.' },
-      // W5 Mon — Design Review #1
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 5, location: 'DZY 1-106', note: 'Design Review #1', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. DR#1 presentation slides due before class; DR#1 written report due one week later. Teams should have defined engineering specifications, benchmarked existing/competing products, and identified the state-of-the-art. Present overall understanding of the project and demonstrate initial conceptual ideas.' },
-      // W7 Mon — Design Review #2
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 7, location: 'DZY 1-106', note: 'Design Review #2', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. NO written design report required for DR#2. DR#2 presentation slides due before class. Generate design concepts systematically and select the best concept. Based on instructors\' evaluation, the GC Office will send a notice to those likely to be failed. Confirm with your instructor before you make any purchases for your project.' },
-      // W9 Mon — Improving TechComm
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 9, location: 'DZY 1-106', note: 'Improving TechComm', instructor: 'Jigang Wu', attendanceRequired: false, specialNote: 'Each team shall prepare a 4-slide PPT for your own project: Problem, Needs, Solutions, & Concept Diagram. Improve TechComm presentation due this day.' },
-      // W9 Wed — Improving TechComm
-      { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 9, location: 'DZY 1-106', note: 'Improving TechComm', instructor: 'Jigang Wu', attendanceRequired: false, specialNote: 'Each team shall prepare a 4-slide PPT for your own project: Problem, Needs, Solutions, & Concept Diagram.' },
-      // W10 Mon — Design Review #3
-      { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 10, location: 'DZY 1-106', note: 'Design Review #3', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. DR#3 presentation slides due before class; DR#3 written report due one week later. Present the final detailed design supported by modeling, analysis, and validation experiments. Include short animations and video clips of the design and experiments for the prototyping demo.' },
-      // W13 Wed — Final Oral Defense
-      { day: 3, start: '08:00', end: '12:00', validWeeks: (w) => w === 13, location: 'DZY 1-106', note: 'Final Oral Defense', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. Final Oral Defense 8am-12pm. Final presentation and final thesis due.' },
-      // W13 Wed — Design Expo
-      { day: 3, start: '13:00', end: '16:00', validWeeks: (w) => w === 13, location: 'DZY 1-106', note: 'Design Expo', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. Final prototype review and presentation, 1pm-4pm.' },
-      // Tuesday Weekly Meeting (W5-W13)
-      { day: 2, start: '11:00', end: '12:00', validWeeks: (w) => w >= 5 && w <= 13, location: 'TBD', note: 'Weekly Meeting', attendanceRequired: false },
-      // Tuesday Instructor Meeting (W3-W11)
-      { day: 2, start: '13:00', end: '13:30', validWeeks: (w) => w >= 3 && w <= 11, location: 'Longbin 510', note: 'Instructor Meeting', instructor: 'Yunlong Guo', attendanceRequired: (w) => w < 5 }
-    ]
-  },
-  {
-    id: 'ME3350J',
-    name: '传热学 (J类)',
-    shortName: 'ME3350J',
-    englishName: 'Heat Transfer',
-    code: 'ME3350J',
-    instructor: 'Zhaoguang Wang',
-    color: 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100',
-    tagColor: 'bg-pink-500',
-    sessions: [
-      { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 13, note: 'Weeks 1-13', location: 'DSY 101', attendanceRequired: false },
-      { day: 5, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 13, note: 'Weeks 1-13', location: 'DSY 101', attendanceRequired: false },
-      { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w === 6, note: 'Midterm 1', location: 'DSY 101', isExam: true },
-      { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w === 11, note: 'Midterm 2', location: 'DSY 101', isExam: true },
-      { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 13, note: 'Final', location: 'DSY 101', isExam: true }
-    ]
-  },
-  {
-    id: 'ME4950J',
-    name: '实验二',
-    shortName: 'ME4950J',
-    englishName: 'Laboratory II',
-    code: 'ME4950J',
-    instructor: 'Peixue Huang',
-    color: 'bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100',
-    tagColor: 'bg-orange-500',
-    sessions: [
-      // Tuesday Labs (W2-W12)
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 2, note: 'SOLIDS Lab Demo', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 3, note: 'MANUFACTURING Lab Demo', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 4, note: 'FLUIDS Lab Demo', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 5, note: 'VIBRATIONS Lab Demo', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 6, note: 'PROJECT Lab 0/6', location: 'F310', type: 'lab', specialNote: 'Project Assignment' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 7, note: 'PROJECT Lab 1/6', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 8, note: 'PROJECT Lab 2/6', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 9, note: 'PROJECT Lab 3/6', location: 'F310', type: 'lab', specialNote: 'Preliminary Results Expected' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 10, note: 'PROJECT Lab 4/6', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 11, note: 'PROJECT Lab 5/6', location: 'F310', type: 'lab' },
-      { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 12, note: 'PROJECT Lab 6/6', location: 'F310', type: 'lab', specialNote: 'Clean Up' },
-      // Lectures (W1-W12)
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 1, note: 'Course Intro', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 1, note: 'SOLIDS Lab Intro: Digital Image Correlation', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 2, note: 'MANUFACTURING Lab Intro: Coordinate Measuring Machine', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 2, note: 'SOLIDS Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 3, note: 'FLUIDS Lab Intro: High-Speed Imaging', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 3, note: 'MANUFACTURING Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 4, note: 'VIBRATIONS Lab Intro', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 4, note: 'FLUIDS Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 5, note: 'Magnetic Levitation Dynamics & Control', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 5, note: 'VIBRATIONS Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 6, note: 'Design of Experiments (DoE) - 1', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 6, note: 'DoE - 2', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 7, note: 'PROJECT Proposal Presentations (Tue Section)', location: 'DZY 1-109', attendanceRequired: true },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 7, note: 'PROJECT Proposal Presentations (Wed Section)', location: 'DZY 1-109', attendanceRequired: true },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 8, note: 'Expo Deliverables: Abstracts', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 8, note: 'Expo Deliverables: Scientific Posters', location: 'DZY 1-109', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 9, note: 'AI for Engineering', location: 'DZY 1-108', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 9, note: 'PROJECT Progress Update Presentations (Tue Section)', location: 'DZY 1-108', attendanceRequired: true },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 10, note: 'PROJECT Progress Update Presentations (Wed Section)', location: 'DZY 1-108', attendanceRequired: true },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 10, note: 'Review of Expo Deliverables 1st Drafts', location: 'DZY 1-108', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 11, note: 'Thesis Writing', location: 'DZY 1-108', attendanceRequired: false },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 11, note: 'Review of Expo Deliverables Final Drafts', location: 'DZY 1-108', attendanceRequired: false },
-      { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 12, note: 'PROJECT Final Presentations (Tue Section)', location: 'DZY 1-108', attendanceRequired: true },
-      { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 12, note: 'PROJECT Final Presentations (Wed Section)', location: 'DZY 1-108', attendanceRequired: true },
-      // W13 Wed — Design Expo
-      { day: 3, start: '13:00', end: '16:00', validWeeks: (w) => w === 13, note: 'Design Expo', location: 'TBD', attendanceRequired: true }
-    ]
-  },
-  {
-    id: 'MUSI1500J',
-    name: '中国音乐概论',
-    shortName: 'MUSI1500J',
-    englishName: 'Introduction to Chinese Music',
-    code: 'MUSI1500J',
-    instructor: 'Yan Xu',
-    color: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100',
-    tagColor: 'bg-emerald-500',
-    sessions: [
-      { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 7, note: 'Weeks 1-7', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
-      { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w === 8, note: 'Presentation Intro', location: 'DZY 3-205', attendanceRequired: false, specialNote: 'Presentation briefing / intro for MUSI1500J.' },
-      { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 8 && w !== 8, note: 'Weeks 1-7', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
-      { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w === 8, note: 'Final', location: 'DZY 3-205', isExam: true }
-    ]
-  },
-  {
-    id: 'TRAVEL',
-    name: 'Travel',
-    shortName: 'Flight',
-    englishName: 'Flight to Chicago',
-    code: 'FLIGHT',
-    instructor: '',
-    color: 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100',
-    tagColor: 'bg-violet-500',
-    sessions: [
-      {
-        day: 1,
-        start: '07:00',
-        end: '24:00',
-        displayTime: '08/17 07:00 - 08/18 07:00',
-        validWeeks: (w) => w === 15,
-        note: 'Flight to Chicago',
-        location: 'Flight',
-        type: 'travel',
-        specialNote: '24-hour travel block.'
-      }
-    ]
-  }
-];
+      // ==========================================
+      // 1. Course data
+      // ==========================================
+      const scheduleData = [
+        {
+          id: 'ME4500J',
+          name: '设计与制造 (3)',
+          shortName: 'ME4500J',
+          englishName: 'Design and Manufacture III',
+          code: 'ME4500J',
+          instructor: 'Jigang Wu (Coordinator), Yunlong Guo (Section)',
+          color: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
+          tagColor: 'bg-blue-500',
+          sessions: [
+            // W1 Mon — Course Overview
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 1, location: 'DZY 1-106', note: 'Course Overview', instructor: 'Jigang Wu' },
+            // W1 Wed — Projects Information Session
+            { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 1, location: 'ZY413', note: 'Projects Info Session', instructor: 'Project Sponsors', specialNote: 'Proposed projects announced; project selection form submitted shortly afterwards. Project selection due this day.' },
+            // W2 Mon — Design Process & IDEO
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 2, location: 'DZY 1-106', note: 'Design Process & IDEO', instructor: 'Jigang Wu', specialNote: 'Project assignment announced in week 2. Kickoff Meeting with sponsors should be completed afterwards and before the end of week 3.\n\n1. The purpose of the kickoff meeting is to make sure everyone on the team understands the PROBLEMS and NEEDS of your project.\n2. Suggested to present your sponsor a team profile (short PPT) including background, strengths, special skills, and the role of each team member.\n3. Professionalism: after the kick-off meeting, the team leader shall set up a chat group or email list that includes all members and the company mentor, and schedule the weekly meetings.' },
+            // W2 Wed — Engineering Specs & QFD
+            { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 2, location: 'ZY413', note: 'Engineering Specs & QFD', instructor: 'Jigang Wu' },
+            // W2 Fri — Concept Generation
+            { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 2, location: 'DZY 1-106', note: 'Concept Generation', instructor: 'Jigang Wu' },
+            // W3 Mon — Finance & Reporting
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 3, location: 'DZY 1-106', note: 'Finance / Risk / Report', instructor: 'Jianrong Xiao, Jigang Wu' },
+            // W4 Wed — Literature Survey
+            { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 4, location: 'ZY413', note: 'Literature Survey', instructor: 'Jigang Wu', specialNote: 'Each group please prepare 4-minute presentation for the literature survey (and benchmarking) for your project. Literature survey presentation due this day.' },
+            // W4 Fri — Literature Survey
+            { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 4, location: 'DZY 1-106', note: 'Literature Survey', instructor: 'Jigang Wu', specialNote: 'Each group please prepare 4-minute presentation for the literature survey (and benchmarking) for your project.' },
+            // W5 Mon — Design Review #1
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 5, location: 'DZY 1-106', note: 'Design Review #1', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. DR#1 presentation slides due before class; DR#1 written report due one week later. Teams should have defined engineering specifications, benchmarked existing/competing products, and identified the state-of-the-art. Present overall understanding of the project and demonstrate initial conceptual ideas.' },
+            // W7 Mon — Design Review #2
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 7, location: 'DZY 1-106', note: 'Design Review #2', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. NO written design report required for DR#2. DR#2 presentation slides due before class. Generate design concepts systematically and select the best concept. Based on instructors\' evaluation, the GC Office will send a notice to those likely to be failed. Confirm with your instructor before you make any purchases for your project.' },
+            // W9 Mon — Improving TechComm
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 9, location: 'DZY 1-106', note: 'Improving TechComm', instructor: 'Jigang Wu', attendanceRequired: false, specialNote: 'Each team shall prepare a 4-slide PPT for your own project: Problem, Needs, Solutions, & Concept Diagram. Improve TechComm presentation due this day.' },
+            // W9 Wed — Improving TechComm
+            { day: 3, start: '10:00', end: '11:40', validWeeks: (w) => w === 9, location: 'DZY 1-106', note: 'Improving TechComm', instructor: 'Jigang Wu', attendanceRequired: false, specialNote: 'Each team shall prepare a 4-slide PPT for your own project: Problem, Needs, Solutions, & Concept Diagram.' },
+            // W10 Mon — Design Review #3
+            { day: 1, start: '16:00', end: '17:40', validWeeks: (w) => w === 10, location: 'DZY 1-106', note: 'Design Review #3', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. DR#3 presentation slides due before class; DR#3 written report due one week later. Present the final detailed design supported by modeling, analysis, and validation experiments. Include short animations and video clips of the design and experiments for the prototyping demo.' },
+            // W13 Wed — Final Oral Defense
+            { day: 3, start: '08:00', end: '12:00', validWeeks: (w) => w === 13, location: 'DZY 1-106', note: 'Final Oral Defense', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. Final Oral Defense 8am-12pm. Final presentation and final thesis due.' },
+            // W13 Wed — Design Expo
+            { day: 3, start: '13:00', end: '16:00', validWeeks: (w) => w === 13, location: 'DZY 1-106', note: 'Design Expo', instructor: 'Capstone Judge Panel', attendanceRequired: true, specialNote: 'Business formal dress code required. Final prototype review and presentation, 1pm-4pm.' },
+            // Tuesday Weekly Meeting (W5-W13)
+            { day: 2, start: '11:00', end: '12:00', validWeeks: (w) => w >= 5 && w <= 13, location: 'TBD', note: 'Weekly Meeting', attendanceRequired: false },
+            // Tuesday Instructor Meeting (W3-W11)
+            { day: 2, start: '13:00', end: '13:30', validWeeks: (w) => w >= 3 && w <= 11, location: 'Longbin 510', note: 'Instructor Meeting', instructor: 'Yunlong Guo', attendanceRequired: (w) => w < 5 }
+          ]
+        },
+        {
+          id: 'ME3350J',
+          name: '传热学 (J类)',
+          shortName: 'ME3350J',
+          englishName: 'Heat Transfer',
+          code: 'ME3350J',
+          instructor: 'Zhaoguang Wang',
+          color: 'bg-pink-50 border-pink-200 text-pink-800 hover:bg-pink-100',
+          tagColor: 'bg-pink-500',
+          sessions: [
+            { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 13, note: 'Weeks 1-13', location: 'DSY 101', attendanceRequired: false },
+            { day: 5, start: '14:00', end: '15:40', validWeeks: (w) => w >= 1 && w <= 13, note: 'Weeks 1-13', location: 'DSY 101', attendanceRequired: false },
+            { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w === 6, note: 'Midterm 1', location: 'DSY 101', isExam: true },
+            { day: 1, start: '14:00', end: '15:40', validWeeks: (w) => w === 11, note: 'Midterm 2', location: 'DSY 101', isExam: true },
+            { day: 5, start: '10:00', end: '11:40', validWeeks: (w) => w === 13, note: 'Final', location: 'DSY 101', isExam: true }
+          ]
+        },
+        {
+          id: 'ME4950J',
+          name: '实验二',
+          shortName: 'ME4950J',
+          englishName: 'Laboratory II',
+          code: 'ME4950J',
+          instructor: 'Peixue Huang',
+          color: 'bg-orange-50 border-orange-200 text-orange-800 hover:bg-orange-100',
+          tagColor: 'bg-orange-500',
+          sessions: [
+            // Tuesday Labs (W2-W12)
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 2, note: 'SOLIDS Lab Demo', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 3, note: 'MANUFACTURING Lab Demo', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 4, note: 'FLUIDS Lab Demo', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 5, note: 'VIBRATIONS Lab Demo', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 6, note: 'PROJECT Lab 0/6', location: 'F310', type: 'lab', specialNote: 'Project Assignment' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 7, note: 'PROJECT Lab 1/6', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 8, note: 'PROJECT Lab 2/6', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 9, note: 'PROJECT Lab 3/6', location: 'F310', type: 'lab', specialNote: 'Preliminary Results Expected' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 10, note: 'PROJECT Lab 4/6', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 11, note: 'PROJECT Lab 5/6', location: 'F310', type: 'lab' },
+            { day: 2, start: '09:30', end: '10:30', validWeeks: (w) => w === 12, note: 'PROJECT Lab 6/6', location: 'F310', type: 'lab', specialNote: 'Clean Up' },
+            // Lectures (W1-W12)
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 1, note: 'Course Intro', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 1, note: 'SOLIDS Lab Intro: Digital Image Correlation', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 2, note: 'MANUFACTURING Lab Intro: Coordinate Measuring Machine', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 2, note: 'SOLIDS Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 3, note: 'FLUIDS Lab Intro: High-Speed Imaging', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 3, note: 'MANUFACTURING Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 4, note: 'VIBRATIONS Lab Intro', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 4, note: 'FLUIDS Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 5, note: 'Magnetic Levitation Dynamics & Control', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 5, note: 'VIBRATIONS Lab Demo Data Analysis', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 6, note: 'Design of Experiments (DoE) - 1', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 6, note: 'DoE - 2', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 7, note: 'PROJECT Proposal Presentations (Tue Section)', location: 'DZY 1-109', attendanceRequired: true },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 7, note: 'PROJECT Proposal Presentations (Wed Section)', location: 'DZY 1-109', attendanceRequired: true },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 8, note: 'Expo Deliverables: Abstracts', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 8, note: 'Expo Deliverables: Scientific Posters', location: 'DZY 1-109', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 9, note: 'AI for Engineering', location: 'DZY 1-108', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 9, note: 'PROJECT Progress Update Presentations (Tue Section)', location: 'DZY 1-108', attendanceRequired: true },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 10, note: 'PROJECT Progress Update Presentations (Wed Section)', location: 'DZY 1-108', attendanceRequired: true },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 10, note: 'Review of Expo Deliverables 1st Drafts', location: 'DZY 1-108', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 11, note: 'Thesis Writing', location: 'DZY 1-108', attendanceRequired: false },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 11, note: 'Review of Expo Deliverables Final Drafts', location: 'DZY 1-108', attendanceRequired: false },
+            { day: 2, start: '14:00', end: '15:40', validWeeks: (w) => w === 12, note: 'PROJECT Final Presentations (Tue Section)', location: 'DZY 1-108', attendanceRequired: true },
+            { day: 4, start: '14:00', end: '15:40', validWeeks: (w) => w === 12, note: 'PROJECT Final Presentations (Wed Section)', location: 'DZY 1-108', attendanceRequired: true },
+            // W13 Wed — Design Expo
+            { day: 3, start: '13:00', end: '16:00', validWeeks: (w) => w === 13, note: 'Design Expo', location: 'TBD', attendanceRequired: true }
+          ]
+        },
+        {
+          id: 'MUSI1500J',
+          name: '中国音乐概论',
+          shortName: 'MUSI1500J',
+          englishName: 'Introduction to Chinese Music',
+          code: 'MUSI1500J',
+          instructor: 'Yan Xu',
+          color: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100',
+          tagColor: 'bg-emerald-500',
+          sessions: [
+            { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 7, note: 'Weeks 1-7', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
+            { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w === 8, note: 'Presentation Intro', location: 'DZY 3-205', attendanceRequired: false, specialNote: 'Presentation briefing / intro for MUSI1500J.' },
+            { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 8 && w !== 8, note: 'Weeks 1-7', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
+            { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w === 8, note: 'Final', location: 'DZY 3-205', isExam: true }
+          ]
+        },
+        {
+          id: 'TRAVEL',
+          name: 'Travel',
+          shortName: 'Flight',
+          englishName: 'Flight to Chicago',
+          code: 'FLIGHT',
+          instructor: '',
+          color: 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100',
+          tagColor: 'bg-violet-500',
+          sessions: [
+            {
+              day: 1,
+              start: '07:00',
+              end: '24:00',
+              displayTime: '08/17 07:00 - 08/18 07:00',
+              validWeeks: (w) => w === 15,
+              note: 'Flight to Chicago',
+              location: 'Flight',
+              type: 'travel',
+              specialNote: '24-hour travel block.'
+            }
+          ]
+        }
+      ];
 
-// ==========================================
-// 2. Dates and holidays
-// ==========================================
-const semesterStartDate = new Date(2026, 4, 11); // May 11, 2026
-const minScheduleWeek = 1;
-const maxScheduleWeek = 15;
-const minCalendarMonthDate = new Date(2026, 4, 1); // May 2026
-const maxCalendarMonthDate = new Date(2026, 7, 1); // August 2026
-const holidays = {
-  '2026-06-19': 'Dragon Boat Festival'
-};
-
-const clampWeek = (week) => Math.max(minScheduleWeek, Math.min(maxScheduleWeek, week));
-const monthIndex = (date) => date.getFullYear() * 12 + date.getMonth();
-const clampCalendarMonth = (date) => {
-  const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-  if (monthIndex(monthStart) < monthIndex(minCalendarMonthDate)) return minCalendarMonthDate;
-  if (monthIndex(monthStart) > monthIndex(maxCalendarMonthDate)) return maxCalendarMonthDate;
-  return monthStart;
-};
-
-const getShanghaiTime = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-
-function App() {
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [currentTime, setCurrentTime] = useState(getShanghaiTime());
-  const [viewMode, setViewMode] = useState('week'); // 'week' | 'month'
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(getShanghaiTime());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const currentYear = currentTime.getFullYear();
-  const currentMonth = String(currentTime.getMonth() + 1).padStart(2, '0');
-  const currentDayStr = String(currentTime.getDate()).padStart(2, '0');
-  const currentDateString = `${currentYear}-${currentMonth}-${currentDayStr}`;
-
-  const actualCurrentWeek = useMemo(() => {
-    const start = new Date(semesterStartDate);
-    const current = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
-    const diffTime = current.getTime() - start.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return minScheduleWeek;
-    return Math.floor(diffDays / 7) + 1;
-  }, []);
-
-  const [currentWeek, setCurrentWeek] = useState(clampWeek(actualCurrentWeek));
-  const [calendarMonth, setCalendarMonth] = useState(clampCalendarMonth(new Date(currentTime.getFullYear(), currentTime.getMonth(), 1)));
-
-  const startHour = 7;
-  const endHour = 24;
-  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
-
-  // Returns one of: 'exam' | 'required' | 'optional'
-  // Defaults to 'required' for any non-exam session.
-  const getSessionState = (session, week) => {
-    if (session.isExam) return 'exam';
-    const attendanceRequired = typeof session.attendanceRequired === 'function'
-      ? session.attendanceRequired(week)
-      : session.attendanceRequired;
-    if (attendanceRequired === false) return 'optional';
-    return 'required';
-  };
-
-  const getCourseLabel = (course, session) => {
-    const baseLabel = course.code || course.shortName || course.name;
-    if (session.type === 'travel') return 'FLIGHT';
-    return session.type === 'lab' ? 'LAB' : baseLabel;
-  };
-
-  const getSessionTimeLabel = (session) => session.displayTime || `${session.start} - ${session.end}`;
-
-  // Compute week index for an arbitrary Date (1-15 if within schedule range, otherwise null)
-  const weekForDate = (date) => {
-    const start = new Date(semesterStartDate);
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return null;
-    const week = Math.floor(diffDays / 7) + 1;
-    if (week < minScheduleWeek || week > maxScheduleWeek) return null;
-    return week;
-  };
-
-  // Sessions on a given Date (Mon-Fri only; weekends return [])
-  const sessionsOnDate = (date) => {
-    const jsDay = date.getDay(); // 0=Sun..6=Sat
-    if (jsDay === 0 || jsDay === 6) return [];
-    const day = jsDay; // Mon=1..Fri=5
-    const week = weekForDate(date);
-    if (week === null) return [];
-    const dateString = formatDateString(date);
-    const isHoliday = !!holidays[dateString];
-    const list = [];
-    scheduleData.forEach(course => {
-      course.sessions.forEach(session => {
-        if (session.day !== day) return;
-        if (!session.validWeeks(week)) return;
-        if (isHoliday && !session.isExam) return;
-        list.push({ course, session, week });
-      });
-    });
-    return list;
-  };
-
-  const formatDateString = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
-
-  const getDaysDataForWeek = (week) => {
-    return [1, 2, 3, 4, 5].map(dayIndex => {
-      const date = new Date(semesterStartDate);
-      date.setDate(semesterStartDate.getDate() + (week - 1) * 7 + (dayIndex - 1));
-
-      const year = date.getFullYear();
-      const monthStr = String(date.getMonth() + 1).padStart(2, '0');
-      const dayStr = String(date.getDate()).padStart(2, '0');
-
-      const dateString = `${year}-${monthStr}-${dayStr}`;
-      const displayDate = `${monthStr}/${dayStr}`;
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-
-      return {
-        day: dayIndex,
-        name: dayNames[dayIndex - 1],
-        displayDate: displayDate,
-        dateString: dateString,
-        isHoliday: !!holidays[dateString],
-        holidayName: holidays[dateString]
+      // ==========================================
+      // 2. Dates and holidays
+      // ==========================================
+      const semesterStartDate = new Date(2026, 4, 11); // May 11, 2026
+      const minScheduleWeek = 1;
+      const maxScheduleWeek = 15;
+      const minCalendarMonthDate = new Date(2026, 4, 1); // May 2026
+      const maxCalendarMonthDate = new Date(2026, 7, 1); // August 2026
+      const holidays = {
+        '2026-06-19': 'Dragon Boat Festival'
       };
-    });
-  };
 
-  const currentDaysData = getDaysDataForWeek(currentWeek);
+      const clampWeek = (week) => Math.max(minScheduleWeek, Math.min(maxScheduleWeek, week));
+      const monthIndex = (date) => date.getFullYear() * 12 + date.getMonth();
+      const clampCalendarMonth = (date) => {
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        if (monthIndex(monthStart) < monthIndex(minCalendarMonthDate)) return minCalendarMonthDate;
+        if (monthIndex(monthStart) > monthIndex(maxCalendarMonthDate)) return maxCalendarMonthDate;
+        return monthStart;
+      };
 
-  const getEventStyle = (start, end) => {
-    const [startH, startM] = start.split(':').map(Number);
-    const [endH, endM] = end.split(':').map(Number);
+      const getShanghaiTime = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
 
-    const topMinutes = ((startH - startHour) * 60) + startM;
-    const durationMinutes = ((endH - startH) * 60) + (endM - startM);
+      function App() {
+        const [selectedEvent, setSelectedEvent] = useState(null);
+        const [currentTime, setCurrentTime] = useState(getShanghaiTime());
+        const [viewMode, setViewMode] = useState('week'); // 'week' | 'month'
 
-    return {
-      top: `${topMinutes}px`,
-      height: `${durationMinutes}px`,
-    };
-  };
+        useEffect(() => {
+          const timer = setInterval(() => {
+            setCurrentTime(getShanghaiTime());
+          }, 60000);
+          return () => clearInterval(timer);
+        }, []);
 
-  const currentHour = currentTime.getHours();
-  const currentMinute = currentTime.getMinutes();
-  const timeOffsetMinutes = ((currentHour - startHour) * 60) + currentMinute;
-  const isAtMinCalendarMonth = monthIndex(calendarMonth) <= monthIndex(minCalendarMonthDate);
-  const isAtMaxCalendarMonth = monthIndex(calendarMonth) >= monthIndex(maxCalendarMonthDate);
-  const moveCalendarMonth = (offset) => {
-    setCalendarMonth((prev) => clampCalendarMonth(new Date(prev.getFullYear(), prev.getMonth() + offset, 1)));
-  };
+        const currentYear = currentTime.getFullYear();
+        const currentMonth = String(currentTime.getMonth() + 1).padStart(2, '0');
+        const currentDayStr = String(currentTime.getDate()).padStart(2, '0');
+        const currentDateString = `${currentYear}-${currentMonth}-${currentDayStr}`;
 
-  return (
-    <div className="bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
-      <div className="max-w-6xl mx-auto">
+        const actualCurrentWeek = useMemo(() => {
+          const start = new Date(semesterStartDate);
+          const current = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
+          const diffTime = current.getTime() - start.getTime();
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          if (diffDays < 0) return minScheduleWeek;
+          return Math.floor(diffDays / 7) + 1;
+        }, []);
 
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Calendar className="text-indigo-600" />
-                2026 Summer Semester Schedule
-              </h1>
-              <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
-                <Clock size={14} />
-                <span>
-                  Beijing Time: {currentDateString} {String(currentHour).padStart(2, '0')}:{String(currentMinute).padStart(2, '0')}
-                </span>
-              </div>
-            </div>
+        const [currentWeek, setCurrentWeek] = useState(clampWeek(actualCurrentWeek));
+        const [calendarMonth, setCalendarMonth] = useState(clampCalendarMonth(new Date(currentTime.getFullYear(), currentTime.getMonth(), 1)));
 
-            <div className="flex flex-col gap-3 items-stretch md:items-end">
-              {/* View toggle */}
-              <div className="inline-flex bg-gray-100 rounded-lg p-1 self-start md:self-end">
-                <button
-                  onClick={() => setViewMode('week')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'week' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Week
-                </button>
-                <button
-                  onClick={() => setViewMode('month')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'month' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                  Calendar
-                </button>
-              </div>
+        const startHour = 7;
+        const endHour = 24;
+        const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
-              {viewMode === 'week' ? (
-                <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
-                  <button
-                    onClick={() => setCurrentWeek(clampWeek(currentWeek - 1))}
-                    className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
-                    disabled={currentWeek === minScheduleWeek}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <div className="w-48 px-4 text-center">
-                    <div className="font-semibold text-indigo-700">Week {currentWeek}</div>
-                    <div className="text-xs text-gray-500">
-                      {currentDaysData[0].displayDate} - {currentDaysData[4].displayDate}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setCurrentWeek(clampWeek(currentWeek + 1))}
-                    className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
-                    disabled={currentWeek === maxScheduleWeek}
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
-                  <button
-                    onClick={() => moveCalendarMonth(-1)}
-                    className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
-                    disabled={isAtMinCalendarMonth}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <div className="w-48 px-4 text-center">
-                    <div className="font-semibold text-indigo-700">
-                      {calendarMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => moveCalendarMonth(1)}
-                    className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
-                    disabled={isAtMaxCalendarMonth}
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+        // Returns one of: 'exam' | 'required' | 'optional'
+        // Defaults to 'required' for any non-exam session.
+        const getSessionState = (session, week) => {
+          if (session.isExam) return 'exam';
+          const attendanceRequired = typeof session.attendanceRequired === 'function'
+            ? session.attendanceRequired(week)
+            : session.attendanceRequired;
+          if (attendanceRequired === false) return 'optional';
+          return 'required';
+        };
 
-          {viewMode === 'week' && (
-            <div className="mt-6">
-              <input
-                type="range"
-                min={minScheduleWeek}
-                max={maxScheduleWeek}
-                value={currentWeek}
-                onChange={(e) => setCurrentWeek(clampWeek(parseInt(e.target.value)))}
-                className="w-full accent-indigo-600 cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-gray-400 px-1 mt-2">
-                <span>W1</span><span>W3</span><span>W5</span><span className="font-bold text-red-400">W6</span><span>W7</span><span>W9</span><span>W11</span><span>W13</span><span>W15(Flight)</span>
-              </div>
-            </div>
-          )}
+        const getCourseLabel = (course, session) => {
+          const baseLabel = course.code || course.shortName || course.name;
+          if (session.type === 'travel') return 'FLIGHT';
+          return session.type === 'lab' ? 'LAB' : baseLabel;
+        };
 
-          {viewMode === 'month' && (
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-red-500"></span>考试</div>
-                <div className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-indigo-500"></span>必到</div>
-                <div className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-gray-400"></span>选到</div>
-              </div>
-              <div className="flex items-center gap-1.5 ml-auto"><span className="inline-block w-3 h-3 rounded-sm bg-red-100 border border-red-200"></span>节假日</div>
-            </div>
-          )}
-        </div>
+        const getSessionTimeLabel = (session) => session.displayTime || `${session.start} - ${session.end}`;
 
-        {/* Schedule grid (week view) */}
-        {viewMode === 'week' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-hidden">
-            <div className="min-w-[800px] flex">
+        // Compute week index for an arbitrary Date (1-15 if within schedule range, otherwise null)
+        const weekForDate = (date) => {
+          const start = new Date(semesterStartDate);
+          const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays < 0) return null;
+          const week = Math.floor(diffDays / 7) + 1;
+          if (week < minScheduleWeek || week > maxScheduleWeek) return null;
+          return week;
+        };
 
-              <div className="w-16 flex-shrink-0 bg-gray-50/50 border-r border-gray-100 relative">
-                <div className="h-14 border-b border-gray-100 bg-white"></div>
-                {hours.map(hour => (
-                  <div key={hour} className={`h-[60px] relative text-xs text-gray-400 font-medium ${hour === 11 ? 'border-b-2 border-gray-400' : 'border-b border-gray-100'}`}>
-                    <span className="absolute -top-2.5 w-full text-center bg-gray-50/50 block">{hour}:00</span>
-                  </div>
-                ))}
-              </div>
+        // Sessions on a given Date (Mon-Fri only; weekends return [])
+        const sessionsOnDate = (date) => {
+          const jsDay = date.getDay(); // 0=Sun..6=Sat
+          if (jsDay === 0 || jsDay === 6) return [];
+          const day = jsDay; // Mon=1..Fri=5
+          const week = weekForDate(date);
+          if (week === null) return [];
+          const dateString = formatDateString(date);
+          const isHoliday = !!holidays[dateString];
+          const list = [];
+          scheduleData.forEach(course => {
+            course.sessions.forEach(session => {
+              if (session.day !== day) return;
+              if (!session.validWeeks(week)) return;
+              if (isHoliday && !session.isExam) return;
+              list.push({ course, session, week });
+            });
+          });
+          return list;
+        };
 
-              <div className="flex-1 flex bg-gray-50/30">
-                {currentDaysData.map((dayData, index) => {
-                  const isToday = dayData.dateString === currentDateString;
-                  const showIndicator = isToday && timeOffsetMinutes >= 0 && timeOffsetMinutes <= (endHour - startHour) * 60;
+        const formatDateString = (date) => {
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        };
 
-                  return (
-                    <div key={dayData.day} className={`flex-1 border-r border-gray-100 last:border-r-0 relative min-w-[140px] ${dayData.isHoliday ? 'bg-red-50/30' : isToday ? 'bg-indigo-50/20' : ''}`}>
 
-                      <div className={`h-14 border-b border-gray-100 flex flex-col items-center justify-center sticky top-0 z-20 transition-colors ${dayData.isHoliday ? 'bg-red-50' : isToday ? 'bg-indigo-50' : 'bg-white'}`}>
-                        {isToday && <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500"></div>}
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-sm font-bold ${dayData.isHoliday ? 'text-red-600' : isToday ? 'text-indigo-700' : 'text-gray-700'}`}>
-                            {dayData.name}
-                          </span>
-                          <span className={`text-xs ${dayData.isHoliday ? 'text-red-400' : isToday ? 'text-indigo-500 font-semibold' : 'text-gray-400'}`}>
-                            {dayData.displayDate}
-                          </span>
-                        </div>
-                        {dayData.isHoliday && (
-                          <span className="text-[10px] font-bold text-red-500 mt-0.5 bg-red-100 px-1.5 rounded-sm">
-                            {dayData.holidayName}
-                          </span>
-                        )}
-                        {isToday && !dayData.isHoliday && (
-                          <span className="text-[10px] font-bold text-indigo-500 mt-0.5 px-1.5">
-                            Today
-                          </span>
-                        )}
-                      </div>
+        const getDaysDataForWeek = (week) => {
+          return [1, 2, 3, 4, 5].map(dayIndex => {
+            const date = new Date(semesterStartDate);
+            date.setDate(semesterStartDate.getDate() + (week - 1) * 7 + (dayIndex - 1));
 
-                      <div className="relative w-full" style={{ height: `${hours.length * 60}px` }}>
-                        <div className="absolute inset-0 flex flex-col pointer-events-none">
-                          {hours.map(h => <div key={`grid-${h}`} className={`h-[60px] w-full ${h === 11 ? 'border-b-2 border-gray-400/60' : 'border-b border-gray-100/50'}`} />)}
-                        </div>
+            const year = date.getFullYear();
+            const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(date.getDate()).padStart(2, '0');
 
-                        {dayData.isHoliday && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden">
-                            <div className="text-4xl font-black text-red-500/10 -rotate-45 whitespace-nowrap">
-                              NO CLASS
-                            </div>
-                          </div>
-                        )}
+            const dateString = `${year}-${monthStr}-${dayStr}`;
+            const displayDate = `${monthStr}/${dayStr}`;
+            const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-                        {showIndicator && (
-                          <div
-                            className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
-                            style={{ top: `${timeOffsetMinutes}px` }}
-                          >
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm -ml-1.5 relative z-10"></div>
-                            <div className="flex-1 h-[2px] bg-red-500 shadow-sm -ml-1 opacity-80"></div>
-                          </div>
-                        )}
+            return {
+              day: dayIndex,
+              name: dayNames[dayIndex - 1],
+              displayDate: displayDate,
+              dateString: dateString,
+              isHoliday: !!holidays[dateString],
+              holidayName: holidays[dateString]
+            };
+          });
+        };
 
-                        {scheduleData.map(course =>
-                          course.sessions
-                            .filter(s => s.day === index + 1 && s.validWeeks(currentWeek) && (!dayData.isHoliday || s.isExam))
-                            .map((session, i) => {
-                              const sessionState = getSessionState(session, currentWeek);
-                              return (
-                                <div
-                                  key={`${course.id}-${i}`}
-                                  onClick={() => setSelectedEvent({ ...course, session, specificDate: dayData.dateString })}
-                                  className={`absolute left-1 right-1 rounded-lg p-2 cursor-pointer border overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.02] shadow-sm z-20 ${session.isExam ? 'bg-red-50 border-red-300 text-red-800 hover:bg-red-100 border-l-4 ring-2 ring-red-300/60' : `${course.color} border-l-4`}`}
-                                  style={{
-                                    ...getEventStyle(session.start, session.end),
-                                    borderLeftColor: 'currentColor'
-                                  }}
-                                >
-                                  {session.isExam && (
-                                    <div className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none z-10">
-                                      考试
-                                    </div>
-                                  )}
-                                  {sessionState === 'optional' && (
-                                    <div className="absolute top-1 right-1 bg-gray-400 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none z-10">
-                                      选到
-                                    </div>
-                                  )}
-                                  <div className="font-bold text-xs sm:text-sm leading-tight truncate pr-8">
-                                    {getCourseLabel(course, session)}
-                                  </div>
-                                  <div className="mt-1 flex flex-col gap-0.5 text-[10px] sm:text-[11px] opacity-90">
-                                    <div className="flex items-center gap-1 font-medium">
-                                      <MapPin size={11} className="flex-shrink-0" />
-                                      <span className="truncate">
-                                        {typeof session.location === 'function' ? session.location(currentWeek) : session.location}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Clock size={11} className="flex-shrink-0" />
-                                      {getSessionTimeLabel(session)}
-                                    </div>
-                                    <div className="mt-0.5 px-1 py-0.5 bg-black/5 rounded-sm inline-block w-max font-semibold">
-                                      {session.note}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-        )}
+        const currentDaysData = getDaysDataForWeek(currentWeek);
 
-        {/* Calendar grid (month view) */}
-        {viewMode === 'month' && (() => {
-          const year = calendarMonth.getFullYear();
-          const month = calendarMonth.getMonth();
-          const firstDay = new Date(year, month, 1);
-          const lastDay = new Date(year, month + 1, 0);
-          // Start the calendar grid on the Monday of the week containing the 1st
-          const startOffset = (firstDay.getDay() + 6) % 7; // 0=Mon..6=Sun
-          const gridStart = new Date(year, month, 1 - startOffset);
-          // Always render 6 weeks (42 cells) for a stable layout
-          const cells = [];
-          for (let i = 0; i < 42; i++) {
-            const d = new Date(gridStart);
-            d.setDate(gridStart.getDate() + i);
-            cells.push(d);
-          }
-          const weekdayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-          const stateStyles = {
-            exam: 'bg-red-500 text-white',
-            required: 'bg-indigo-500 text-white',
-            optional: 'bg-gray-300 text-gray-700'
+        const getEventStyle = (start, end) => {
+          const [startH, startM] = start.split(':').map(Number);
+          const [endH, endM] = end.split(':').map(Number);
+
+          const topMinutes = ((startH - startHour) * 60) + startM;
+          const durationMinutes = ((endH - startH) * 60) + (endM - startM);
+
+          return {
+            top: `${topMinutes}px`,
+            height: `${durationMinutes}px`,
           };
+        };
 
-          return (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
-                {weekdayLabels.map((label, i) => (
-                  <div key={label} className={`px-2 py-2 text-xs font-bold text-center ${i >= 5 ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {label}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7">
-                {cells.map((d, idx) => {
-                  const inMonth = d.getMonth() === month;
-                  const dateStr = formatDateString(d);
-                  const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                  const isHoliday = isWeekend || !!holidays[dateStr];
-                  const holidayName = holidays[dateStr];
-                  const isToday = dateStr === currentDateString;
-                  const sessions = sessionsOnDate(d);
-                  const week = weekForDate(d);
+        const currentHour = currentTime.getHours();
+        const currentMinute = currentTime.getMinutes();
+        const timeOffsetMinutes = ((currentHour - startHour) * 60) + currentMinute;
+        const isAtMinCalendarMonth = monthIndex(calendarMonth) <= monthIndex(minCalendarMonthDate);
+        const isAtMaxCalendarMonth = monthIndex(calendarMonth) >= monthIndex(maxCalendarMonthDate);
+        const moveCalendarMonth = (offset) => {
+          setCalendarMonth((prev) => clampCalendarMonth(new Date(prev.getFullYear(), prev.getMonth() + offset, 1)));
+        };
 
-                  const bg = isHoliday
-                    ? 'bg-red-50'
-                    : isToday
-                    ? 'bg-indigo-50/60'
-                    : inMonth ? 'bg-white' : 'bg-gray-50/50';
+        return (
+          <div className="bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
+            <div className="max-w-6xl mx-auto">
 
-                  return (
-                    <div
-                      key={idx}
-                      className={`min-h-[96px] border-b border-r border-gray-100 p-1.5 ${bg} ${inMonth ? '' : 'opacity-60'}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-bold ${isHoliday ? 'text-red-600' : isToday ? 'text-indigo-700' : inMonth ? 'text-gray-700' : 'text-gray-400'}`}>
-                            {d.getDate()}
-                          </span>
-                          {week !== null && d.getDay() === 1 && (
-                            <span className="text-[9px] text-gray-400 font-medium">W{week}</span>
-                          )}
-                        </div>
-                        {holidayName && (
-                          <span className="text-[9px] font-bold text-red-500 bg-red-100 px-1 rounded-sm leading-none py-0.5">
-                            {holidayName}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        {sessions.map(({ course, session }, i) => {
-                          const state = getSessionState(session, week);
-                          return (
-                            <button
-                              key={`${course.id}-${i}`}
-                              onClick={() => setSelectedEvent({ ...course, session, specificDate: dateStr })}
-                              className={`text-left text-[10px] leading-tight px-1.5 py-0.5 rounded-sm font-semibold truncate hover:opacity-80 transition-opacity ${stateStyles[state]}`}
-                              title={`${course.name} ${getSessionTimeLabel(session)}`}
-                            >
-                              {state === 'exam' && '★ '}
-                              {getCourseLabel(course, session)}
-                            </button>
-                          );
-                        })}
-                      </div>
+              {/* Header */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      <Calendar className="text-indigo-600" />
+                      2026 Summer Semester Schedule
+                    </h1>
+                    <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
+                      <Clock size={14} />
+                      <span>
+                        Beijing Time: {currentDateString} {String(currentHour).padStart(2, '0')}:{String(currentMinute).padStart(2, '0')}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-      </div>
+                  </div>
 
-      {/* Detail modal */}
-      {selectedEvent && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setSelectedEvent(null)}>
-          <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className={`${selectedEvent.tagColor} h-2 w-full`}></div>
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold text-gray-900">{selectedEvent.name}</h2>
-                    {selectedEvent.session.isExam && (
-                      <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">考试</span>
+                  <div className="flex flex-col gap-3 items-stretch md:items-end">
+                    {/* View toggle */}
+                    <div className="inline-flex bg-gray-100 rounded-lg p-1 self-start md:self-end">
+                      <button
+                        onClick={() => setViewMode('week')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'week' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        Week
+                      </button>
+                      <button
+                        onClick={() => setViewMode('month')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${viewMode === 'month' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        Calendar
+                      </button>
+                    </div>
+
+                    {viewMode === 'week' ? (
+                      <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
+                        <button
+                          onClick={() => setCurrentWeek(clampWeek(currentWeek - 1))}
+                          className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                          disabled={currentWeek === minScheduleWeek}
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+                        <div className="w-48 px-4 text-center">
+                          <div className="font-semibold text-indigo-700">Week {currentWeek}</div>
+                          <div className="text-xs text-gray-500">
+                            {currentDaysData[0].displayDate} - {currentDaysData[4].displayDate}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setCurrentWeek(clampWeek(currentWeek + 1))}
+                          className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                          disabled={currentWeek === maxScheduleWeek}
+                        >
+                          <ChevronRight size={20} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
+                        <button
+                          onClick={() => moveCalendarMonth(-1)}
+                          className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                          disabled={isAtMinCalendarMonth}
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+                        <div className="w-48 px-4 text-center">
+                          <div className="font-semibold text-indigo-700">
+                            {calendarMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => moveCalendarMonth(1)}
+                          className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                          disabled={isAtMaxCalendarMonth}
+                        >
+                          <ChevronRight size={20} />
+                        </button>
+                      </div>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 font-medium">{selectedEvent.englishName}</p>
-                </div>
-                <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="space-y-4 mt-6">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                    <Calendar size={18} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">Class Date</div>
-                    <div className="text-sm text-gray-600">{selectedEvent.specificDate} (Week {currentWeek})</div>
-                  </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">Time</div>
-                    <div className="text-sm text-gray-600">
-                      {['Monday','Tuesday','Wednesday','Thursday','Friday'][selectedEvent.session.day - 1]} {getSessionTimeLabel(selectedEvent.session)}
+                {viewMode === 'week' && (
+                  <div className="mt-6">
+                    <input
+                      type="range"
+                      min={minScheduleWeek}
+                      max={maxScheduleWeek}
+                      value={currentWeek}
+                      onChange={(e) => setCurrentWeek(clampWeek(parseInt(e.target.value)))}
+                      className="w-full accent-indigo-600 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400 px-1 mt-2">
+                      <span>W1</span><span>W3</span><span>W5</span><span className="font-bold text-red-400">W6</span><span>W7</span><span>W9</span><span>W11</span><span>W13</span><span>W15(Flight)</span>
                     </div>
-                    <div className="text-xs text-indigo-600 font-medium mt-0.5 bg-indigo-50 inline-block px-2 py-0.5 rounded">
-                      {selectedEvent.session.note}
-                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                    <MapPin size={18} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">Location</div>
-                    <div className="text-sm text-gray-600">
-                      {typeof selectedEvent.session.location === 'function'
-                        ? selectedEvent.session.location(currentWeek)
-                        : selectedEvent.session.location}
+                {viewMode === 'month' && (
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-red-500"></span>考试</div>
+                      <div className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-indigo-500"></span>必到</div>
+                      <div className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm bg-gray-400"></span>选到</div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                    <User size={18} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">Instructor</div>
-                    <div className="text-sm text-gray-600">{selectedEvent.session.instructor || selectedEvent.instructor}</div>
-                  </div>
-                </div>
-
-                {selectedEvent.session.specialNote && (
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-amber-50 text-amber-600 rounded-lg flex-shrink-0">
-                      <Info size={18} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">Notes</div>
-                      <div className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.session.specialNote}</div>
-                    </div>
+                    <div className="flex items-center gap-1.5 ml-auto"><span className="inline-block w-3 h-3 rounded-sm bg-red-100 border border-red-200"></span>节假日</div>
                   </div>
                 )}
               </div>
 
+              {/* Schedule grid (week view) */}
+              {viewMode === 'week' && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-hidden">
+                  <div className="min-w-[800px] flex">
+
+                    <div className="w-16 flex-shrink-0 bg-gray-50/50 border-r border-gray-100 relative">
+                      <div className="h-14 border-b border-gray-100 bg-white"></div>
+                      {hours.map(hour => (
+                        <div key={hour} className={`h-[60px] relative text-xs text-gray-400 font-medium ${hour === 11 ? 'border-b-2 border-gray-400' : 'border-b border-gray-100'}`}>
+                          <span className="absolute -top-2.5 w-full text-center bg-gray-50/50 block">{hour}:00</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex-1 flex bg-gray-50/30">
+                      {currentDaysData.map((dayData, index) => {
+                        const isToday = dayData.dateString === currentDateString;
+                        const showIndicator = isToday && timeOffsetMinutes >= 0 && timeOffsetMinutes <= (endHour - startHour) * 60;
+
+                        return (
+                          <div key={dayData.day} className={`flex-1 border-r border-gray-100 last:border-r-0 relative min-w-[140px] ${dayData.isHoliday ? 'bg-red-50/30' : isToday ? 'bg-indigo-50/20' : ''}`}>
+
+                            <div className={`h-14 border-b border-gray-100 flex flex-col items-center justify-center sticky top-0 z-20 transition-colors ${dayData.isHoliday ? 'bg-red-50' : isToday ? 'bg-indigo-50' : 'bg-white'}`}>
+                              {isToday && <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500"></div>}
+                              <div className="flex items-center gap-1.5">
+                                <span className={`text-sm font-bold ${dayData.isHoliday ? 'text-red-600' : isToday ? 'text-indigo-700' : 'text-gray-700'}`}>
+                                  {dayData.name}
+                                </span>
+                                <span className={`text-xs ${dayData.isHoliday ? 'text-red-400' : isToday ? 'text-indigo-500 font-semibold' : 'text-gray-400'}`}>
+                                  {dayData.displayDate}
+                                </span>
+                              </div>
+                              {dayData.isHoliday && (
+                                <span className="text-[10px] font-bold text-red-500 mt-0.5 bg-red-100 px-1.5 rounded-sm">
+                                  {dayData.holidayName}
+                                </span>
+                              )}
+                              {isToday && !dayData.isHoliday && (
+                                <span className="text-[10px] font-bold text-indigo-500 mt-0.5 px-1.5">
+                                  Today
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="relative w-full" style={{ height: `${hours.length * 60}px` }}>
+                              <div className="absolute inset-0 flex flex-col pointer-events-none">
+                                {hours.map(h => <div key={`grid-${h}`} className={`h-[60px] w-full ${h === 11 ? 'border-b-2 border-gray-400/60' : 'border-b border-gray-100/50'}`} />)}
+                              </div>
+
+                              {dayData.isHoliday && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 overflow-hidden">
+                                  <div className="text-4xl font-black text-red-500/10 -rotate-45 whitespace-nowrap">
+                                    NO CLASS
+                                  </div>
+                                </div>
+                              )}
+
+                              {showIndicator && (
+                                <div
+                                  className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
+                                  style={{ top: `${timeOffsetMinutes}px` }}
+                                >
+                                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm -ml-1.5 relative z-10"></div>
+                                  <div className="flex-1 h-[2px] bg-red-500 shadow-sm -ml-1 opacity-80"></div>
+                                </div>
+                              )}
+
+                              {scheduleData.map(course =>
+                                course.sessions
+                                  .filter(s => s.day === index + 1 && s.validWeeks(currentWeek) && (!dayData.isHoliday || s.isExam))
+                                  .map((session, i) => {
+                                    const sessionState = getSessionState(session, currentWeek);
+                                    return (
+                                      <div
+                                        key={`${course.id}-${i}`}
+                                        onClick={() => setSelectedEvent({ ...course, session, specificDate: dayData.dateString })}
+                                        className={`absolute left-1 right-1 rounded-lg p-2 cursor-pointer border overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.02] shadow-sm z-20 ${session.isExam ? 'bg-red-50 border-red-300 text-red-800 hover:bg-red-100 border-l-4 ring-2 ring-red-300/60' : `${course.color} border-l-4`}`}
+                                        style={{
+                                          ...getEventStyle(session.start, session.end),
+                                          borderLeftColor: 'currentColor'
+                                        }}
+                                      >
+                                        {session.isExam && (
+                                          <div className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none z-10">
+                                            考试
+                                          </div>
+                                        )}
+                                        {sessionState === 'optional' && (
+                                          <div className="absolute top-1 right-1 bg-gray-400 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm leading-none z-10">
+                                            选到
+                                          </div>
+                                        )}
+                                        <div className="font-bold text-xs sm:text-sm leading-tight truncate pr-8">
+                                          {getCourseLabel(course, session)}
+                                        </div>
+                                        <div className="mt-1 flex flex-col gap-0.5 text-[10px] sm:text-[11px] opacity-90">
+                                          <div className="flex items-center gap-1 font-medium">
+                                            <MapPin size={11} className="flex-shrink-0" />
+                                            <span className="truncate">
+                                              {typeof session.location === 'function' ? session.location(currentWeek) : session.location}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <Clock size={11} className="flex-shrink-0" />
+                                            {getSessionTimeLabel(session)}
+                                          </div>
+                                          <div className="mt-0.5 px-1 py-0.5 bg-black/5 rounded-sm inline-block w-max font-semibold">
+                                            {session.note}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {/* Calendar grid (month view) */}
+              {viewMode === 'month' && (() => {
+                const year = calendarMonth.getFullYear();
+                const month = calendarMonth.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                // Start the calendar grid on the Monday of the week containing the 1st
+                const startOffset = (firstDay.getDay() + 6) % 7; // 0=Mon..6=Sun
+                const gridStart = new Date(year, month, 1 - startOffset);
+                // Always render 6 weeks (42 cells) for a stable layout
+                const cells = [];
+                for (let i = 0; i < 42; i++) {
+                  const d = new Date(gridStart);
+                  d.setDate(gridStart.getDate() + i);
+                  cells.push(d);
+                }
+                const weekdayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                const stateStyles = {
+                  exam: 'bg-red-500 text-white',
+                  required: 'bg-indigo-500 text-white',
+                  optional: 'bg-gray-300 text-gray-700'
+                };
+
+                return (
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
+                      {weekdayLabels.map((label, i) => (
+                        <div key={label} className={`px-2 py-2 text-xs font-bold text-center ${i >= 5 ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7">
+                      {cells.map((d, idx) => {
+                        const inMonth = d.getMonth() === month;
+                        const dateStr = formatDateString(d);
+                        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                        const isHoliday = isWeekend || !!holidays[dateStr];
+                        const holidayName = holidays[dateStr];
+                        const isToday = dateStr === currentDateString;
+                        const sessions = sessionsOnDate(d);
+                        const week = weekForDate(d);
+
+                        const bg = isHoliday
+                          ? 'bg-red-50'
+                          : isToday
+                          ? 'bg-indigo-50/60'
+                          : inMonth ? 'bg-white' : 'bg-gray-50/50';
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`min-h-[96px] border-b border-r border-gray-100 p-1.5 ${bg} ${inMonth ? '' : 'opacity-60'}`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1">
+                                <span className={`text-xs font-bold ${isHoliday ? 'text-red-600' : isToday ? 'text-indigo-700' : inMonth ? 'text-gray-700' : 'text-gray-400'}`}>
+                                  {d.getDate()}
+                                </span>
+                                {week !== null && d.getDay() === 1 && (
+                                  <span className="text-[9px] text-gray-400 font-medium">W{week}</span>
+                                )}
+                              </div>
+                              {holidayName && (
+                                <span className="text-[9px] font-bold text-red-500 bg-red-100 px-1 rounded-sm leading-none py-0.5">
+                                  {holidayName}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              {sessions.map(({ course, session }, i) => {
+                                const state = getSessionState(session, week);
+                                return (
+                                  <button
+                                    key={`${course.id}-${i}`}
+                                    onClick={() => setSelectedEvent({ ...course, session, specificDate: dateStr })}
+                                    className={`text-left text-[10px] leading-tight px-1.5 py-0.5 rounded-sm font-semibold truncate hover:opacity-80 transition-opacity ${stateStyles[state]}`}
+                                    title={`${course.name} ${getSessionTimeLabel(session)}`}
+                                  >
+                                    {state === 'exam' && '★ '}
+                                    {getCourseLabel(course, session)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg shadow-sm transition-colors"
-              >
-                Close
-              </button>
-            </div>
+
+            {/* Detail modal */}
+            {selectedEvent && (
+              <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setSelectedEvent(null)}>
+                <div
+                  className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className={`${selectedEvent.tagColor} h-2 w-full`}></div>
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-xl font-bold text-gray-900">{selectedEvent.name}</h2>
+                          {selectedEvent.session.isExam && (
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">考试</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 font-medium">{selectedEvent.englishName}</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedEvent(null)}
+                        className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-4 mt-6">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <Calendar size={18} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">Class Date</div>
+                          <div className="text-sm text-gray-600">{selectedEvent.specificDate} (Week {currentWeek})</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <Clock size={18} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">Time</div>
+                          <div className="text-sm text-gray-600">
+                            {['Monday','Tuesday','Wednesday','Thursday','Friday'][selectedEvent.session.day - 1]} {getSessionTimeLabel(selectedEvent.session)}
+                          </div>
+                          <div className="text-xs text-indigo-600 font-medium mt-0.5 bg-indigo-50 inline-block px-2 py-0.5 rounded">
+                            {selectedEvent.session.note}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <MapPin size={18} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">Location</div>
+                          <div className="text-sm text-gray-600">
+                            {typeof selectedEvent.session.location === 'function'
+                              ? selectedEvent.session.location(currentWeek)
+                              : selectedEvent.session.location}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                          <User size={18} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">Instructor</div>
+                          <div className="text-sm text-gray-600">{selectedEvent.session.instructor || selectedEvent.instructor}</div>
+                        </div>
+                      </div>
+
+                      {selectedEvent.session.specialNote && (
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-amber-50 text-amber-600 rounded-lg flex-shrink-0">
+                            <Info size={18} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">Notes</div>
+                            <div className="text-sm text-gray-600 whitespace-pre-line">{selectedEvent.session.specialNote}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                  <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
+                    <button
+                      onClick={() => setSelectedEvent(null)}
+                      className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg shadow-sm transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
-</script>
-
-<script>
-(function () {
-  const dependencySources = {
-    React: [
-      'https://unpkg.com/react@18/umd/react.production.min.js',
-      'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js'
-    ],
-    ReactDOM: [
-      'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-      'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js'
-    ],
-    Babel: [
-      'https://unpkg.com/@babel/standalone/babel.min.js',
-      'https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js'
-    ]
-  };
-
-  const rootEl = document.getElementById('root');
-
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function showScheduleError(message) {
-    rootEl.innerHTML = [
-      "<div style=\"min-height:600px;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#374151;background:#f9fafb;\">",
-      '<div style="background:#fff;border:1px solid #fecaca;border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.04);">',
-      '<div style="font-weight:700;color:#991b1b;margin-bottom:8px;">Schedule failed to load</div>',
-      '<div style="font-size:14px;line-height:1.6;">' + escapeHtml(message) + '</div>',
-      '</div>',
-      '</div>'
-    ].join('');
-  }
-
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.crossOrigin = 'anonymous';
-      script.onload = resolve;
-      script.onerror = () => reject(new Error('Failed to load ' + src));
-      document.head.appendChild(script);
-    });
-  }
-
-  async function ensureDependency(globalName) {
-    if (window[globalName]) return;
-    const sources = dependencySources[globalName];
-    for (let i = 0; i < sources.length; i += 1) {
-      try {
-        await loadScript(sources[i]);
-        if (window[globalName]) return;
-      } catch (e) {}
-    }
-    throw new Error(globalName + ' is unavailable. Check network access to unpkg.com or cdn.jsdelivr.net.');
-  }
-
-  async function bootSchedule() {
-    try {
-      await ensureDependency('React');
-      await ensureDependency('ReactDOM');
-      await ensureDependency('Babel');
-
-      const sourceEl = document.getElementById('schedule-app-source');
-      const compiled = Babel.transform(sourceEl.textContent, {
-        filename: 'schedule.html',
-        sourceType: 'script',
-        presets: [['react', { runtime: 'classic' }]]
-      }).code;
-      if (/^\s*import\s/m.test(compiled)) {
-        throw new Error('Babel generated module syntax that cannot run in this embedded page.');
+        );
       }
-      new Function('React', 'ReactDOM', compiled)(React, ReactDOM);
-    } catch (error) {
-      console.error(error);
-      showScheduleError(error.message || 'Unknown error while loading the schedule.');
-    }
-  }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootSchedule);
-  } else {
-    bootSchedule();
-  }
-})();
-</script>
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
 
-<script>
-(function () {
-  const DESIGN_WIDTH = 880;
-  const MIN_HEIGHT = 600;
-  const wrapper = document.getElementById('scale-wrapper');
-  const outer = document.getElementById('scale-outer');
-  const root = document.getElementById('root');
+    <script>
+      (function () {
+        const dependencySources = {
+          React: ["https://unpkg.com/react@18/umd/react.production.min.js", "https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"],
+          ReactDOM: [
+            "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
+            "https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js",
+          ],
+          Babel: ["https://unpkg.com/@babel/standalone/babel.min.js", "https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"],
+        };
 
-  function applyScale() {
-    const available = window.innerWidth;
-    const scale = Math.min(1, available / DESIGN_WIDTH);
-    wrapper.style.transform = 'scale(' + scale + ')';
-    const contentHeight = Math.max(
-      wrapper.scrollHeight,
-      root ? root.scrollHeight : 0,
-      wrapper.getBoundingClientRect().height / (scale || 1)
-    );
-    const scaledHeight = Math.max(MIN_HEIGHT, Math.ceil(contentHeight * scale));
-    outer.style.height = scaledHeight + 'px';
-    try {
-      window.parent.postMessage(
-        { type: 'schedule-resize', height: scaledHeight },
-        '*'
-      );
-    } catch (e) {}
-  }
+        const rootEl = document.getElementById("root");
 
-  window.addEventListener('resize', applyScale);
-  window.addEventListener('load', applyScale);
-  if (window.ResizeObserver) {
-    new ResizeObserver(applyScale).observe(wrapper);
-  }
-  // Run once after React mounts
-  setTimeout(applyScale, 0);
-  setTimeout(applyScale, 100);
-  setTimeout(applyScale, 500);
-})();
-</script>
-</body>
+        function escapeHtml(value) {
+          return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+        }
+
+        function showScheduleError(message) {
+          rootEl.innerHTML = [
+            "<div style=\"min-height:600px;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#374151;background:#f9fafb;\">",
+            '<div style="background:#fff;border:1px solid #fecaca;border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.04);">',
+            '<div style="font-weight:700;color:#991b1b;margin-bottom:8px;">Schedule failed to load</div>',
+            '<div style="font-size:14px;line-height:1.6;">' + escapeHtml(message) + "</div>",
+            "</div>",
+            "</div>",
+          ].join("");
+        }
+
+        function loadScript(src) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.crossOrigin = "anonymous";
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("Failed to load " + src));
+            document.head.appendChild(script);
+          });
+        }
+
+        async function ensureDependency(globalName) {
+          if (window[globalName]) return;
+          const sources = dependencySources[globalName];
+          for (let i = 0; i < sources.length; i += 1) {
+            try {
+              await loadScript(sources[i]);
+              if (window[globalName]) return;
+            } catch (e) {}
+          }
+          throw new Error(globalName + " is unavailable. Check network access to unpkg.com or cdn.jsdelivr.net.");
+        }
+
+        async function bootSchedule() {
+          try {
+            await ensureDependency("React");
+            await ensureDependency("ReactDOM");
+            await ensureDependency("Babel");
+
+            const sourceEl = document.getElementById("schedule-app-source");
+            const compiled = Babel.transform(sourceEl.textContent, {
+              filename: "schedule.html",
+              sourceType: "script",
+              presets: [["react", { runtime: "classic" }]],
+            }).code;
+            if (/^\s*import\s/m.test(compiled)) {
+              throw new Error("Babel generated module syntax that cannot run in this embedded page.");
+            }
+            new Function("React", "ReactDOM", compiled)(React, ReactDOM);
+          } catch (error) {
+            console.error(error);
+            showScheduleError(error.message || "Unknown error while loading the schedule.");
+          }
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", bootSchedule);
+        } else {
+          bootSchedule();
+        }
+      })();
+    </script>
+
+    <script>
+      (function () {
+        const DESIGN_WIDTH = 880;
+        const MIN_HEIGHT = 600;
+        const wrapper = document.getElementById("scale-wrapper");
+        const outer = document.getElementById("scale-outer");
+        const root = document.getElementById("root");
+
+        function applyScale() {
+          const available = window.innerWidth;
+          const scale = Math.min(1, available / DESIGN_WIDTH);
+          wrapper.style.transform = "scale(" + scale + ")";
+          const contentHeight = Math.max(wrapper.scrollHeight, root ? root.scrollHeight : 0, wrapper.getBoundingClientRect().height / (scale || 1));
+          const scaledHeight = Math.max(MIN_HEIGHT, Math.ceil(contentHeight * scale));
+          outer.style.height = scaledHeight + "px";
+          try {
+            window.parent.postMessage({ type: "schedule-resize", height: scaledHeight }, "*");
+          } catch (e) {}
+        }
+
+        window.addEventListener("resize", applyScale);
+        window.addEventListener("load", applyScale);
+        if (window.ResizeObserver) {
+          new ResizeObserver(applyScale).observe(wrapper);
+        }
+        // Run once after React mounts
+        setTimeout(applyScale, 0);
+        setTimeout(applyScale, 100);
+        setTimeout(applyScale, 500);
+      })();
+    </script>
+  </body>
 </html>
