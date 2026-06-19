@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>2026 Summer Semester Schedule</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   html, body { margin: 0; padding: 0; background: #f9fafb; overflow: hidden; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
@@ -18,11 +15,20 @@
 <body>
 <div id="scale-outer">
   <div id="scale-wrapper">
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height:600px;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#374151;background:#f9fafb;">
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+          <div style="font-weight:700;color:#111827;margin-bottom:8px;">Loading schedule...</div>
+          <div style="font-size:14px;line-height:1.6;">
+            If this message stays visible, the browser could not load the schedule scripts. Check the console or network access to React/Babel CDNs.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<script type="text/babel" data-presets="react">
+<script type="text/plain" id="schedule-app-source">
 const { useState, useEffect, useMemo } = React;
 
 // ---- Inline SVG icon components (replacing lucide-react) ----
@@ -177,9 +183,33 @@ const scheduleData = [
     color: 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100',
     tagColor: 'bg-emerald-500',
     sessions: [
-      { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 8, note: 'Weeks 1-8', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
+      { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 7, note: 'Weeks 1-7', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
+      { day: 1, start: '12:10', end: '13:50', validWeeks: (w) => w === 8, note: 'Presentation Intro', location: 'DZY 3-205', attendanceRequired: false, specialNote: 'Presentation briefing / intro for MUSI1500J.' },
       { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w >= 1 && w <= 8 && w !== 8, note: 'Weeks 1-7', location: 'DZY 3-205', attendanceRequired: (w) => w < 5 },
       { day: 3, start: '12:10', end: '13:50', validWeeks: (w) => w === 8, note: 'Final', location: 'DZY 3-205', isExam: true }
+    ]
+  },
+  {
+    id: 'TRAVEL',
+    name: 'Travel',
+    shortName: 'Flight',
+    englishName: 'Flight to Chicago',
+    code: 'FLIGHT',
+    instructor: '',
+    color: 'bg-violet-50 border-violet-200 text-violet-800 hover:bg-violet-100',
+    tagColor: 'bg-violet-500',
+    sessions: [
+      {
+        day: 1,
+        start: '07:00',
+        end: '24:00',
+        displayTime: '08/17 07:00 - 08/18 07:00',
+        validWeeks: (w) => w === 15,
+        note: 'Flight to Chicago',
+        location: 'Flight',
+        type: 'travel',
+        specialNote: '24-hour travel block.'
+      }
     ]
   }
 ];
@@ -188,8 +218,21 @@ const scheduleData = [
 // 2. Dates and holidays
 // ==========================================
 const semesterStartDate = new Date(2026, 4, 11); // May 11, 2026
+const minScheduleWeek = 1;
+const maxScheduleWeek = 15;
+const minCalendarMonthDate = new Date(2026, 4, 1); // May 2026
+const maxCalendarMonthDate = new Date(2026, 7, 1); // August 2026
 const holidays = {
   '2026-06-19': 'Dragon Boat Festival'
+};
+
+const clampWeek = (week) => Math.max(minScheduleWeek, Math.min(maxScheduleWeek, week));
+const monthIndex = (date) => date.getFullYear() * 12 + date.getMonth();
+const clampCalendarMonth = (date) => {
+  const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+  if (monthIndex(monthStart) < monthIndex(minCalendarMonthDate)) return minCalendarMonthDate;
+  if (monthIndex(monthStart) > monthIndex(maxCalendarMonthDate)) return maxCalendarMonthDate;
+  return monthStart;
 };
 
 const getShanghaiTime = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
@@ -216,15 +259,15 @@ function App() {
     const current = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
     const diffTime = current.getTime() - start.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 1;
+    if (diffDays < 0) return minScheduleWeek;
     return Math.floor(diffDays / 7) + 1;
   }, []);
 
-  const [currentWeek, setCurrentWeek] = useState(Math.max(1, Math.min(13, actualCurrentWeek)));
-  const [calendarMonth, setCalendarMonth] = useState(new Date(currentTime.getFullYear(), currentTime.getMonth(), 1));
+  const [currentWeek, setCurrentWeek] = useState(clampWeek(actualCurrentWeek));
+  const [calendarMonth, setCalendarMonth] = useState(clampCalendarMonth(new Date(currentTime.getFullYear(), currentTime.getMonth(), 1)));
 
-  const startHour = 8;
-  const endHour = 18;
+  const startHour = 7;
+  const endHour = 24;
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
   // Returns one of: 'exam' | 'required' | 'optional'
@@ -240,17 +283,20 @@ function App() {
 
   const getCourseLabel = (course, session) => {
     const baseLabel = course.code || course.shortName || course.name;
+    if (session.type === 'travel') return 'FLIGHT';
     return session.type === 'lab' ? 'LAB' : baseLabel;
   };
 
-  // Compute week index for an arbitrary Date (1-13 if within semester, otherwise null)
+  const getSessionTimeLabel = (session) => session.displayTime || `${session.start} - ${session.end}`;
+
+  // Compute week index for an arbitrary Date (1-15 if within schedule range, otherwise null)
   const weekForDate = (date) => {
     const start = new Date(semesterStartDate);
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays < 0) return null;
     const week = Math.floor(diffDays / 7) + 1;
-    if (week < 1 || week > 13) return null;
+    if (week < minScheduleWeek || week > maxScheduleWeek) return null;
     return week;
   };
 
@@ -325,6 +371,11 @@ function App() {
   const currentHour = currentTime.getHours();
   const currentMinute = currentTime.getMinutes();
   const timeOffsetMinutes = ((currentHour - startHour) * 60) + currentMinute;
+  const isAtMinCalendarMonth = monthIndex(calendarMonth) <= monthIndex(minCalendarMonthDate);
+  const isAtMaxCalendarMonth = monthIndex(calendarMonth) >= monthIndex(maxCalendarMonthDate);
+  const moveCalendarMonth = (offset) => {
+    setCalendarMonth((prev) => clampCalendarMonth(new Date(prev.getFullYear(), prev.getMonth() + offset, 1)));
+  };
 
   return (
     <div className="bg-gray-50 text-gray-800 p-4 md:p-8 font-sans">
@@ -366,9 +417,9 @@ function App() {
               {viewMode === 'week' ? (
                 <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
                   <button
-                    onClick={() => setCurrentWeek(Math.max(1, currentWeek - 1))}
+                    onClick={() => setCurrentWeek(clampWeek(currentWeek - 1))}
                     className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
-                    disabled={currentWeek === 1}
+                    disabled={currentWeek === minScheduleWeek}
                   >
                     <ChevronLeft size={20} />
                   </button>
@@ -379,9 +430,9 @@ function App() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setCurrentWeek(Math.min(13, currentWeek + 1))}
+                    onClick={() => setCurrentWeek(clampWeek(currentWeek + 1))}
                     className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
-                    disabled={currentWeek === 13}
+                    disabled={currentWeek === maxScheduleWeek}
                   >
                     <ChevronRight size={20} />
                   </button>
@@ -389,8 +440,9 @@ function App() {
               ) : (
                 <div className="flex items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
                   <button
-                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
-                    className="p-2 hover:bg-white rounded-lg shadow-sm transition-all"
+                    onClick={() => moveCalendarMonth(-1)}
+                    className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                    disabled={isAtMinCalendarMonth}
                   >
                     <ChevronLeft size={20} />
                   </button>
@@ -400,8 +452,9 @@ function App() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
-                    className="p-2 hover:bg-white rounded-lg shadow-sm transition-all"
+                    onClick={() => moveCalendarMonth(1)}
+                    className="p-2 hover:bg-white rounded-lg shadow-sm disabled:opacity-30 disabled:shadow-none transition-all"
+                    disabled={isAtMaxCalendarMonth}
                   >
                     <ChevronRight size={20} />
                   </button>
@@ -414,14 +467,14 @@ function App() {
             <div className="mt-6">
               <input
                 type="range"
-                min="1"
-                max="13"
+                min={minScheduleWeek}
+                max={maxScheduleWeek}
                 value={currentWeek}
-                onChange={(e) => setCurrentWeek(parseInt(e.target.value))}
+                onChange={(e) => setCurrentWeek(clampWeek(parseInt(e.target.value)))}
                 className="w-full accent-indigo-600 cursor-pointer"
               />
               <div className="flex justify-between text-xs text-gray-400 px-1 mt-2">
-                <span>W1</span><span>W3</span><span>W5</span><span className="font-bold text-red-400">W6</span><span>W7</span><span>W9</span><span>W11</span><span>W13(Final)</span>
+                <span>W1</span><span>W3</span><span>W5</span><span className="font-bold text-red-400">W6</span><span>W7</span><span>W9</span><span>W11</span><span>W13</span><span>W15(Flight)</span>
               </div>
             </div>
           )}
@@ -543,7 +596,7 @@ function App() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <Clock size={11} className="flex-shrink-0" />
-                                      {session.start} - {session.end}
+                                      {getSessionTimeLabel(session)}
                                     </div>
                                     <div className="mt-0.5 px-1 py-0.5 bg-black/5 rounded-sm inline-block w-max font-semibold">
                                       {session.note}
@@ -640,7 +693,7 @@ function App() {
                               key={`${course.id}-${i}`}
                               onClick={() => setSelectedEvent({ ...course, session, specificDate: dateStr })}
                               className={`text-left text-[10px] leading-tight px-1.5 py-0.5 rounded-sm font-semibold truncate hover:opacity-80 transition-opacity ${stateStyles[state]}`}
-                              title={`${course.name} ${session.start}-${session.end}`}
+                              title={`${course.name} ${getSessionTimeLabel(session)}`}
                             >
                               {state === 'exam' && '★ '}
                               {getCourseLabel(course, session)}
@@ -702,7 +755,7 @@ function App() {
                   <div>
                     <div className="text-sm font-semibold text-gray-900">Time</div>
                     <div className="text-sm text-gray-600">
-                      {['Monday','Tuesday','Wednesday','Thursday','Friday'][selectedEvent.session.day - 1]} {selectedEvent.session.start} - {selectedEvent.session.end}
+                      {['Monday','Tuesday','Wednesday','Thursday','Friday'][selectedEvent.session.day - 1]} {getSessionTimeLabel(selectedEvent.session)}
                     </div>
                     <div className="text-xs text-indigo-600 font-medium mt-0.5 bg-indigo-50 inline-block px-2 py-0.5 rounded">
                       {selectedEvent.session.note}
@@ -765,6 +818,98 @@ function App() {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
+</script>
+
+<script>
+(function () {
+  const dependencySources = {
+    React: [
+      'https://unpkg.com/react@18/umd/react.production.min.js',
+      'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js'
+    ],
+    ReactDOM: [
+      'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+      'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js'
+    ],
+    Babel: [
+      'https://unpkg.com/@babel/standalone/babel.min.js',
+      'https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js'
+    ]
+  };
+
+  const rootEl = document.getElementById('root');
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function showScheduleError(message) {
+    rootEl.innerHTML = [
+      "<div style=\"min-height:600px;padding:24px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#374151;background:#f9fafb;\">",
+      '<div style="background:#fff;border:1px solid #fecaca;border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(0,0,0,0.04);">',
+      '<div style="font-weight:700;color:#991b1b;margin-bottom:8px;">Schedule failed to load</div>',
+      '<div style="font-size:14px;line-height:1.6;">' + escapeHtml(message) + '</div>',
+      '</div>',
+      '</div>'
+    ].join('');
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.crossOrigin = 'anonymous';
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function ensureDependency(globalName) {
+    if (window[globalName]) return;
+    const sources = dependencySources[globalName];
+    for (let i = 0; i < sources.length; i += 1) {
+      try {
+        await loadScript(sources[i]);
+        if (window[globalName]) return;
+      } catch (e) {}
+    }
+    throw new Error(globalName + ' is unavailable. Check network access to unpkg.com or cdn.jsdelivr.net.');
+  }
+
+  async function bootSchedule() {
+    try {
+      await ensureDependency('React');
+      await ensureDependency('ReactDOM');
+      await ensureDependency('Babel');
+
+      const sourceEl = document.getElementById('schedule-app-source');
+      const compiled = Babel.transform(sourceEl.textContent, {
+        filename: 'schedule.html',
+        sourceType: 'script',
+        presets: [['react', { runtime: 'classic' }]]
+      }).code;
+      if (/^\s*import\s/m.test(compiled)) {
+        throw new Error('Babel generated module syntax that cannot run in this embedded page.');
+      }
+      new Function('React', 'ReactDOM', compiled)(React, ReactDOM);
+    } catch (error) {
+      console.error(error);
+      showScheduleError(error.message || 'Unknown error while loading the schedule.');
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootSchedule);
+  } else {
+    bootSchedule();
+  }
+})();
 </script>
 
 <script>
