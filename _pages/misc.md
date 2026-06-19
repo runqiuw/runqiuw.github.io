@@ -22,7 +22,7 @@ nav_order: 10
   window.addEventListener('message', function (e) {
     if (e && e.data && e.data.type === 'schedule-resize' && typeof e.data.height === 'number') {
       var frame = document.getElementById('schedule-frame');
-      if (frame) frame.style.height = e.data.height + 'px';
+      if (frame) frame.style.height = Math.max(600, e.data.height) + 'px';
     }
   });
 </script>

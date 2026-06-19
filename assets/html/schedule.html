@@ -11,8 +11,8 @@
 <style>
   html, body { margin: 0; padding: 0; background: #f9fafb; overflow: hidden; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
-  #scale-wrapper { width: 880px; transform-origin: top left; }
-  #scale-outer { width: 100%; overflow: hidden; }
+  #scale-wrapper { width: 880px; min-height: 600px; transform-origin: top left; }
+  #scale-outer { width: 100%; min-height: 600px; overflow: hidden; }
 </style>
 </head>
 <body>
@@ -770,14 +770,21 @@ root.render(<App />);
 <script>
 (function () {
   const DESIGN_WIDTH = 880;
+  const MIN_HEIGHT = 600;
   const wrapper = document.getElementById('scale-wrapper');
   const outer = document.getElementById('scale-outer');
+  const root = document.getElementById('root');
 
   function applyScale() {
     const available = window.innerWidth;
     const scale = Math.min(1, available / DESIGN_WIDTH);
     wrapper.style.transform = 'scale(' + scale + ')';
-    const scaledHeight = Math.ceil(wrapper.getBoundingClientRect().height);
+    const contentHeight = Math.max(
+      wrapper.scrollHeight,
+      root ? root.scrollHeight : 0,
+      wrapper.getBoundingClientRect().height / (scale || 1)
+    );
+    const scaledHeight = Math.max(MIN_HEIGHT, Math.ceil(contentHeight * scale));
     outer.style.height = scaledHeight + 'px';
     try {
       window.parent.postMessage(
