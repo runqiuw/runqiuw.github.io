@@ -35,8 +35,7 @@
       "startDate": "2026-08-17",
       "endDate": "?",
       "image": "assets/img/logos/uw-logo.png"
-    }
-    ,
+    },
     {
       "institution": "University of Michigan",
       "location": "Ann Arbor, MI, USA",
@@ -131,7 +130,7 @@
       "name": "Programming",
       "level": "Advanced",
       "icon": "",
-      "keywords": ["Claude Code / Codex / Cursor","C/C++", "Python", "MATLAB", "SQLite", "Unity(C#)"]
+      "keywords": ["Claude Code / Codex / Cursor", "C/C++", "Python", "MATLAB", "SQLite", "Unity(C#)"]
     },
     {
       "name": "Hardware & Prototyping",
@@ -191,9 +190,7 @@
     {
       "name": "",
       "summary": "",
-      "highlights": [
-        ""
-      ],
+      "highlights": [""],
       "startDate": "",
       "endDate": "",
       "url": ""
