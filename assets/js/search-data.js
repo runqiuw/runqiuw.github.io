@@ -30,13 +30,6 @@ ninja.data = [{
           handler: () => {
             window.location.href = "/cv/";
           },
-        },{id: "nav-misc",
-          title: "misc",
-          description: "My hobbies, interests, photo gallery, and more.",
-          section: "Navigation",
-          handler: () => {
-            window.location.href = "/misc/";
-          },
         },{id: "post-a-post-with-plotly-js",
         
           title: "a post with plotly.js",
@@ -444,7 +437,7 @@ ninja.data = [{
         title: 'email',
         section: 'Socials',
         handler: () => {
-          window.open("mailto:%72%75%6E%71%69%75@%75%6D%69%63%68.%65%64%75", "_blank");
+          window.open("mailto:%72%77%61%6E%67%38%33%37@%77%69%73%63.%65%64%75", "_blank");
         },
       },{
         id: 'social-github',
@@ -452,6 +445,13 @@ ninja.data = [{
         section: 'Socials',
         handler: () => {
           window.open("https://github.com/runqiuw", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=7S8WhZsAAAAJ", "_blank");
         },
       },{
       id: 'light-theme',
