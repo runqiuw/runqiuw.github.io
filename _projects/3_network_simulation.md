@@ -7,6 +7,7 @@ importance: 4
 category: work
 timeline: Jan 2025 - Apr 2025
 labels: ["Network"]
+hidden: true
 ---
 
 ## Overview

@@ -7,6 +7,7 @@ importance: 2
 category: work
 timeline: Mar 2025 - Apr 2025
 labels: ["CV/ML"]
+hidden: true
 ---
 
 ## Overview

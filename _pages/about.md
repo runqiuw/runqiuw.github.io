@@ -2,7 +2,7 @@
 layout: about
 title: about
 permalink: /
-subtitle: "<a href='https://cse.engin.umich.edu/' target='_blank'>CSE@UMich</a>"
+subtitle: "<a href='https://www.cs.wisc.edu/' target='_blank'>CS@UW–Madison</a>"
 # subtitle: <a href='#'>University of Michigan</a>. Address. Contacts. Motto. Etc.
 
 profile:
@@ -11,8 +11,8 @@ profile:
   fun_image: profile/fun.jpg
   image_circular: false # crops the image to make it circular
   more_info: >
-    <p>Ann Arbor, Michigan</p>
-    <p><a href="mailto:runqiu@umich.edu">runqiu@umich.edu</a></p>
+    <p>Madison, Wisconsin</p>
+    <p><a href="mailto:rwang837@wisc.edu">rwang837@wisc.edu</a></p>
 
 selected_papers: true # includes a list of papers marked as "selected={true}"
 featured_projects: true # includes a list of featured projects
@@ -35,8 +35,8 @@ latest_posts:
 
 <!-- Link to your social media connections, too. This theme is set up to use [Font Awesome icons](https://fontawesome.com/) and [Academicons](https://jpswalsh.github.io/academicons/), like the ones below. Add your Facebook, Twitter, LinkedIn, Google Scholar, or just disable all of them. -->
 
-Hi!👋 I’m **Runqiu Wang**, a senior undergraduate student pursuing a [dual degree](https://www.ji.sjtu.edu.cn/academics/ipo/study-abroad/degree-programs/) in **Computer Science** at the [**University of Michigan**](https://cse.engin.umich.edu/) and **Mechanical Engineering** at [**Shanghai Jiao Tong University**](https://www.ji.sjtu.edu.cn/). I worked in the **AMI Lab** led by [**Prof. Ke Sun**](https://samsonsjarkal.github.io/KeSun/) on sensing systems and applied machine learning.
+Hi!👋 I’m **Runqiu Wang**, a first-year Ph.D. student in **Computer Sciences** at the [**University of Wisconsin–Madison**](https://www.cs.wisc.edu/). I received a B.S.E. in **Computer Science** from the [**University of Michigan**](https://cse.engin.umich.edu/) and a B.S. in **Mechanical Engineering** from [**Shanghai Jiao Tong University**](https://gc.sjtu.edu.cn/). Previously, I worked in the **AMI Lab** led by [**Prof. Ke Sun**](https://samsonsjarkal.github.io/KeSun/) on sensing systems and applied machine learning.
 
-I am interested in applied machine learning and computer vision for ubiquitous and ambient sensing, as well as wearable devices and XR systems that tightly couple the physical and digital worlds.
+I have been working on applied machine learning and computer vision for ubiquitous and ambient sensing that tightly couple the physical and digital worlds.
 
 My first name "Runqiu" is pronounced like "Roon-chio".

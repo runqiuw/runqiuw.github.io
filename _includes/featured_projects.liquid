@@ -20,7 +20,8 @@
 
 <div class="projects featured-projects">
   <div class="row row-cols-1 row-cols-md-3">
-    {% assign sorted_projects = site.projects | sort: 'importance' %}
+    {% assign visible_projects = site.projects | where_exp: 'project', 'project.hidden != true' %}
+    {% assign sorted_projects = visible_projects | sort: 'importance' %}
     {% for project in sorted_projects limit: 3 %}
       {% include projects.liquid %}
     {% endfor %}
