@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+readonly PROJECT_FILE="$REPO_ROOT/.overleaf-cv-project"
+readonly CV_PATH="$REPO_ROOT/assets/pdf/cv.pdf"
+
+push_after_commit=true
+
+usage() {
+  cat <<'EOF'
+Usage: bin/sync-cv [--no-push]
+
+Compile the configured Overleaf project, download its PDF to
+assets/pdf/cv.pdf, and commit and push the change.
+
+Options:
+  --no-push  Create the commit but do not push it to GitHub.
+  -h, --help Show this help text.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --no-push)
+      push_after_commit=false
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      printf 'Unknown option: %s\n\n' "$1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+for command_name in git olcli; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'Required command not found: %s\n' "$command_name" >&2
+    exit 1
+  fi
+done
+
+if [[ ! -f "$PROJECT_FILE" ]]; then
+  cat >&2 <<EOF
+Missing $PROJECT_FILE
+
+Create it with one line containing the Overleaf project name or ID:
+  printf '%s\n' 'YOUR_PROJECT' > '$PROJECT_FILE'
+
+This file is ignored by Git.
+EOF
+  exit 1
+fi
+
+project="$(sed -n '/[^[:space:]]/ { s/^[[:space:]]*//; s/[[:space:]]*$//; p; q; }' "$PROJECT_FILE")"
+if [[ -z "$project" ]]; then
+  printf 'No Overleaf project is configured in %s\n' "$PROJECT_FILE" >&2
+  exit 1
+fi
+
+cd "$REPO_ROOT"
+
+if ! git diff --quiet -- "$CV_PATH" || ! git diff --cached --quiet -- "$CV_PATH"; then
+  printf 'Refusing to overwrite an uncommitted change in %s\n' "$CV_PATH" >&2
+  exit 1
+fi
+
+tmp_pdf="$(mktemp "${TMPDIR:-/tmp}/overleaf-cv.XXXXXX")"
+trap 'rm -f -- "$tmp_pdf"' EXIT
+
+printf 'Compiling and downloading CV from Overleaf...\n'
+olcli pdf "$project" --output "$tmp_pdf"
+
+if [[ ! -s "$tmp_pdf" ]] || [[ "$(LC_ALL=C head -c 5 "$tmp_pdf")" != '%PDF-' ]]; then
+  printf 'Overleaf did not return a valid PDF; existing CV was left unchanged.\n' >&2
+  exit 1
+fi
+
+if cmp -s -- "$tmp_pdf" "$CV_PATH"; then
+  printf 'CV is already up to date; nothing to commit.\n'
+  exit 0
+fi
+
+cp -- "$tmp_pdf" "$CV_PATH"
+git add -- "$CV_PATH"
+git commit -m 'Update CV from Overleaf' -- "$CV_PATH"
+
+if [[ "$push_after_commit" == true ]]; then
+  current_branch="$(git branch --show-current)"
+  if [[ -z "$current_branch" ]]; then
+    printf 'Commit created, but the repository is in detached HEAD state; not pushing.\n' >&2
+    exit 1
+  fi
+  git push origin "$current_branch"
+  printf 'CV updated and pushed. GitHub Actions will redeploy the website.\n'
+else
+  printf 'CV updated and committed locally. Push when ready.\n'
+fi
