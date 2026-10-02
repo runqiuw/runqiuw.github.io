@@ -44,9 +44,8 @@
       "studyType": "B.S.E.",
       "startDate": "2024-08-01",
       "endDate": "2026-05-01",
-      "score": "3.89/4.0",
       "image": "assets/img/logos/umich-logo.png",
-      "courses": ["Coursework: Computer Vision, Computer Networks, Machine Learning, Database Systems, Game Dev", "GPA: 3.89/4.0"]
+      "courses": ["Coursework: Computer Vision, Computer Networks, Machine Learning, Database Systems, Game Dev"]
     },
     {
       "institution": "Shanghai Jiao Tong University",
@@ -56,9 +55,8 @@
       "studyType": "B.S.",
       "startDate": "2022-09-01",
       "endDate": "2026-08-01",
-      "score": "3.57/4.0",
       "image": "assets/img/logos/sjtu-logo.png",
-      "courses": ["Coursework: Design and Manufacturing, Laboratory", "GPA: 3.57/4.0"]
+      "courses": ["Coursework: Design and Manufacturing, Laboratory"]
     }
   ],
   "work": [
