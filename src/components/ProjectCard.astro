@@ -1,0 +1,77 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  project: CollectionEntry<'projects'>;
+}
+const { project } = Astro.props;
+const p = project.data;
+const href = p.external ?? `/projects/${project.id}/`;
+---
+
+<article class="proj card">
+  <a href={href} class="cover-link" tabindex="-1" aria-hidden="true">
+    <Image src={p.cover} alt="" widths={[320, 640]} sizes="(max-width: 900px) 100vw, 300px" />
+  </a>
+  <div class="body">
+    <h3><a href={href}>{p.title}{p.external && <span class="ext" aria-label="(GitHub)"> ↗</span>}</a></h3>
+    <p>{p.summary}</p>
+    <div class="meta">
+      <span>{p.timeline}</span>
+      {p.tags.map((t) => <span class="tag">{t}</span>)}
+    </div>
+  </div>
+</article>
+
+<style>
+  .proj {
+    padding: 10px;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    transition: translate 0.35s var(--spring);
+  }
+  .proj:hover {
+    translate: 0 -4px;
+  }
+  .proj :global(img) {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: 15px;
+    background: var(--bg-2);
+  }
+  .body {
+    padding: 0 6px 6px;
+  }
+  h3 {
+    font-size: 17px;
+  }
+  h3 a {
+    text-decoration: none;
+  }
+  .ext {
+    color: var(--mute);
+  }
+  p {
+    margin: 6px 0 10px;
+    font-size: 14px;
+    color: var(--mute);
+    line-height: 1.5;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    font: 600 12px var(--font-display);
+    color: var(--mute);
+  }
+  .tag {
+    background: color-mix(in srgb, var(--mint) 18%, transparent);
+    color: var(--ink);
+    padding: 2px 9px;
+    border-radius: 999px;
+  }
+</style>

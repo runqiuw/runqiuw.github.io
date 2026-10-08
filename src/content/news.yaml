@@ -1,0 +1,16 @@
+# Newest first. date: YYYY or YYYY-MM.
+- id: phd-start
+  date: "2026-08"
+  text: Started my PhD in Computer Sciences at UW–Madison.
+- id: moireskin
+  date: "2026"
+  text: "MoiréSkin accepted to MobiCom ’26 (Austin, TX, Oct 2026)."
+- id: moirelens
+  date: "2026-05"
+  text: "MoiréLens (co-first author) published at SenSys ’26."
+- id: umich-grad
+  date: "2026-05"
+  text: Graduated from the University of Michigan (B.S.E. Computer Science).
+- id: mpformer
+  date: "2025-08"
+  text: "MP-Former published at IDETC-CIE 2025."

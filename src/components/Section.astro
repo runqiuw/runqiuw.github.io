@@ -1,0 +1,23 @@
+---
+interface Props {
+  id: string;
+  kicker: string;
+  title: string;
+  lede?: string;
+}
+const { id, kicker, title, lede } = Astro.props;
+---
+
+<section id={id} data-section={id} class="block">
+  <p class="kicker">{kicker}</p>
+  <h2>{title}</h2>
+  {lede && <p class="muted lede">{lede}</p>}
+  <slot />
+</section>
+
+<style>
+  .lede {
+    max-width: 60ch;
+    margin: 8px 0 18px;
+  }
+</style>

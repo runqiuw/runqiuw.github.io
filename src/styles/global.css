@@ -1,0 +1,173 @@
+/* Toy Room design tokens. Light = "lights on", dark = "lights off".
+   html[data-theme] is set before first paint by the inline script in Base.astro. */
+:root {
+  --bg: #eef0fb;
+  --bg-2: #f7f8ff;
+  --surface: #ffffff;
+  --ink: #1d2148;
+  --mute: #5c628c;
+  --line: #dde0f3;
+  --blue: #3d5afe;
+  --coral: #ff6b5e;
+  --mint: #12a883;
+  --yellow: #ffc93c;
+  --on-blue: #ffffff;
+  --link: #2f49e6;
+  --hl: rgb(255 255 255 / 0.85);
+  --shade: rgb(29 33 72 / 0.16);
+
+  --font-display: 'Fredoka Variable', 'Nunito Variable', system-ui, sans-serif;
+  --font-body: 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.125rem;
+  --step-2: 1.375rem;
+  --step-3: 2rem;
+  --step-4: clamp(2.5rem, 4.6vw, 3.6rem);
+
+  --radius-s: 12px;
+  --radius-m: 20px;
+  --radius-l: 28px;
+  --clay: 0 14px 30px -16px var(--shade), inset -3px -5px 9px rgb(0 0 0 / 0.05), inset 3px 4px 9px var(--hl);
+  --spring: cubic-bezier(0.34, 1.8, 0.5, 1);
+  --nav-h: 60px;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0f1128;
+  --bg-2: #151834;
+  --surface: #1d2145;
+  --ink: #eef0ff;
+  --mute: #a1a7d4;
+  --line: #2b305d;
+  --blue: #8b7bff;
+  --coral: #ff6fae;
+  --mint: #33e3ad;
+  --yellow: #ffc94d;
+  --on-blue: #ffffff;
+  --link: #a99dff;
+  --hl: rgb(255 255 255 / 0.06);
+  --shade: rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-h) + 12px);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  transition: background-color 0.5s ease, color 0.3s ease;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.1;
+  text-wrap: balance;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Shared bits */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-weight: 700;
+  font-size: var(--step--1);
+  box-shadow: var(--clay);
+  transition: translate 0.35s var(--spring);
+  border: 0;
+  cursor: pointer;
+}
+a.pill:hover,
+button.pill:hover {
+  translate: 0 -3px;
+}
+.pill.primary {
+  background: var(--blue);
+  color: var(--on-blue);
+}
+
+.kicker {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-m);
+  box-shadow: var(--clay);
+}
+
+.muted {
+  color: var(--mute);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

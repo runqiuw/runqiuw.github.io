@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Not found">
+  <main id="main" class="page">
+    <p class="kicker">404</p>
+    <h1>This corner of the room is empty.</h1>
+    <p class="muted">The page you’re looking for doesn’t exist, or it moved when the site was rebuilt.</p>
+    <a class="pill primary" href="/">Back to the homepage</a>
+  </main>
+</Base>
+
+<style>
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 80px 20px 120px;
+  }
+  h1 {
+    font-size: var(--step-3);
+    margin: 8px 0 12px;
+  }
+  p.muted {
+    margin: 0 0 22px;
+  }
+</style>

@@ -1,0 +1,333 @@
+---
+// Left-hand room panel. Shows a still render first; on desktop it swaps in the live 3D room once
+// the page is idle. "Enter my room" (or the mobile button in the intro, via `roomopen`) opens a
+// full-screen orbit view; labels and objects navigate back to page sections.
+import { Image } from 'astro:assets';
+import day from '../assets/img/room/poster-day.webp';
+import night from '../assets/img/room/poster-night.webp';
+---
+
+<aside class="room" id="room-panel" aria-label="Runqiu's room">
+  <div class="frame">
+    <Image class="poster day" src={day} alt="Clay-style model of Runqiu's room: bed, desk with two monitors, cart and a pinboard." widths={[450, 900]} sizes="45vw" loading="eager" />
+    <Image class="poster night" src={night} alt="" widths={[450, 900]} sizes="45vw" loading="eager" />
+    <p class="cap" aria-live="polite"><i aria-hidden="true">●</i><b id="room-cap-t">My room</b><span id="room-cap-s">overview</span></p>
+    <button class="enter" type="button" id="room-enter" hidden>Enter my room ⤢</button>
+    <p class="help" hidden><b>My room</b>Drag to look around; scroll or pinch to zoom. Tap a label or an object to jump to that part of the page.</p>
+    <button class="exit" type="button" id="room-exit" hidden>Back to page ✕</button>
+    <p class="loading" hidden>Building the room…</p>
+  </div>
+</aside>
+
+<script>
+  type Room = Awaited<ReturnType<typeof import('../scripts/room').mountRoom>>;
+
+  const aside = document.getElementById('room-panel')!;
+  const frame = aside.querySelector<HTMLElement>('.frame')!;
+  const enterBtn = document.getElementById('room-enter')!;
+  const exitBtn = document.getElementById('room-exit')!;
+  const help = frame.querySelector<HTMLElement>('.help')!;
+  const loading = frame.querySelector<HTMLElement>('.loading')!;
+  const wide = matchMedia('(min-width: 901px)');
+  const webgl = (() => {
+    try {
+      return !!document.createElement('canvas').getContext('webgl2');
+    } catch {
+      return false;
+    }
+  })();
+
+  let room: Promise<Room> | null = null;
+  let isFull = false;
+
+  const load = () => {
+    room ??= import('../scripts/room')
+      .then(({ mountRoom }) =>
+        mountRoom(frame, {
+          section: document.documentElement.dataset.section ?? 'top',
+          theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+          reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+          onNavigate: (section) => close(section),
+        }),
+      )
+      .then((r) => {
+        frame.classList.add('live');
+        return r;
+      });
+    room.catch((err) => {
+      console.warn('Room failed to load; keeping the still image.', err);
+      enterBtn.hidden = true;
+      loading.textContent = 'The 3D room couldn’t load. Everything is on the page.';
+    });
+    return room;
+  };
+
+  async function open() {
+    if (isFull || !webgl) return;
+    isFull = true;
+    aside.classList.add('full');
+    document.body.style.overflow = 'hidden';
+    enterBtn.hidden = true;
+    exitBtn.hidden = false;
+    help.hidden = false;
+    if (!frame.classList.contains('live')) loading.hidden = false;
+    // The page scroll stays put underneath; stop the browser from "restoring" it when we pop
+    // the #room entry, which would cancel the jump to the chosen section.
+    history.scrollRestoration = 'manual';
+    history.pushState({ room: true }, '', '#room');
+    const r = await load();
+    loading.hidden = true;
+    if (isFull) r.enterFull();
+    exitBtn.focus();
+  }
+
+  async function close(section?: string, fromHistory = false) {
+    if (!isFull) return;
+    isFull = false;
+    aside.classList.remove('full');
+    document.body.style.overflow = '';
+    exitBtn.hidden = true;
+    help.hidden = true;
+    loading.hidden = true;
+    enterBtn.hidden = !wide.matches;
+    if (!fromHistory && history.state?.room) {
+      // Leave the #room history entry first, so its scroll restore can't undo the jump below.
+      const popped = new Promise((r) => addEventListener('popstate', r, { once: true }));
+      history.back();
+      await popped;
+    }
+    (await room)?.exitFull();
+    if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => (history.scrollRestoration = 'auto'), 1500);
+  }
+
+  if (webgl) {
+    // Desktop: live room in the panel once the page is idle. Also start if a narrow window widens.
+    let started = false;
+    const start = () => {
+      if (started || !wide.matches) return;
+      started = true;
+      enterBtn.hidden = false;
+      const run = () => load();
+      'requestIdleCallback' in window ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 300);
+    };
+    start();
+    wide.addEventListener('change', start);
+
+    enterBtn.addEventListener('click', open);
+    frame.addEventListener('click', (e) => {
+      if (!isFull && wide.matches && (e.target as HTMLElement).closest('canvas, .poster')) open();
+    });
+    exitBtn.addEventListener('click', () => close());
+    addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+    addEventListener('popstate', () => close(undefined, true));
+    addEventListener('roomopen', open);
+    document.documentElement.classList.add('has-room');
+  }
+
+  const CAPTIONS: Record<string, [string, string]> = {
+    top: ['My room', 'overview'],
+    research: ['Desk', 'Research'],
+    projects: ['Cart', 'Projects'],
+    games: ['Game corner', 'Games (coming)'],
+    playground: ['Pinboard', 'Playground'],
+    contact: ['Door', 'Say hi'],
+  };
+  const t = document.getElementById('room-cap-t')!;
+  const s = document.getElementById('room-cap-s')!;
+  window.addEventListener('sectionchange', (e) => {
+    const c = CAPTIONS[(e as CustomEvent<string>).detail];
+    if (c) [t.textContent, s.textContent] = c;
+  });
+</script>
+
+<style>
+  .room {
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    height: calc(100dvh - var(--nav-h));
+    padding: 14px 0 14px 14px;
+  }
+  .room.full {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    height: 100%;
+    padding: 0;
+    background: var(--bg);
+  }
+  .frame {
+    position: relative;
+    height: 100%;
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    background: radial-gradient(110% 80% at 60% 20%, var(--bg-2), var(--bg));
+    box-shadow: var(--clay);
+    display: grid;
+    place-items: center;
+  }
+  .full .frame {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .poster {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.6s ease;
+  }
+  .night {
+    opacity: 0;
+  }
+  :global(:root[data-theme='dark']) .night {
+    opacity: 1;
+  }
+  :global(:root[data-theme='dark']) .day {
+    opacity: 0;
+  }
+  .frame :global(.room-canvas) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    cursor: zoom-in;
+    touch-action: none;
+  }
+  .frame.live :global(.room-canvas) {
+    opacity: 1;
+  }
+  .frame.live .poster {
+    opacity: 0 !important;
+  }
+  .cap,
+  .enter,
+  .exit,
+  .help,
+  .loading {
+    position: absolute;
+    z-index: 3;
+    margin: 0;
+  }
+  .cap {
+    left: 14px;
+    bottom: 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 7px 14px 7px 8px;
+    box-shadow: var(--clay);
+    font: 600 13.5px var(--font-display);
+  }
+  .full .cap {
+    display: none;
+  }
+  .cap i {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--yellow);
+    display: grid;
+    place-items: center;
+    font-style: normal;
+    font-size: 11px;
+    color: #1d2148;
+  }
+  .cap span {
+    color: var(--mute);
+    font-weight: 500;
+  }
+  .enter {
+    right: 14px;
+    bottom: 14px;
+    border: 0;
+    cursor: pointer;
+    background: var(--blue);
+    color: var(--on-blue);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font: 600 14px var(--font-display);
+    box-shadow: var(--clay);
+    transition: translate 0.35s var(--spring);
+  }
+  .enter:hover {
+    translate: 0 -3px;
+  }
+  .exit {
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    border: 0;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font: 600 14px var(--font-display);
+    box-shadow: var(--clay);
+  }
+  .help {
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: 14px;
+    max-width: 270px;
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 10px 14px;
+    box-shadow: var(--clay);
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  .help b {
+    display: block;
+    font: 600 15px var(--font-display);
+  }
+  .loading {
+    font: 600 15px var(--font-display);
+    color: var(--mute);
+    background: var(--surface);
+    padding: 8px 16px;
+    border-radius: 999px;
+    box-shadow: var(--clay);
+  }
+  .frame :global(.room-pins) {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .frame :global(.room-pin) {
+    position: absolute;
+    pointer-events: auto;
+    translate: -50% -100%;
+    border: 0;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font: 600 13.5px var(--font-display);
+    box-shadow: 0 10px 22px -10px var(--shade), var(--clay);
+    white-space: nowrap;
+    transition: scale 0.3s var(--spring);
+  }
+  .frame :global(.room-pin small) {
+    color: var(--mute);
+    font-weight: 500;
+    margin-right: 5px;
+  }
+  .frame :global(.room-pin:hover) {
+    scale: 1.08;
+  }
+  @media (max-width: 900px) {
+    .help {
+      max-width: calc(100% - 170px);
+    }
+  }
+</style>

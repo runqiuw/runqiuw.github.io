@@ -1,0 +1,188 @@
+---
+import { profile } from '../data/profile';
+
+interface Props {
+  home: boolean;
+}
+const { home } = Astro.props;
+const base = home ? '' : '/';
+const sections = [
+  { id: 'research', label: 'Research' },
+  { id: 'projects', label: 'Projects' },
+  { id: 'games', label: 'Games' },
+  { id: 'playground', label: 'Playground' },
+];
+---
+
+<header class="nav">
+  <a class="logo" href={home ? '#top' : '/'}><i aria-hidden="true"></i>runqiu</a>
+  <nav aria-label="Sections">
+    <ul>
+      {sections.map((s) => <li><a class="sec" href={`${base}#${s.id}`} data-section-link={s.id}>{s.label}</a></li>)}
+      <li><a class="sec" href={profile.links.cv}>CV</a></li>
+    </ul>
+  </nav>
+  <button class="menu-btn" type="button" popovertarget="mobile-menu" aria-label="Open menu">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M4 7h16v2H4zm0 4h16v2H4zm0 4h16v2H4z" /></svg>
+  </button>
+  <div id="mobile-menu" popover>
+    <ul>
+      {sections.map((s) => <li><a href={`${base}#${s.id}`}>{s.label}</a></li>)}
+      <li><a href={profile.links.cv}>CV (PDF)</a></li>
+    </ul>
+  </div>
+  <button class="switch" type="button" id="theme-switch" aria-pressed="false">
+    <span class="bulb" aria-hidden="true"></span><span class="label">Lights off</span>
+  </button>
+</header>
+
+<script>
+  const btn = document.getElementById('theme-switch')!;
+  const label = btn.querySelector('.label')!;
+  const sync = () => {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    label.textContent = dark ? 'Lights on' : 'Lights off';
+    btn.setAttribute('aria-pressed', String(dark));
+    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  };
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch {}
+    sync();
+    window.dispatchEvent(new CustomEvent('themechange', { detail: next }));
+  });
+  sync();
+
+  // Close the mobile menu after picking a section.
+  const menu = document.getElementById('mobile-menu')!;
+  menu.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a')) menu.hidePopover();
+  });
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    height: var(--nav-h);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .logo {
+    font: 600 21px var(--font-display);
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-decoration: none;
+  }
+  .logo i {
+    width: 22px;
+    height: 22px;
+    border-radius: 8px;
+    background: var(--blue);
+    box-shadow: var(--clay);
+  }
+  ul {
+    display: flex;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sec {
+    display: block;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--mute);
+    padding: 7px 12px;
+    border-radius: 999px;
+    transition: background 0.25s, color 0.25s;
+  }
+  .sec:hover,
+  .sec[aria-current='true'] {
+    color: var(--ink);
+  }
+  .sec[aria-current='true'] {
+    background: var(--surface);
+    box-shadow: var(--clay);
+  }
+  .switch {
+    border: 0;
+    cursor: pointer;
+    margin-left: 6px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font-weight: 700;
+    font-size: 13px;
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .bulb {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--yellow);
+    box-shadow: 0 0 10px var(--yellow);
+  }
+  .menu-btn {
+    display: none;
+    border: 0;
+    cursor: pointer;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface);
+    box-shadow: var(--clay);
+    place-items: center;
+  }
+  #mobile-menu {
+    position: fixed;
+    inset: auto 12px auto auto;
+    top: calc(var(--nav-h) + 8px);
+    margin: 0;
+    border: 0;
+    padding: 8px;
+    min-width: 200px;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: var(--radius-m);
+    box-shadow: 0 20px 40px -18px var(--shade), var(--clay);
+  }
+  #mobile-menu ul {
+    flex-direction: column;
+    gap: 2px;
+  }
+  #mobile-menu a {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font: 600 16px var(--font-display);
+  }
+  #mobile-menu a:hover,
+  #mobile-menu a:focus-visible {
+    background: var(--bg);
+  }
+  @media (max-width: 760px) {
+    nav {
+      display: none;
+    }
+    .menu-btn {
+      display: grid;
+    }
+  }
+</style>

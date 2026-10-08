@@ -1,0 +1,32 @@
+# Games: what each game is (no per-person contribution notes). Shown in the Games section and (later) in the room's game corner. Order = list order.
+- id: bargain-brawl
+  order: 1
+  title: Bargain Brawl
+  summary: >
+    A fast-paced, competitive split-screen party game. Set in a colorful supermarket, players take
+    turns to check out required items. Use different items to speed up, create foggy zones, and
+    spill liquid on the ground! Think carefully and find your way in this chaotic store!
+  authors: [Anqi Dai, Jingzhe Zhou, Runqiu Wang]
+  built_with: Unity (C#)
+  cover: ../assets/img/games/bargain-brawl.png
+  play: https://alistayyds.itch.io/bargain-brawl
+  trailer: https://www.youtube.com/watch?v=Mxd6trUlRZo
+
+- id: zelda-remaster
+  order: 2
+  title: The Legend of Zelda (Unity Remaster)
+  summary: >
+    Remaster of The Legend of Zelda (1986) Dungeon 1 plus an original custom level.
+  built_with: Unity (C#)
+  cover: ../assets/img/games/zelda.png
+  play: https://runqiu.itch.io/the-legend-of-zelda
+
+- id: timebreaker
+  order: 3
+  title: Timebreaker
+  summary: >
+    Timebreaker is a fast-paced action game where you trigger bullet time to weave through bullet
+    hell and create the perfect counterattack window.
+  built_with: Unity (C#)
+  cover: ../assets/img/games/timebreaker.png
+  play: https://runqiu.itch.io/p2
