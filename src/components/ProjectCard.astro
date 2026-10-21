@@ -1,5 +1,5 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -8,9 +8,11 @@ interface Props {
 const { project } = Astro.props;
 const p = project.data;
 const href = p.external ?? `/projects/${project.id}/`;
+// The framed picture of this project on the room's shelf (read by src/scripts/room.ts).
+const screen = await getImage({ src: p.cover, width: 384, format: 'webp' });
 ---
 
-<article class="proj card">
+<article class="proj card" data-item={project.id} data-screen-title={p.title} data-screen-img={screen.src}>
   <a href={href} class="cover-link" tabindex="-1" aria-hidden="true">
     <Image src={p.cover} alt="" widths={[320, 640]} sizes="(max-width: 900px) 100vw, 300px" />
   </a>

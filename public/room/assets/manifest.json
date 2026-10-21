@@ -1,0 +1,462 @@
+{
+  "source": "room_assets.blend",
+  "units": "m",
+  "front": "-Y",
+  "up": "+Z (glTF +Y)",
+  "assets": {
+    "beanbag": {
+      "file": "beanbag.glb",
+      "catalog": "Sections/Games",
+      "mount": "floor",
+      "size": [
+        0.96,
+        0.9,
+        0.6392
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric"
+      ],
+      "triangles": 1840,
+      "bytes": 10368,
+      "description": "Bean bag seat in front of the TV; makes the game corner readable at a glance."
+    },
+    "bed": {
+      "file": "bed.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        1.588,
+        2.163,
+        1.04
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "fabric",
+        "frame",
+        "wood"
+      ],
+      "triangles": 22548,
+      "bytes": 177908,
+      "description": "Queen bed with sheet and pillows; foot end is the front."
+    },
+    "bed_single": {
+      "file": "bed_single.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        1.054,
+        2.036,
+        1.04
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "fabric",
+        "frame",
+        "wood"
+      ],
+      "triangles": 22360,
+      "bytes": 174148,
+      "description": "Twin bed (mattress 99×190.5) built from the queen bed parts, one pillow; foot end is the front."
+    },
+    "cart": {
+      "file": "cart.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        0.4477,
+        0.3588,
+        0.7747
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame"
+      ],
+      "triangles": 5076,
+      "bytes": 86404,
+      "description": "Brightroom 3-tier cart."
+    },
+    "chair": {
+      "file": "chair.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        0.692,
+        0.6472,
+        1.0621
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame"
+      ],
+      "triangles": 8908,
+      "bytes": 74912,
+      "description": "B100 mesh chair, headrest removed so it does not block the monitors."
+    },
+    "console": {
+      "file": "console.glb",
+      "catalog": "Sections/Games",
+      "mount": "desk",
+      "size": [
+        0.77,
+        0.174,
+        0.053
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame",
+        "glow"
+      ],
+      "triangles": 7500,
+      "bytes": 34792,
+      "description": "Game console with two chunky controllers (toy proportions)."
+    },
+    "desk": {
+      "file": "desk.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        1.6002,
+        0.6323,
+        0.74
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame",
+        "metal",
+        "wood"
+      ],
+      "triangles": 4920,
+      "bytes": 70072,
+      "description": "edx 160×61 standing desk at 74 cm."
+    },
+    "desklamp": {
+      "file": "desklamp.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.2337,
+        0.152,
+        0.405
+      ],
+      "elevation": 0.75,
+      "roles": [
+        "frame",
+        "glow",
+        "metal"
+      ],
+      "triangles": 6088,
+      "bytes": 79080,
+      "description": "Gooseneck table lamp; bulb is `glow`. Placed on side table and nightstand."
+    },
+    "door": {
+      "file": "door.glb",
+      "catalog": "Room/Fixtures",
+      "mount": "wall",
+      "size": [
+        0.99,
+        0.21,
+        2.1
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame"
+      ],
+      "triangles": 84,
+      "bytes": 3988,
+      "description": "Door with frame, 99×210; also used for the closet door."
+    },
+    "gamebox": {
+      "file": "gamebox.glb",
+      "catalog": "Sections/Games",
+      "mount": "desk",
+      "size": [
+        0.106,
+        0.0131,
+        0.17
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame",
+        "screen"
+      ],
+      "triangles": 122,
+      "bytes": 6696,
+      "description": "Game case with a `cover` plane (UV 0–1, aspect ~0.6). Placed 3×, one per game.",
+      "cover": {
+        "width": 0.095,
+        "height": 0.16,
+        "aspect": 0.5937
+      },
+      "cover_aspect": 0.5938
+    },
+    "glasstable": {
+      "file": "glasstable.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        1.2192,
+        0.6096,
+        0.45
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame",
+        "glass"
+      ],
+      "triangles": 1692,
+      "bytes": 32568,
+      "description": "Glass shelf at the bed end (size estimated from photos)."
+    },
+    "keyboard": {
+      "file": "keyboard.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.32,
+        0.12,
+        0.022
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "metal"
+      ],
+      "triangles": 188,
+      "bytes": 5640,
+      "description": "External keyboard."
+    },
+    "lamp": {
+      "file": "lamp.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        0.245,
+        0.3738,
+        1.6918
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame",
+        "glow"
+      ],
+      "triangles": 2788,
+      "bytes": 39196,
+      "description": "PACOVY floor lamp; head is `glow`."
+    },
+    "mirror": {
+      "file": "mirror.glb",
+      "catalog": "Room/Furniture",
+      "mount": "wall",
+      "size": [
+        0.5334,
+        0.2721,
+        1.619
+      ],
+      "elevation": 0.0114,
+      "roles": [
+        "frame",
+        "glass"
+      ],
+      "triangles": 1848,
+      "bytes": 28140,
+      "description": "EDX full-length mirror, leaning."
+    },
+    "monitor": {
+      "file": "monitor.glb",
+      "catalog": "Room/Furniture",
+      "mount": "desk",
+      "size": [
+        0.6157,
+        0.2125,
+        0.5426
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "frame",
+        "screen"
+      ],
+      "triangles": 578,
+      "bytes": 15532,
+      "description": "27\" monitor. `screen` plane: papers and demo clips play on it. Placed twice.",
+      "screen": {
+        "width": 0.5977,
+        "height": 0.3362,
+        "aspect": 1.7778
+      }
+    },
+    "nightstand": {
+      "file": "nightstand.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        0.4089,
+        0.3156,
+        0.7188
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame",
+        "wood"
+      ],
+      "triangles": 3008,
+      "bytes": 50576,
+      "description": "Furnulem 3-drawer bedside cabinet."
+    },
+    "paper": {
+      "file": "paper.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.14,
+        0.09,
+        0.002
+      ],
+      "elevation": 0.744,
+      "roles": [
+        "accent"
+      ],
+      "triangles": 12,
+      "bytes": 2812,
+      "description": "Sticky note / paper."
+    },
+    "pinboard": {
+      "file": "pinboard.glb",
+      "catalog": "Sections/Playground",
+      "mount": "wall",
+      "size": [
+        1.5,
+        0.03,
+        0.9
+      ],
+      "elevation": 0,
+      "roles": [
+        "wood"
+      ],
+      "triangles": 446,
+      "bytes": 7156,
+      "description": "Cork pinboard 150×90, wall-mounted (origin = back-face bottom center). Code pins cards on the `board` plane.",
+      "board": {
+        "width": 1.43,
+        "height": 0.83,
+        "aspect": 1.7229
+      },
+      "board_size": [
+        1.43,
+        0.83
+      ]
+    },
+    "shelf": {
+      "file": "shelf.glb",
+      "catalog": "Sections/Projects",
+      "mount": "floor",
+      "size": [
+        0.8,
+        0.3,
+        1.5
+      ],
+      "elevation": 0,
+      "roles": [
+        "wood"
+      ],
+      "triangles": 972,
+      "bytes": 8668,
+      "description": "Open bookshelf 80×30×150, 4 tiers (~33 cm clear). Project models sit on the tiers; heights in the `tiers` property.",
+      "tiers": [
+        0.075,
+        0.4313,
+        0.7875,
+        1.1438
+      ],
+      "tier_clear": 0.3312
+    },
+    "sidetable": {
+      "file": "sidetable.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        0.8,
+        0.5,
+        0.75
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame"
+      ],
+      "triangles": 2172,
+      "bytes": 33836,
+      "description": "Black side table 80×50×75."
+    },
+    "tv": {
+      "file": "tv.glb",
+      "catalog": "Sections/Games",
+      "mount": "floor",
+      "size": [
+        1.124,
+        0.18,
+        0.7265
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame",
+        "glow",
+        "screen"
+      ],
+      "triangles": 634,
+      "bytes": 9564,
+      "description": "TV, 16:9 `screen` plane (108×61 cm). Gameplay clips play on it.",
+      "screen": {
+        "width": 1.08,
+        "height": 0.6075,
+        "aspect": 1.7778
+      }
+    },
+    "tvstand": {
+      "file": "tvstand.glb",
+      "catalog": "Sections/Games",
+      "mount": "floor",
+      "size": [
+        1.2,
+        0.4375,
+        0.5
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame",
+        "metal",
+        "wood"
+      ],
+      "triangles": 1640,
+      "bytes": 15312,
+      "description": "Low TV console 120×40×50: two doors and an open middle cubby for the console."
+    },
+    "window": {
+      "file": "window.glb",
+      "catalog": "Room/Fixtures",
+      "mount": "wall",
+      "size": [
+        0.94,
+        0.1784,
+        1.82
+      ],
+      "elevation": 0.61,
+      "roles": [
+        "fabric",
+        "frame",
+        "glass",
+        "metal"
+      ],
+      "triangles": 688,
+      "bytes": 16700,
+      "description": "Left-wall window with blind; placed twice. Bottom = sill."
+    }
+  }
+}

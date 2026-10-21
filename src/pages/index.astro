@@ -20,7 +20,7 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
     <main id="main" class="content">
       <Intro />
       <Papers />
-      <Section id="projects" kicker="In the cart" title="Projects">
+      <Section id="projects" kicker="On the shelf" title="Projects">
         <div class="grid">{projects.map((p) => <ProjectCard project={p} />)}</div>
       </Section>
       <Section id="games" kicker="In the game corner" title="Games" lede="Games I’ve made with Unity. All three run in your browser on itch.io.">
@@ -48,21 +48,49 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
   // the room panel (and, later, the 3D room) via a `sectionchange` event.
   let current = '';
   const links = document.querySelectorAll<HTMLAnchorElement>('[data-section-link]');
+  const sections = [...document.querySelectorAll<HTMLElement>('[data-section]')];
+  const setSection = (id: string) => {
+    if (id === current) return;
+    current = id;
+    document.documentElement.dataset.section = id;
+    links.forEach((a) => a.setAttribute('aria-current', String(a.dataset.sectionLink === id)));
+    window.dispatchEvent(new CustomEvent('sectionchange', { detail: id }));
+  };
   const io = new IntersectionObserver(
     (entries) => {
-      for (const e of entries) {
-        if (!e.isIntersecting) continue;
-        const id = (e.target as HTMLElement).dataset.section!;
-        if (id === current) continue;
-        current = id;
-        document.documentElement.dataset.section = id;
-        links.forEach((a) => a.setAttribute('aria-current', String(a.dataset.sectionLink === id)));
-        window.dispatchEvent(new CustomEvent('sectionchange', { detail: id }));
-      }
+      for (const e of entries) if (e.isIntersecting && !atEnd()) setSection((e.target as HTMLElement).dataset.section!);
     },
     { rootMargin: '-40% 0px -55% 0px' },
   );
-  document.querySelectorAll('[data-section]').forEach((s) => io.observe(s));
+  sections.forEach((s) => io.observe(s));
+  // A short last section never reaches the middle of the viewport; at the end of the page it wins.
+  const atEnd = () => innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+  addEventListener('scroll', () => atEnd() && setSection(sections[sections.length - 1].dataset.section!), { passive: true });
+
+  // Same idea one level down: the item (paper, project, game…) in the middle of the viewport is the
+  // one the room shows. Hovering or focusing another item shows that one until the pointer leaves.
+  let scrolled = '';
+  const showItem = (id: string) => {
+    if (id === document.documentElement.dataset.item) return;
+    document.documentElement.dataset.item = id;
+    window.dispatchEvent(new CustomEvent('itemchange', { detail: id }));
+  };
+  const items = document.querySelectorAll<HTMLElement>('[data-item]');
+  const itemIo = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) if (e.isIntersecting) showItem((scrolled = (e.target as HTMLElement).dataset.item!));
+    },
+    { rootMargin: '-40% 0px -55% 0px' },
+  );
+  items.forEach((el) => {
+    itemIo.observe(el);
+    const pick = () => showItem(el.dataset.item!);
+    const back = () => scrolled && showItem(scrolled);
+    el.addEventListener('pointerenter', pick);
+    el.addEventListener('pointerleave', back);
+    el.addEventListener('focusin', pick);
+    el.addEventListener('focusout', back);
+  });
 </script>
 
 <style>

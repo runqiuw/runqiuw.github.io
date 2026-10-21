@@ -9,9 +9,8 @@ import night from '../assets/img/room/poster-night.webp';
 
 <aside class="room" id="room-panel" aria-label="Runqiu's room">
   <div class="frame">
-    <Image class="poster day" src={day} alt="Clay-style model of Runqiu's room: bed, desk with two monitors, cart and a pinboard." widths={[450, 900]} sizes="45vw" loading="eager" />
-    <Image class="poster night" src={night} alt="" widths={[450, 900]} sizes="45vw" loading="eager" />
-    <p class="cap" aria-live="polite"><i aria-hidden="true">●</i><b id="room-cap-t">My room</b><span id="room-cap-s">overview</span></p>
+    <Image class="poster day" src={day} alt="Clay-style model of Runqiu’s room: bed, desk with two monitors, a pinboard, a game corner with a TV and a bookshelf." widths={[450, 900]} sizes="45vw" loading="eager" draggable="false" />
+    <Image class="poster night" src={night} alt="" widths={[450, 900]} sizes="45vw" loading="eager" draggable="false" />
     <button class="enter" type="button" id="room-enter" hidden>Enter my room ⤢</button>
     <p class="help" hidden><b>My room</b>Drag to look around; scroll or pinch to zoom. Tap a label or an object to jump to that part of the page.</p>
     <button class="exit" type="button" id="room-exit" hidden>Back to page ✕</button>
@@ -40,6 +39,55 @@ import night from '../assets/img/room/poster-night.webp';
   let room: Promise<Room> | null = null;
   let isFull = false;
 
+  // Opening and closing morph the frame between its place on the page and the whole window, while
+  // the camera moves on the same curve and for the same time, so both read as one quick motion.
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'; // the same ease-out as the camera (room.ts `easeOut`)
+  const OPEN_MS = 560;
+  const CLOSE_MS = 460;
+  let morphing: Animation | null = null;
+  const box = (r: DOMRect) => ({ top: `${r.top}px`, left: `${r.left}px`, width: `${r.width}px`, height: `${r.height}px` });
+  const viewport = () => new DOMRect(0, 0, document.documentElement.clientWidth, document.documentElement.clientHeight);
+  const shrunk = (r: DOMRect, k: number) => new DOMRect(r.x + (r.width * k) / 2, r.y + (r.height * k) / 2, r.width * (1 - k), r.height * (1 - k));
+  // Where the room lives on the page: the panel on desktop, the "Explore my room" card on mobile
+  // (when it's on screen). Without one, the room grows from / fades into the middle.
+  const cta = document.getElementById('room-cta');
+  const home = () => {
+    if (wide.matches) {
+      const a = aside.getBoundingClientRect(), st = getComputedStyle(aside);
+      const [t, r, b, l] = [st.paddingTop, st.paddingRight, st.paddingBottom, st.paddingLeft].map(parseFloat);
+      return { rect: new DOMRect(a.left + l, a.top + t, a.width - l - r, a.height - t - b), radius: panelRadius };
+    }
+    const r = cta?.getBoundingClientRect();
+    return r && r.width && r.bottom > 0 && r.top < innerHeight ? { rect: r, radius: getComputedStyle(cta!).borderRadius } : null;
+  };
+  const panelRadius = getComputedStyle(frame).borderRadius;
+  const morph = (from: DOMRect, to: DOMRect, ms: number, r: [string, string], o: [number, number]) => {
+    // Interrupted (closed while still opening, or the other way round): start from where the frame is now.
+    if (morphing?.playState === 'running') {
+      const st = getComputedStyle(frame);
+      [from, r[0], o[0]] = [frame.getBoundingClientRect(), st.borderTopLeftRadius, parseFloat(st.opacity)];
+    }
+    morphing?.cancel();
+    morphing = frame.animate(
+      [
+        { ...box(from), borderRadius: r[0], opacity: o[0] },
+        { ...box(to), borderRadius: r[1], opacity: o[1] },
+      ],
+      { duration: reduce ? 0 : ms, easing: EASE, fill: 'forwards' },
+    );
+    return morphing.finished.then(
+      () => true,
+      () => false, // cancelled by a newer morph
+    );
+  };
+  // The camera follows the morph's own eased progress, so the room and the frame move together
+  // even if the animation starts a frame late.
+  const clockOf = (a: Animation) => ({
+    progress: () => (a.playState === 'finished' ? 1 : (a.effect?.getComputedTiming().progress ?? 0)),
+    done: () => a.playState === 'finished' || a.playState === 'idle',
+  });
+
   const load = () => {
     room ??= import('../scripts/room')
       .then(({ mountRoom }) =>
@@ -64,40 +112,58 @@ import night from '../assets/img/room/poster-night.webp';
 
   async function open() {
     if (isFull || !webgl) return;
+    const from = home();
     isFull = true;
     aside.classList.add('full');
     document.body.style.overflow = 'hidden';
     enterBtn.hidden = true;
     exitBtn.hidden = false;
     help.hidden = false;
-    if (!frame.classList.contains('live')) loading.hidden = false;
+    const live = frame.classList.contains('live');
+    if (!live) loading.hidden = false;
     // The page scroll stays put underneath; stop the browser from "restoring" it when we pop
     // the #room entry, which would cancel the jump to the chosen section.
     history.scrollRestoration = 'manual';
     history.pushState({ room: true }, '', '#room');
-    const r = await load();
-    loading.hidden = true;
-    if (isFull) r.enterFull();
-    exitBtn.focus();
+    const to = viewport();
+    const opened = morph(from?.rect ?? shrunk(to, 0.2), to, OPEN_MS, [from?.radius ?? '28px', '0px'], [from ? 1 : 0, 1]);
+    if (live) (await room)!.enterFull(OPEN_MS, to.width / to.height, clockOf(morphing!));
+    else {
+      const r = await load();
+      loading.hidden = true;
+      // First open on mobile: the room arrives after the frame has grown; let it settle in.
+      if (isFull) r.enterFull(OPEN_MS, to.width / to.height);
+    }
+    if ((await opened) && isFull) morphing?.cancel(); // hand the full-window layout back to CSS
+    if (isFull) exitBtn.focus({ preventScroll: true });
   }
 
   async function close(section?: string, fromHistory = false) {
     if (!isFull) return;
     isFull = false;
-    aside.classList.remove('full');
-    document.body.style.overflow = '';
     exitBtn.hidden = true;
     help.hidden = true;
     loading.hidden = true;
-    enterBtn.hidden = !wide.matches;
+    // Start shrinking right away. On mobile a jump to a section scrolls the card off screen, so
+    // fade out in the middle instead.
+    const target = section && section !== 'top' && !wide.matches ? null : home();
+    const to = target?.rect ?? shrunk(viewport(), 0.2);
+    const closing = morph(viewport(), to, CLOSE_MS, ['0px', target?.radius ?? '28px'], [1, target ? 1 : 0]);
+    if (frame.classList.contains('live')) (await room)?.exitFull(CLOSE_MS, section, to.width / to.height, clockOf(morphing!));
     if (!fromHistory && history.state?.room) {
       // Leave the #room history entry first, so its scroll restore can't undo the jump below.
       const popped = new Promise((r) => addEventListener('popstate', r, { once: true }));
       history.back();
       await popped;
     }
-    (await room)?.exitFull();
-    if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' });
+    // Jump the page under the room (it still covers most of the window at this point).
+    if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'instant' });
+    const closed = await closing;
+    if (!closed || isFull) return; // reopened meanwhile
+    aside.classList.remove('full');
+    morphing?.cancel();
+    document.body.style.overflow = '';
+    enterBtn.hidden = !wide.matches;
     setTimeout(() => (history.scrollRestoration = 'auto'), 1500);
   }
 
@@ -116,7 +182,7 @@ import night from '../assets/img/room/poster-night.webp';
 
     enterBtn.addEventListener('click', open);
     frame.addEventListener('click', (e) => {
-      if (!isFull && wide.matches && (e.target as HTMLElement).closest('canvas, .poster')) open();
+      if (!isFull && wide.matches && !(e.target as HTMLElement).closest('button')) open();
     });
     exitBtn.addEventListener('click', () => close());
     addEventListener('keydown', (e) => {
@@ -126,21 +192,6 @@ import night from '../assets/img/room/poster-night.webp';
     addEventListener('roomopen', open);
     document.documentElement.classList.add('has-room');
   }
-
-  const CAPTIONS: Record<string, [string, string]> = {
-    top: ['My room', 'overview'],
-    research: ['Desk', 'Research'],
-    projects: ['Cart', 'Projects'],
-    games: ['Game corner', 'Games (coming)'],
-    playground: ['Pinboard', 'Playground'],
-    contact: ['Door', 'Say hi'],
-  };
-  const t = document.getElementById('room-cap-t')!;
-  const s = document.getElementById('room-cap-s')!;
-  window.addEventListener('sectionchange', (e) => {
-    const c = CAPTIONS[(e as CustomEvent<string>).detail];
-    if (c) [t.textContent, s.textContent] = c;
-  });
 </script>
 
 <style>
@@ -151,17 +202,34 @@ import night from '../assets/img/room/poster-night.webp';
     height: calc(100dvh - var(--nav-h));
     padding: 14px 0 14px 14px;
   }
+  /* Full-screen room: only the frame leaves the page (fixed to the window); the panel keeps its
+     place, so the page doesn't reflow underneath. On mobile the panel is normally hidden. */
   .room.full {
-    display: block !important;
+    z-index: 100;
+  }
+  .room.full .frame {
     position: fixed;
     inset: 0;
-    z-index: 100;
-    height: 100%;
-    padding: 0;
-    background: var(--bg);
+    width: auto;
+    height: auto;
+    cursor: auto;
+  }
+  @media (max-width: 900px) {
+    .room.full {
+      display: block !important;
+      position: fixed;
+      inset: 0;
+      height: auto;
+      padding: 0;
+      pointer-events: none;
+    }
+    .room.full .frame {
+      pointer-events: auto;
+    }
   }
   .frame {
     position: relative;
+    cursor: zoom-in;
     height: 100%;
     border-radius: var(--radius-l);
     overflow: hidden;
@@ -174,12 +242,33 @@ import night from '../assets/img/room/poster-night.webp';
     border-radius: 0;
     box-shadow: none;
   }
+  .full .exit,
+  .full .help,
+  .frame :global(.room-pins:not([hidden])) {
+    animation: room-ui-in 0.28s 0.3s ease-out both;
+  }
+  @keyframes room-ui-in {
+    from {
+      opacity: 0;
+      translate: 0 -6px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .full .exit,
+    .full .help,
+    .frame :global(.room-pins:not([hidden])) {
+      animation: none;
+    }
+  }
   .poster {
     grid-area: 1 / 1;
     width: 100%;
     height: 100%;
     object-fit: contain;
     transition: opacity 0.6s ease;
+    /* Opacity < 1 lifts the hidden poster above the canvas; keep it from catching drags. */
+    pointer-events: none;
+    user-select: none;
   }
   .night {
     opacity: 0;
@@ -197,6 +286,7 @@ import night from '../assets/img/room/poster-night.webp';
     height: 100%;
     opacity: 0;
     transition: opacity 0.8s ease;
+    z-index: 1;
     cursor: zoom-in;
     touch-action: none;
   }
@@ -206,7 +296,6 @@ import night from '../assets/img/room/poster-night.webp';
   .frame.live .poster {
     opacity: 0 !important;
   }
-  .cap,
   .enter,
   .exit,
   .help,
@@ -214,36 +303,6 @@ import night from '../assets/img/room/poster-night.webp';
     position: absolute;
     z-index: 3;
     margin: 0;
-  }
-  .cap {
-    left: 14px;
-    bottom: 14px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    background: var(--surface);
-    border-radius: 999px;
-    padding: 7px 14px 7px 8px;
-    box-shadow: var(--clay);
-    font: 600 13.5px var(--font-display);
-  }
-  .full .cap {
-    display: none;
-  }
-  .cap i {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--yellow);
-    display: grid;
-    place-items: center;
-    font-style: normal;
-    font-size: 11px;
-    color: #1d2148;
-  }
-  .cap span {
-    color: var(--mute);
-    font-weight: 500;
   }
   .enter {
     right: 14px;

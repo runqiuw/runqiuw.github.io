@@ -35,6 +35,8 @@ const games = defineCollection({
       cover: image(),
       play: z.url(),
       trailer: z.url().optional(),
+      /** Short muted gameplay clip (mp4/webm under public/) played on the room's TV. */
+      clip: z.string().optional(),
     }),
 });
 
@@ -78,6 +80,7 @@ const papers = defineCollection({
       talk: f.talk,
       appendix: f.appendix,
       preview: f.preview,
+      teaser: f.teaser,
       selected: f.selected === 'true',
     }));
   },
@@ -98,6 +101,8 @@ const papers = defineCollection({
     talk: z.string().optional(),
     appendix: z.string().optional(),
     preview: z.string().optional(),
+    /** Short muted demo clip (mp4/webm under public/) played on the room's monitor. */
+    teaser: z.string().optional(),
     selected: z.boolean(),
   }),
 });

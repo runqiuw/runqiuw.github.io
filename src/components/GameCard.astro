@@ -1,14 +1,22 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
   game: CollectionEntry<'games'>;
 }
 const g = Astro.props.game.data;
+// What the room's TV shows while this game is in view (read by src/scripts/room.ts).
+const screen = await getImage({ src: g.cover, width: 640, format: 'webp' });
 ---
 
-<article class="game card" data-game={Astro.props.game.id}>
+<article
+  class="game card"
+  data-item={Astro.props.game.id}
+  data-screen-title={g.title}
+  data-screen-img={screen.src}
+  data-screen-video={g.clip}
+>
   <a href={g.play} aria-label={`Play ${g.title} on itch.io`}>
     <Image src={g.cover} alt="" widths={[320, 640]} sizes="(max-width: 900px) 100vw, 300px" />
   </a>

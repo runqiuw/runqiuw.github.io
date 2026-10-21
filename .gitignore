@@ -11,3 +11,5 @@ node_modules/
 .overleaf-cv-project
 .idea
 .vscode
+# local path to the Blender asset library (see bin/room-assets)
+bin/.room-assets-path

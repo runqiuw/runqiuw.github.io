@@ -1,9 +1,13 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 import { getCollection } from 'astro:content';
 
 const items = (await getCollection('playground')).sort((a, b) => a.data.order - b.data.order);
 const tilts = ['-2.5deg', '1.8deg', '-1deg', '2.2deg', '-1.6deg', '1.2deg'];
+// Each item is also a card on the room's pinboard (read by src/scripts/room.ts).
+const cardImg = async (img?: ImageMetadata) => (img ? (await getImage({ src: img, width: 256, format: 'webp' })).src : undefined);
+const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
 ---
 
 <div class="board">
@@ -24,10 +28,17 @@ const tilts = ['-2.5deg', '1.8deg', '-1deg', '2.2deg', '-1.6deg', '1.2deg'];
         </>
       );
       const cls = it.data.soon ? 'pin note' : 'pin polaroid';
+      const data = {
+        'data-item': it.id,
+        'data-screen-title': it.data.title,
+        'data-screen-caption': it.data.caption,
+        'data-screen-type': it.data.type,
+        'data-screen-img': cards[i],
+      };
       return it.data.href ? (
-        <a class={cls} style={style} href={it.data.href} data-pin={it.id}>{inner}</a>
+        <a class={cls} style={style} href={it.data.href} {...data}>{inner}</a>
       ) : (
-        <div class={cls} style={style} data-pin={it.id}>{inner}</div>
+        <div class={cls} style={style} {...data}>{inner}</div>
       );
     })
   }
