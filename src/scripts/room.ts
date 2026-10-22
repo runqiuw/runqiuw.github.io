@@ -719,6 +719,18 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (b) visit(b.dataset.go!);
   });
   frame.append(labels);
+  // Labels show for 2 s when the room opens, then fade; hovering an object (or the label itself)
+  // brings its label back, and it fades 2 s after the pointer leaves.
+  const labelTimers = new Map<string, number>();
+  const labelBtn = (k: string) => labels.querySelector<HTMLElement>(`[data-go="${k}"]`);
+  const showLabel = (k: string) => {
+    clearTimeout(labelTimers.get(k));
+    labelBtn(k)?.classList.add('on');
+  };
+  const hideLabel = (k: string, ms = 2000) => {
+    clearTimeout(labelTimers.get(k));
+    labelTimers.set(k, window.setTimeout(() => labelBtn(k)?.classList.remove('on'), ms));
+  };
   const anchors = Object.fromEntries(LABELS.map(([k, , a]) => [k, top(bounds([a]), 0.12)]));
   const anchorObj = Object.fromEntries(LABELS.map(([k, , a]) => [k, placed[a]]));
 
@@ -816,6 +828,10 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       controls.target.copy(q.t);
       controls.enabled = true;
       labels.hidden = false;
+      for (const [k] of shownLabels) {
+        showLabel(k);
+        hideLabel(k);
+      }
       canvas.style.cursor = 'grab';
       dirty = true;
     };
@@ -833,6 +849,10 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     full = false;
     flying = false;
     hover();
+    for (const [k] of shownLabels) {
+      clearTimeout(labelTimers.get(k));
+      labelBtn(k)?.classList.remove('on');
+    }
     if (controls.enabled) camT.copy(controls.target); // otherwise the opening tween was still running
     controls.enabled = false;
     labels.hidden = true;
@@ -880,6 +900,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     // Objects that don't bounce have no spring, so only spring back the ones that do.
     const prev = hovered && springs.get(hovered);
     if (prev) prev.t = 1;
+    const prevSection = hovered?.userData.section as string | undefined;
+    if (prevSection && prevSection !== o?.userData.section) hideLabel(prevSection);
+    if (o?.userData.section) showLabel(o.userData.section);
     hovered = o;
     if (!o) return;
     const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };

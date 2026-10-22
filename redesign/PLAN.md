@@ -135,6 +135,7 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Hover bounce on interactive objects in the full-screen room (spring with a little overshoot); hovering a label bounces its object
 - [ ] Pin → pinboard card highlight
 - [x] Full-screen room: picking an object or label flies the camera to its shot, then returns to the page
+- Section labels in the full-screen room show for 2 s when it opens, then fade; hovering an object brings its label back until 2 s after the pointer leaves. No Say hi label for now.
 - Hover name tags were tried and removed (2026-10-21). Only objects that bounce on hover are clickable (monitors, shelf, TV, console, game cases); the desk, TV stand, rug and door are scenery (`bounce: false`)
 - [x] Sky outside the windows (day/night, cross-faded with the lights)
 - [x] Blinds roll up/down on click in the full-screen room (`blind_cloth` / `blind_bar` nodes in asset_window)

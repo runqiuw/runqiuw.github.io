@@ -403,7 +403,9 @@ import night from '../assets/img/room/poster-night.webp';
   }
   .frame :global(.room-pin) {
     position: absolute;
-    pointer-events: auto;
+    /* Faded out until shown (see showLabel/hideLabel in room.ts). */
+    opacity: 0;
+    pointer-events: none;
     translate: -50% -100%;
     border: 0;
     cursor: pointer;
@@ -414,7 +416,13 @@ import night from '../assets/img/room/poster-night.webp';
     font: 600 13.5px var(--font-display);
     box-shadow: 0 10px 22px -10px var(--shade), var(--clay);
     white-space: nowrap;
-    transition: scale 0.3s var(--spring);
+    transition:
+      scale 0.3s var(--spring),
+      opacity 0.35s ease;
+  }
+  .frame :global(.room-pin.on) {
+    opacity: 1;
+    pointer-events: auto;
   }
   .frame :global(.room-pin:hover) {
     scale: 1.08;

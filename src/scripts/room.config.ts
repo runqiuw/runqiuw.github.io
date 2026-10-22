@@ -139,7 +139,6 @@ export const LABELS: [section: string, title: string, anchor: string][] = [
   ['projects', 'Projects', 'shelf'],
   ['games', 'Games', 'tv'],
   ['playground', 'Playground', 'pinboard'],
-  ['contact', 'Say hi', 'door'],
 ];
 
 /** Night lights sit at these placements (the lamp heads and the screens). */
