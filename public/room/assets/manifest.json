@@ -18,7 +18,7 @@
         "fabric"
       ],
       "triangles": 1840,
-      "bytes": 12092,
+      "bytes": 12420,
       "description": "Bean bag seat in front of the TV; makes the game corner readable at a glance."
     },
     "bed": {
@@ -93,8 +93,18 @@
         "frame"
       ],
       "triangles": 12860,
-      "bytes": 133960,
-      "description": "B100 mesh chair, headrest removed so it does not block the monitors."
+      "bytes": 139644,
+      "description": "B100 mesh chair, headrest removed so it does not block the monitors.",
+      "chair_base_pivot": [
+        0.006,
+        0,
+        0
+      ],
+      "chair_top_pivot": [
+        0.006,
+        0,
+        0.4315
+      ]
     },
     "console": {
       "file": "console.glb",
@@ -112,7 +122,7 @@
         "glow"
       ],
       "triangles": 7500,
-      "bytes": 42952,
+      "bytes": 42712,
       "description": "Game console with two chunky controllers (toy proportions)."
     },
     "desk": {
@@ -310,6 +320,30 @@
       "bytes": 57244,
       "description": "Furnulem 3-drawer bedside cabinet."
     },
+    "nixie": {
+      "file": "nixie.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.24,
+        0.07,
+        0.102
+      ],
+      "elevation": 0,
+      "roles": [
+        "digit",
+        "frame",
+        "glass",
+        "metal"
+      ],
+      "triangles": 2672,
+      "bytes": 25676,
+      "description": "Nixie desk clock: aluminum base, 6 glass tubes (HH MM SS). The site draws digits on `digit_0`..`digit_5`.",
+      "digit_size": [
+        0.014,
+        0.026
+      ]
+    },
     "paper": {
       "file": "paper.glb",
       "catalog": "Room/Desk props",
@@ -352,6 +386,26 @@
         1.43,
         0.83
       ]
+    },
+    "plant": {
+      "file": "plant.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        0.4224,
+        0.395,
+        0.8887
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "leaf",
+        "wood"
+      ],
+      "triangles": 1616,
+      "bytes": 21748,
+      "description": "Fiddle-leaf fig, ~0.9 m. `plant` = pot + soil, `leaves` = trunk + leaves (base at the pot rim, manifest pot_rim).",
+      "pot_rim": 0.3
     },
     "rug": {
       "file": "rug.glb",

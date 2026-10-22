@@ -66,12 +66,13 @@ def export(coll):
     for o in objs:
         if base(o.name) in SPECIAL:
             entry[base(o.name)] = plane_info(o)
-    for key in ("tiers", "board_size"):
-        if key in coll:
-            entry[key] = json.loads(coll[key])
-    for key in ("tier_clear", "cover_aspect", "blind_cloth_length", "blind_bar_height"):
-        if key in coll:
-            entry[key] = coll[key]
+    # every other custom property on the collection (tiers, board_size, pot_rim,
+    # chair_top_pivot, blind_cloth_length...); lists are stored as JSON strings
+    for key in coll.keys():
+        if key in ("catalog", "mount", "elevation", "note") or key in entry:
+            continue
+        value = coll[key]
+        entry[key] = json.loads(value) if isinstance(value, str) and value[:1] == "[" else value
     for o, (loc, n) in saved.items():
         o.location = loc
     for o, (loc, n) in saved.items():

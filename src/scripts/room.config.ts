@@ -6,7 +6,7 @@
 // Assets come from public/room/assets/<asset>.glb (exported by bin/room-assets).
 
 export type Plan = [x: number, y: number];
-export type Role = 'frame' | 'fabric' | 'wood' | 'metal' | 'screen' | 'glass' | 'glow' | 'accent';
+export type Role = 'frame' | 'fabric' | 'wood' | 'metal' | 'screen' | 'glass' | 'glow' | 'accent' | 'leaf' | 'digit';
 
 export interface Placement {
   /** Unique name, used by shots, lights and screens. */
@@ -97,6 +97,8 @@ export const PLACEMENTS: Placement[] = [
   { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
+  // Nixie clock (Madison time): the monitors leave no gap between them, so it stands right of the keyboard.
+  { id: 'clock', asset: 'nixie', at: [1.98, 3.22], z: 0.74 },
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: BLUE }, section: 'playground' },
   { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
@@ -114,6 +116,8 @@ export const PLACEMENTS: Placement[] = [
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
   { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72' } },
   { id: 'nightstand', asset: 'nightstand', at: [0.188, 1.315], yaw: 90, colors: { frame: '#1fbf93', wood: '#1fbf93' } },
+  // Floor plant against the left wall between the two windows; its leaves sway when the view turns.
+  { id: 'plant', asset: 'plant', at: [0.3, 1.81], yaw: 90 },
   { id: 'bedLamp', asset: 'desklamp', at: [0.2, 1.315], z: 0.7188, yaw: -70, colors: { frame: '#ffc93c', metal: '#ffc93c' } },
 
   // Open floor and the door side: cart by the entry door (clear of its swing).
@@ -141,8 +145,12 @@ export const LABELS: [section: string, title: string, anchor: string][] = [
   ['playground', 'Playground', 'pinboard'],
 ];
 
-/** Night lights sit at these placements (the lamp heads and the screens). */
-export const LIGHTS = { lamp: 'lamp', bedside: 'bedLamp', screen: ['monitorL', 'monitorR'], tv: 'tv' };
+/** Night lights sit at these placements (the lamp heads and the screens); the TV also has an
+ * ambilight behind it. The lamps, the ambilight and the clock switch on and off with a click. */
+export const LIGHTS = { lamp: 'lamp', bedside: 'bedLamp', screen: ['monitorL', 'monitorR'], tv: 'tv', ambilight: 'tv', clock: 'clock' };
+
+/** Things that move on their own: the plant's leaves sway when the view turns. */
+export const DECOR = { plant: 'plant' };
 
 /**
  * Which way each lamp asset's head shines, in the asset's own Blender axes (x right, y back, z up;

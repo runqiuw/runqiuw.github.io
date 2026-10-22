@@ -4,8 +4,11 @@
 // item in view) decides what that object shows: the paper on the monitors, the game on the TV, the
 // project frame or pinboard card that pops out. The theme switch (`themechange`) turns the lights on
 // or off. `enterFull()` turns it into a free-orbit room with labels; picking a label or an object
-// calls `onNavigate(section)`. Rendering happens only while something changes.
+// calls `onNavigate(section)`. There a click also switches a lamp, the TV ambilight or the nixie clock,
+// and dragging the chair spins its top. Rendering happens only while something changes (the
+// breathing ambilight and the ticking clock redraw at ~30 fps while they're on).
 import {
+  AdditiveBlending,
   Box3,
   BoxGeometry,
   CanvasTexture,
@@ -24,6 +27,7 @@ import {
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  PointLight,
   Quaternion,
   Raycaster,
   Scene,
@@ -31,6 +35,8 @@ import {
   type Side,
   SphereGeometry,
   SpotLight,
+  Sprite,
+  SpriteMaterial,
   SRGBColorSpace,
   Vector2,
   Vector3,
@@ -40,7 +46,7 @@ import {
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
@@ -50,9 +56,16 @@ type Manifest = {
 const ASSETS = '/room/assets/';
 const INK = '#14183a';
 const LEVELS = {
-  light: { hemi: 1.9, sun: 2.4, lamp: 0, screen: 0, bed: 0, tv: 0, emis: 0.12 },
-  dark: { hemi: 0.62, sun: 0.4, lamp: 9, screen: 1.6, bed: 2.2, tv: 1.8, emis: 1.2 },
+  light: { hemi: 1.9, sun: 2.4, screen: 0, tv: 0, emis: 0.12, night: 0 },
+  dark: { hemi: 0.62, sun: 0.4, screen: 1.6, tv: 1.8, emis: 1.2, night: 1 },
 };
+/** Lights you can click on and off in the full-screen room, and each one's level when on. They all
+ * come on with the dark theme and go off with the light one; a click flips one until the next switch. */
+const SWITCH_ON = { lamp: 9, bed: 2.2, amb: 1, clock: 1 };
+type Switch = keyof typeof SWITCH_ON;
+/** TV ambilight: one breath every `AMB_MS`, a new color at the bottom of each breath. */
+const AMB_MS = 4000;
+const AMB_COLORS = ['#ff3d6e', '#3d5afe', '#1fbf93', '#ffc93c', '#b45cff', '#00c2ff'];
 const NOTE_COLORS = ['#fff1a8', '#c9efe1', '#ffd6cf', '#d9dcff'];
 const PIN_COLORS = ['#ff6b5e', '#3d5afe', '#1fbf93'];
 
@@ -112,7 +125,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const bedL = spot(0xffa860, 0.95, 3);
   const screenL = spot(0xb8d4ff, 1.0, 1.6);
   const tvL = spot(0x8fa0ff, 0.95, 2.6);
-  scene.add(hemi, sun, sun.target);
+  // The ambilight's wash on the wall and stand behind the TV.
+  const ambL = new PointLight(0xffffff, 0, 1.6, 1.5);
+  scene.add(hemi, sun, sun.target, ambL);
 
   // Canvas text uses the site fonts; wait for them briefly so the first textures aren't in a fallback.
   const fontsReady = Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1500))]);
@@ -120,13 +135,16 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const names = [...new Set(PLACEMENTS.map((p) => p.asset))];
   const [manifest, gltfs] = await Promise.all([
     fetch(ASSETS + 'manifest.json').then((r) => r.json() as Promise<Manifest>),
-    Promise.all(names.map((n) => loader.loadAsync(`${ASSETS}${n}.glb`))),
+    // An asset that isn't exported yet is left out instead of failing the whole room.
+    Promise.all(names.map((n) => loader.loadAsync(`${ASSETS}${n}.glb`).catch(() => null))),
     fontsReady,
   ]);
-  const source = Object.fromEntries(names.map((n, i) => [n, gltfs[i].scene]));
+  const source = Object.fromEntries(names.map((n, i) => [n, gltfs[i]?.scene]));
 
   // --- materials: one per role + color; parts without an override keep their Blender (vertex) colors
   const glows: MeshStandardMaterial[] = [];
+  // Lamps that switch on their own get their own glow material (`own` = the placement id).
+  const ownGlows: Record<string, MeshStandardMaterial> = {};
   const matCache = new Map<string, MeshStandardMaterial>();
   // `side` comes from the exported material: Blender exports double-sided materials, and thin
   // single-layer parts (the chair's mesh back, the blind, planes) vanish from behind without it.
@@ -146,8 +164,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     };
     m.customProgramCacheKey = () => 'baked-ao';
   };
-  const material = (role: string, color?: string, vertex = false, side: Side = FrontSide, ao = false) => {
-    const key = `${role}|${color ?? ''}|${vertex && !color}|${side}|${ao}`;
+  const material = (role: string, color?: string, vertex = false, side: Side = FrontSide, ao = false, own = '') => {
+    const key = `${role}|${color ?? ''}|${vertex && !color}|${side}|${ao}|${own}`;
     let m = matCache.get(key);
     if (m) return m;
     m = new MeshStandardMaterial({
@@ -163,7 +181,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (role === 'screen' && !color) m.color.set(INK);
     if (role === 'glow') {
       m.emissive.set('#ffd98a');
-      glows.push(m);
+      if (own) ownGlows[own] = m;
+      else glows.push(m);
     }
     matCache.set(key, m);
     return m;
@@ -236,15 +255,18 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
 
   // --- furniture
   const placed: Record<string, Object3D> = {};
+  const lampIds = new Set([LIGHTS.lamp, LIGHTS.bedside]);
   for (const p of PLACEMENTS) {
-    const g = source[p.asset].clone(true);
+    const src = source[p.asset];
+    if (!src) continue;
+    const g = src.clone(true);
     g.position.copy(P(p.at[0], p.at[1], p.z ?? 0));
     g.rotation.y = MathUtils.degToRad(p.yaw ?? 0);
     if (p.scale) g.scale.setScalar(p.scale);
     g.traverse((o) => {
       if (!(o instanceof Mesh)) return;
       const role = (o.material as Material).name as Role;
-      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, p.ao !== false && o.geometry.hasAttribute('_ao'));
+      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, p.ao !== false && o.geometry.hasAttribute('_ao'), role === 'glow' && lampIds.has(p.id) ? p.id : '');
       o.castShadow = role !== 'glass';
       o.receiveShadow = true;
     });
@@ -363,7 +385,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const g = placed[id];
     const glowBox = new Box3();
     g.traverse((o) => {
-      if (o instanceof Mesh && glows.includes(o.material as MeshStandardMaterial)) glowBox.union(new Box3().setFromObject(o));
+      if (o instanceof Mesh && (o.material as Material).userData.role === 'glow') glowBox.union(new Box3().setFromObject(o));
     });
     const at = glowBox.isEmpty() ? top(bounds([id]), -0.05) : glowBox.getCenter(new Vector3());
     const [ax, ay, az] = LAMP_AIM[PLACEMENTS.find((p) => p.id === id)!.asset] ?? [0, 0, -1];
@@ -453,6 +475,309 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     tex.colorSpace = SRGBColorSpace;
     tex.flipY = flipY;
     return { c, x: c.getContext('2d')!, tex };
+  };
+
+  // --- TV ambilight: no LED strip, just its glow. A soft halo on the wall behind the TV (additive,
+  // so black adds nothing) and a point light that tints the wall and stand; both breathe in `draw`.
+  const tvBox = bounds([LIGHTS.ambilight]);
+  const tvC = tvBox.getCenter(new Vector3()), tvS = tvBox.getSize(new Vector3());
+  const haloW = tvS.x + 0.8, haloH = tvS.y + 0.7;
+  const haloTex = (() => {
+    const { x, tex } = canvasTex(256, 256);
+    // A blurred white rectangle the size of the TV: drawn off canvas, only its shadow lands on it.
+    const iw = (tvS.x / haloW) * 256, ih = (tvS.y / haloH) * 256;
+    Object.assign(x, { shadowColor: '#ffffff', shadowBlur: 34, shadowOffsetX: 1000 });
+    x.fillStyle = '#ffffff';
+    x.fillRect((256 - iw) / 2 - 1000, (256 - ih) / 2, iw, ih);
+    return tex;
+  })();
+  const haloMat = new MeshBasicMaterial({ map: haloTex, color: new Color(0), transparent: true, blending: AdditiveBlending, depthWrite: false });
+  const halo = new Mesh(new PlaneGeometry(haloW, haloH), haloMat);
+  // On the desk wall (plan y = 3.70) just in front of its face, so it hides with that wall.
+  halo.position.set(tvC.x, tvC.y, -3.7 + 0.004);
+  scene.add(halo);
+  onWall.push({ n: inward.N, o: halo });
+  ambL.position.set(tvC.x, tvC.y, tvBox.min.z - 0.01);
+  const ambColor = new Color();
+  const breathe = (now: number) => {
+    if (opts.reduceMotion) return { b: 0.8, c: AMB_COLORS[1] };
+    const ph = now / AMB_MS;
+    return { b: 0.15 + 0.85 * (0.5 - 0.5 * Math.cos(ph * Math.PI * 2)), c: AMB_COLORS[Math.floor(ph) % AMB_COLORS.length] };
+  };
+
+  // --- desk chair: the top (`chair_top`, pivot on the gas column) spins when dragged, with a
+  // little momentum after letting go.
+  const chairTop = placed.chair?.getObjectByName('chair_top') ?? null;
+  let chairV = 0;
+  const stepChair = (dt: number) => {
+    if (!chairTop || spin || Math.abs(chairV) < 0.02) return false;
+    chairTop.rotation.y += chairV * dt;
+    chairV *= Math.exp(-3.5 * dt);
+    return true;
+  };
+
+  // --- plant: the leaves sway when the view turns. A 2D spring (world x/z offset at the top of the
+  // leaves) gets a kick sideways to the camera's turn; the vertex shader bends the leaves by it,
+  // more the higher a vertex sits above the pot rim.
+  const plant = placed[DECOR.plant] ?? null;
+  const swayU = { value: new Vector2() };
+  const sway = { s: new Vector2(), v: new Vector2(), az: NaN };
+  if (plant) {
+    const info = manifest.assets[PLACEMENTS.find((p) => p.id === DECOR.plant)!.asset] as { size: number[]; pot_rim?: number };
+    const rim = plant.position.y + (info.pot_rim ?? info.size[2] * 0.35);
+    const h = Math.max(0.1, plant.position.y + info.size[2] - rim);
+    plant.traverse((o) => {
+      if (!(o instanceof Mesh) || (o.material as Material).userData.role !== 'leaf') return;
+      const m = (o.material as MeshStandardMaterial).clone();
+      const ao = (o.material as MeshStandardMaterial).customProgramCacheKey() === 'baked-ao';
+      if (ao) withAO(m);
+      const base = m.onBeforeCompile;
+      m.onBeforeCompile = (sh, r) => {
+        if (ao) base.call(m, sh, r);
+        Object.assign(sh.uniforms, { uSway: swayU, uRim: { value: rim }, uH: { value: h } });
+        sh.vertexShader = 'uniform vec2 uSway;\nuniform float uRim;\nuniform float uH;\n' + sh.vertexShader.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+  float swayK = clamp(((modelMatrix * vec4(transformed, 1.0)).y - uRim) / uH, 0.0, 1.0);
+  transformed += inverse(mat3(modelMatrix)) * vec3(uSway.x, 0.0, uSway.y) * swayK * swayK;`,
+        );
+      };
+      m.customProgramCacheKey = () => `sway-${ao}`;
+      o.material = m;
+    });
+  }
+  const plantAt = plant ? plant.getWorldPosition(new Vector3()) : null;
+  const stepSway = (dt: number) => {
+    if (!plantAt || opts.reduceMotion) return false;
+    const az = Math.atan2(cam.position.x - plantAt.x, cam.position.z - plantAt.z);
+    let d = Number.isNaN(sway.az) ? 0 : az - sway.az;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    sway.az = az;
+    // Kick along the camera's sideways direction, against the turn (the leaves lag behind).
+    if (d) sway.v.add(new Vector2(Math.cos(az), -Math.sin(az)).multiplyScalar(-d * 1.6));
+    if (sway.s.lengthSq() < 1e-8 && sway.v.lengthSq() < 1e-6) return false;
+    sway.v.addScaledVector(sway.s, -55 * dt).multiplyScalar(Math.exp(-2.2 * dt));
+    sway.s.addScaledVector(sway.v, dt);
+    if (sway.s.length() > 0.12) sway.s.setLength(0.12);
+    swayU.value.copy(sway.s);
+    return true;
+  };
+
+  // --- nixie clock on the desk: six tubes (`digit_0`…`digit_5`) show Madison time, HH MM SS.
+  // No post-processing, so the glow is layered: inside each tube a back grid, the stacked cathodes and
+  // a front grid sit a few millimeters apart (the lit numeral at its own depth), so they shift
+  // against each other as the view turns; an additive sprite blooms past the tube; the glass gets a
+  // Fresnel rim and highlights and is lit orange from inside; a small light warms the base and desk.
+  const clockObj = placed[LIGHTS.clock] ?? null;
+  const tubes = clockObj ? [0, 1, 2, 3, 4, 5].map((i) => clockObj.getObjectByName(`digit_${i}`) as Mesh | undefined).filter((m): m is Mesh => !!m) : [];
+  // Nixie numerals are single bent wires: one stroke path per digit in a unit box (y down).
+  const NUMERALS: ((p: Path2D) => void)[] = [
+    (p) => p.ellipse(0.5, 0.5, 0.38, 0.46, 0, 0, Math.PI * 2),
+    (p) => (p.moveTo(0.3, 0.2), p.lineTo(0.52, 0.04), p.lineTo(0.52, 0.96)),
+    (p) => (p.moveTo(0.14, 0.28), p.bezierCurveTo(0.16, 0.02, 0.86, 0, 0.86, 0.3), p.bezierCurveTo(0.86, 0.52, 0.4, 0.7, 0.12, 0.96), p.lineTo(0.9, 0.96)),
+    (p) => (p.moveTo(0.16, 0.18), p.bezierCurveTo(0.3, 0, 0.84, 0.02, 0.82, 0.26), p.bezierCurveTo(0.8, 0.44, 0.6, 0.48, 0.42, 0.48), p.bezierCurveTo(0.7, 0.48, 0.9, 0.6, 0.88, 0.74), p.bezierCurveTo(0.86, 1, 0.28, 1.02, 0.12, 0.82)),
+    (p) => (p.moveTo(0.7, 0.96), p.lineTo(0.7, 0.04), p.lineTo(0.1, 0.68), p.lineTo(0.92, 0.68)),
+    (p) => (p.moveTo(0.84, 0.04), p.lineTo(0.26, 0.04), p.lineTo(0.2, 0.44), p.bezierCurveTo(0.4, 0.34, 0.9, 0.36, 0.88, 0.68), p.bezierCurveTo(0.86, 1, 0.3, 1.02, 0.12, 0.84)),
+    (p) => (p.moveTo(0.78, 0.1), p.bezierCurveTo(0.6, -0.02, 0.14, 0.04, 0.14, 0.56), p.bezierCurveTo(0.14, 1, 0.86, 1.02, 0.86, 0.66), p.bezierCurveTo(0.86, 0.36, 0.3, 0.32, 0.15, 0.58)),
+    (p) => (p.moveTo(0.1, 0.04), p.lineTo(0.9, 0.04), p.lineTo(0.38, 0.96)),
+    (p) => (p.ellipse(0.5, 0.27, 0.3, 0.23, 0, 0, Math.PI * 2), p.moveTo(0.86, 0.72), p.ellipse(0.5, 0.72, 0.36, 0.25, 0, 0, Math.PI * 2)),
+    (p) => (p.moveTo(0.22, 0.9), p.bezierCurveTo(0.4, 1.02, 0.86, 0.96, 0.86, 0.44), p.bezierCurveTo(0.86, 0, 0.14, -0.02, 0.14, 0.34), p.bezierCurveTo(0.14, 0.64, 0.7, 0.68, 0.85, 0.42)),
+  ];
+  const nixie = (() => {
+    if (!clockObj || !tubes.length) return null;
+    // Bigger numerals than the modeled plane, nearly filling the tube like the real thing.
+    for (const t of tubes) {
+      const c0 = new Box3().setFromObject(t).getCenter(new Vector3());
+      t.scale.x *= 1.45;
+      t.scale.y *= 1.6;
+      t.updateMatrixWorld(true);
+      t.position.add(clockObj.worldToLocal(c0.clone()).sub(clockObj.worldToLocal(new Box3().setFromObject(t).getCenter(new Vector3()))));
+      t.updateMatrixWorld(true);
+    }
+    const s = new Box3().setFromObject(tubes[0]).getSize(new Vector3());
+    const aspect = Math.max(s.x, s.z) / s.y || 0.55;
+    const W = 160, H = Math.round(W / aspect);
+    // The numeral's box inside the plane, in pixels.
+    const bx = W * 0.2, by = H * 0.12, bw = W * 0.6, bh = H * 0.76;
+    const numeral = (d: number) => {
+      const p = new Path2D(), m = new Path2D();
+      NUMERALS[d](p);
+      m.addPath(p, new DOMMatrix([bw, 0, 0, bh, bx, by]));
+      return m;
+    };
+    const honeycomb = (x: CanvasRenderingContext2D, style: string, lw: number) => {
+      x.strokeStyle = style;
+      x.lineWidth = lw;
+      const r = W * 0.045;
+      for (let row = 0, y = 0; y < H + r; row++, y += r * 1.5)
+        for (let cx = row % 2 ? r * 0.87 : 0; cx < W + r; cx += r * 1.74) {
+          x.beginPath();
+          for (let k = 0; k < 6; k++) x.lineTo(cx + r * Math.cos((k * Math.PI) / 3 + Math.PI / 6), y + r * Math.sin((k * Math.PI) / 3 + Math.PI / 6));
+          x.closePath();
+          x.stroke();
+        }
+    };
+    const layer = (paint: (x: CanvasRenderingContext2D) => void, soft = false) => {
+      const { x, tex } = canvasTex(W, H, false);
+      x.lineCap = 'round';
+      x.lineJoin = 'round';
+      paint(x);
+      if (soft) {
+        // Fade the grids out toward the edges, so they read as a curved mesh, not a rectangle.
+        x.globalCompositeOperation = 'destination-in';
+        x.setTransform(1, 0, 0, H / W, 0, 0);
+        const g = x.createRadialGradient(W / 2, W / 2, W * 0.2, W / 2, W / 2, W * 0.52);
+        g.addColorStop(0, '#000');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g;
+        x.fillRect(0, 0, W, W);
+      }
+      return tex;
+    };
+    // Inside a tube, back to front: a dark back plate with the rear grid; the ten cathodes stacked a
+    // little apart in depth (unlit ones grey, the lit one glowing at its own depth); the front grid.
+    const backTex = layer((x) => {
+      const g = x.createRadialGradient(W / 2, H / 2, W * 0.15, W / 2, H / 2, W * 0.62);
+      g.addColorStop(0, 'rgba(18,8,4,0.92)');
+      g.addColorStop(1, 'rgba(18,8,4,0)');
+      x.fillStyle = g;
+      x.fillRect(0, 0, W, H);
+      honeycomb(x, 'rgba(150,110,90,0.18)', 1);
+    }, true);
+    const ghostTex = layer((x) => {
+      x.strokeStyle = 'rgba(150,128,115,0.3)';
+      x.lineWidth = W * 0.018;
+      for (let d = 0; d < 10; d++) x.stroke(numeral(d));
+    });
+    // Additive: the transparent background adds nothing, the wire adds light.
+    const litTex = Array.from({ length: 10 }, (_, d) =>
+      layer((x) => {
+        const n = numeral(d);
+        for (const [lw, blur, color] of [[W * 0.16, W * 0.3, 'rgba(255,70,0,0.45)'], [W * 0.085, W * 0.12, '#ff6a14'], [W * 0.05, W * 0.05, '#ff9a3c'], [W * 0.022, 0, '#ffe6c4']] as const) {
+          x.shadowColor = '#ff4800';
+          x.shadowBlur = blur;
+          x.strokeStyle = color;
+          x.lineWidth = lw;
+          x.stroke(n);
+        }
+      }),
+    );
+    const frontTex = layer((x) => honeycomb(x, 'rgba(40,18,8,0.55)', 1.4), true);
+    // Stacking order of the cathodes, front to back, as in an IN-14 tube.
+    const STACK = [1, 6, 2, 7, 5, 0, 4, 9, 8, 3];
+    const depthOf = (d: number) => (4.5 - STACK.indexOf(d)) * 0.0005;
+    const plane = (t: Mesh, mat: Material, dz: number, order: number) => {
+      const m = new Mesh(t.geometry, mat);
+      m.position.copy(t.position);
+      m.quaternion.copy(t.quaternion);
+      m.scale.copy(t.scale);
+      m.position.z += dz;
+      m.renderOrder = order;
+      t.parent!.add(m);
+      return m;
+    };
+    const flat = (map: CanvasTexture, extra = {}) => new MeshBasicMaterial({ map, transparent: true, depthWrite: false, ...extra });
+    const backMat = flat(backTex), ghostMat = flat(ghostTex), frontMat = flat(frontTex);
+    const lits = tubes.map((t) => {
+      t.material = backMat;
+      t.position.z -= 0.0042;
+      t.renderOrder = 1;
+      plane(t, ghostMat, 0.0042, 2);
+      plane(t, frontMat, 0.0042 + 0.0046, 4);
+      const lit = plane(t, flat(litTex[0], { blending: AdditiveBlending }), 0.0042, 3);
+      lit.userData.z = lit.position.z;
+      return lit;
+    });
+    // Bloom: a camera-facing orange glow per tube, a bit bigger than the tube, added on top.
+    const bloomTex = (() => {
+      const { c, x, tex } = canvasTex(128, 128);
+      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, 'rgba(255,140,60,0.9)');
+      g.addColorStop(0.35, 'rgba(255,90,20,0.35)');
+      g.addColorStop(1, 'rgba(255,60,0,0)');
+      x.fillStyle = g;
+      x.fillRect(0, 0, c.width, c.height);
+      return tex;
+    })();
+    const bloomMat = new SpriteMaterial({ map: bloomTex, color: new Color('#ff7a2a'), blending: AdditiveBlending, transparent: true, depthWrite: false, opacity: 0 });
+    for (const t of lits) {
+      const b = new Sprite(bloomMat);
+      b.position.copy(clockObj.worldToLocal(new Box3().setFromObject(t).getCenter(new Vector3())));
+      b.position.z += 0.006; // in front of the numerals
+      b.scale.set(s.y * 1.5, s.y * 1.9, 1);
+      b.renderOrder = 6; // after the glass, so the glass doesn't dim it
+      clockObj.add(b);
+    }
+    // The glass: clear in the middle, more opaque and brighter toward the silhouette (Fresnel), with
+    // a vertical highlight down one side and a spot on the cap, as if catching a light behind the
+    // viewer. Both follow the view, like real reflections. `uGlow` tints it orange from inside.
+    const glowU = { value: 0 };
+    const glass = new MeshStandardMaterial({ color: new Color('#ffffff'), roughness: 0.1, metalness: 0, transparent: true, opacity: 0.06, depthWrite: false });
+    glass.emissive.set('#ff5a1a');
+    glass.userData.role = 'glass';
+    glass.onBeforeCompile = (sh) => {
+      sh.uniforms.uGlow = glowU;
+      sh.fragmentShader = 'uniform float uGlow;\n' + sh.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        `#include <dithering_fragment>
+  vec3 vn = normalize(normal);
+  float fres = pow(1.0 - clamp(abs(dot(vn, normalize(vViewPosition))), 0.0, 1.0), 2.5);
+  float streak = smoothstep(0.1, 0.0, abs(vn.x + 0.55)) * smoothstep(0.75, 0.3, vn.y);
+  float cap = smoothstep(0.18, 0.0, length(vn.xy - vec2(-0.3, 0.75)));
+  float spec = streak * 0.85 + cap * 0.9;
+  gl_FragColor.rgb += vec3(1.0, 0.97, 0.93) * (fres * 0.35 + spec) + vec3(1.0, 0.42, 0.12) * uGlow * (0.25 + fres);
+  gl_FragColor.a = clamp(gl_FragColor.a + fres * 0.5 + spec * 0.8 + uGlow * 0.12, 0.0, 1.0);`,
+      );
+    };
+    glass.customProgramCacheKey = () => 'nixie-glass';
+    clockObj.traverse((o) => {
+      if (o instanceof Mesh && (o.material as Material).userData.role === 'glass') {
+        o.material = glass;
+        o.renderOrder = 5;
+      }
+    });
+    const warm = new PointLight(0xff6a20, 0, 0.7, 2);
+    const cb = new Box3().setFromObject(clockObj);
+    warm.position.copy(clockObj.worldToLocal(cb.getCenter(new Vector3()))).add(new Vector3(0, 0.06, 0.06));
+    clockObj.add(warm);
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    let shown = '';
+    return {
+      /** Show the current time at `level` (0 = off) with a faint flicker. */
+      update(level: number, now: number) {
+        const lit = level > 0.02;
+        const t = lit ? fmt.format(new Date()).replace(/\D/g, '') : '';
+        if (t !== shown) {
+          shown = t;
+          lits.forEach((m, i) => {
+            m.visible = lit;
+            if (!lit) return;
+            const d = +t[i] || 0;
+            (m.material as MeshBasicMaterial).map = litTex[d];
+            m.position.z = m.userData.z + depthOf(d);
+          });
+        }
+        const k = level * (opts.reduceMotion ? 1 : 0.96 + 0.04 * Math.sin(now * 0.031) * Math.sin(now * 0.017));
+        lits.forEach((m) => (m.material as MeshBasicMaterial).color.setScalar(k));
+        bloomMat.opacity = 0.75 * k;
+        glowU.value = k;
+        warm.intensity = 0.16 * k;
+      },
+    };
+  })();
+
+  // Clicking a light in the full-screen room flips it.
+  const switchOf = (o: Object3D | null): Switch | undefined => {
+    for (; o; o = o.parent) {
+      if (o === placed[LIGHTS.lamp]) return 'lamp';
+      if (o === placed[LIGHTS.bedside]) return 'bed';
+      if (o === halo) return 'amb';
+      if (clockObj && o === clockObj) return 'clock';
+    }
+  };
+  const isIn = (o: Object3D | null, parent: Object3D) => {
+    for (; o; o = o.parent) if (o === parent) return true;
+    return false;
   };
 
   // --- screens: the `screen` / `cover` planes of the assets (glTF UVs, so textures are not flipped)
@@ -789,11 +1114,26 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     };
   })();
 
-  let cur = { ...LEVELS[opts.theme] };
-  let target = LEVELS[opts.theme];
+  let theme = opts.theme;
+  const sw = Object.fromEntries(Object.keys(SWITCH_ON).map((k) => [k, theme === 'dark'])) as Record<Switch, boolean>;
+  const levels = () => ({
+    ...LEVELS[theme],
+    ...(Object.fromEntries(Object.entries(SWITCH_ON).map(([k, v]) => [k, sw[k as Switch] ? v : 0])) as Record<Switch, number>),
+  });
+  let cur = levels();
+  let target = levels();
   let fading = false;
+  const flip = (k: Switch) => {
+    sw[k] = !sw[k];
+    target = levels();
+    fading = true;
+    if (opts.reduceMotion) cur = { ...target };
+    dirty = true;
+  };
   const setTheme = (t: 'light' | 'dark') => {
-    target = LEVELS[t];
+    theme = t;
+    for (const k of Object.keys(sw) as Switch[]) sw[k] = t === 'dark';
+    target = levels();
     fading = true;
     hemi.color.set(t === 'dark' ? 0x7d84ff : 0xffffff);
     sun.color.set(t === 'dark' ? 0x9fb2ff : 0xffffff);
@@ -925,13 +1265,40 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     return moving;
   };
   let down: [number, number] | null = null;
+  // Dragging the chair spins its top instead of orbiting the room. This runs in the capture phase,
+  // ahead of OrbitControls' own listener on the canvas, so it can keep the orbit from starting.
+  let spin: { id: number; x: number; t: number; v: number } | null = null;
+  canvas.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (!full || flying || !chairTop || !isIn(hitAt(e) ?? null, chairTop)) return;
+      e.stopImmediatePropagation();
+      canvas.setPointerCapture(e.pointerId);
+      spin = { id: e.pointerId, x: e.clientX, t: performance.now(), v: 0 };
+      chairV = 0;
+      canvas.style.cursor = 'grabbing';
+    },
+    { capture: true },
+  );
+  const endSpin = (e: PointerEvent) => {
+    if (!spin || e.pointerId !== spin.id) return false;
+    // Only keep the momentum if the pointer was still moving when it let go.
+    chairV = performance.now() - spin.t < 80 ? spin.v : 0;
+    spin = null;
+    canvas.style.cursor = 'ew-resize';
+    dirty = true;
+    return true;
+  };
+  canvas.addEventListener('pointercancel', endSpin);
   canvas.addEventListener('pointerdown', (e) => (down = [e.clientX, e.clientY]));
   canvas.addEventListener('pointerup', (e) => {
-    if (!full || !down) return;
+    if (endSpin(e) || !full || !down) return;
     const moved = Math.hypot(e.clientX - down[0], e.clientY - down[1]);
     down = null;
     if (moved >= 6) return;
     const hit = hitAt(e) ?? null;
+    const light = switchOf(hit);
+    if (light) return flip(light);
     const blind = blindOf(hit);
     if (blind) {
       blind.t = blind.t > 0.5 ? 0.06 : 1;
@@ -942,11 +1309,19 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (k) visit(k);
   });
   canvas.addEventListener('pointermove', (e) => {
+    if (spin && e.pointerId === spin.id) {
+      const now = performance.now(), d = (e.clientX - spin.x) * 0.012;
+      chairTop!.rotation.y += d;
+      spin.v = d / Math.max(0.008, (now - spin.t) / 1000);
+      Object.assign(spin, { x: e.clientX, t: now });
+      dirty = true;
+      return;
+    }
     if (!full || down || flying) return;
     const hit = hitAt(e) ?? null;
     const o = interactiveOf(hit);
     hover(o);
-    canvas.style.cursor = o || blindOf(hit) ? 'pointer' : 'grab';
+    canvas.style.cursor = o || blindOf(hit) || switchOf(hit) ? 'pointer' : chairTop && isIn(hit, chairTop) ? 'ew-resize' : 'grab';
   });
   canvas.addEventListener('pointerleave', () => hover());
 
@@ -999,7 +1374,15 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     bedL.intensity = cur.bed;
     tvL.intensity = cur.tv;
     for (const m of glows) m.emissiveIntensity = cur.emis * 1.2;
-    skyNight.opacity = Math.min(1, cur.lamp / LEVELS.dark.lamp);
+    if (ownGlows[LIGHTS.lamp]) ownGlows[LIGHTS.lamp].emissiveIntensity = Math.max(0.1, (cur.lamp / SWITCH_ON.lamp) * 1.44);
+    if (ownGlows[LIGHTS.bedside]) ownGlows[LIGHTS.bedside].emissiveIntensity = Math.max(0.1, (cur.bed / SWITCH_ON.bed) * 1.44);
+    const { b, c } = breathe(performance.now());
+    ambColor.set(c);
+    haloMat.color.copy(ambColor).multiplyScalar(cur.amb * b);
+    ambL.color.copy(ambColor);
+    ambL.intensity = cur.amb * b * 2.4;
+    nixie?.update(cur.clock, performance.now());
+    skyNight.opacity = cur.night;
     // Hide whichever walls face the camera (dollhouse view).
     v.copy(cam.position).sub(full ? controls.target : camT);
     vp.set(v.x, -v.z);
@@ -1019,7 +1402,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       });
     }
   };
-  let lastNow = 0;
+  let lastNow = 0, lastAmbient = 0;
   const loop = (now: number) => {
     requestAnimationFrame(loop);
     if (!visible || document.hidden) return;
@@ -1055,8 +1438,18 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (full && controls.enabled && !tween && controls.update()) dirty = true;
     if (stepPops()) dirty = true;
     if (stepBlinds()) dirty = true;
-    if (stepSprings(Math.min(0.033, (now - (lastNow || now)) / 1000))) dirty = true;
+    const dt = Math.min(0.033, (now - (lastNow || now)) / 1000);
+    if (stepSprings(dt)) dirty = true;
+    if (stepChair(dt)) dirty = true;
+    if (stepSway(dt)) dirty = true;
     lastNow = now;
+    // The ambilight breathes and the clock ticks: redraw at ~30 fps while they're on.
+    if ((cur.amb > 0.002 && !opts.reduceMotion) || cur.clock > 0.02) {
+      if (now - lastAmbient > 33) {
+        lastAmbient = now;
+        dirty = true;
+      }
+    }
     if (videos.some((vid) => !vid.paused)) dirty = true;
     if (warmup > 0) {
       warmup--;
