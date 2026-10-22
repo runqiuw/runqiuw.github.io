@@ -420,6 +420,32 @@ import night from '../assets/img/room/poster-night.webp';
       scale 0.3s var(--spring),
       opacity 0.35s ease;
   }
+  /* Buttons of the pinboard close-up (board view in room.ts). */
+  .frame :global(.room-board) {
+    position: absolute;
+    inset: auto 0 calc(18px + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .frame :global(.room-board[hidden]) {
+    display: none;
+  }
+  .frame :global(.room-board:not([hidden])) {
+    animation: room-ui-in 0.28s ease-out both;
+  }
+  .frame :global(.room-board .room-pin) {
+    position: static;
+    translate: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frame :global(.room-board:not([hidden])) {
+      animation: none;
+    }
+  }
   .frame :global(.room-pin.on) {
     opacity: 1;
     pointer-events: auto;

@@ -5,7 +5,8 @@
 // project frame or pinboard card that pops out. The theme switch (`themechange`) turns the lights on
 // or off. `enterFull()` turns it into a free-orbit room with labels; picking a label or an object
 // calls `onNavigate(section)`. There a click also switches a lamp, the TV ambilight or the nixie clock,
-// and dragging the chair spins its top. Rendering happens only while something changes (the
+// and dragging the chair spins its top; clicking the pinboard zooms in on it, where its cards can be
+// dragged around. Rendering happens only while something changes (the
 // breathing ambilight and the ticking clock redraw at ~30 fps while they're on).
 import {
   AdditiveBlending,
@@ -28,6 +29,7 @@ import {
   type Object3D,
   PCFShadowMap,
   PerspectiveCamera,
+  Plane,
   PlaneGeometry,
   PointLight,
   Quaternion,
@@ -1044,12 +1046,15 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const pin = new Mesh(new SphereGeometry(0.014, 12, 10), new MeshStandardMaterial({ color: new Color(PIN_COLORS[i % 3]) }));
     pin.position.set(0, cs * 0.4, 0.012);
     card.add(pin);
+    // The card sits in a slot, which the board view drags around, so the pop-out keeps its own transform.
+    const slot = new Group();
     const col = i % cols, row = Math.floor(i / cols);
-    card.position.set(bc.x + (col - (cols - 1) / 2) * (bw / cols), bc.y - (row - (rows - 1) / 2) * (bh / rows), bc.z + 0.006);
+    slot.position.set(bc.x + (col - (cols - 1) / 2) * (bw / cols), bc.y - (row - (rows - 1) / 2) * (bh / rows), bc.z + 0.006);
     card.rotation.z = [-0.06, 0.05, -0.03, 0.04, -0.05, 0.03][i % 6];
     card.userData.section = 'playground';
-    boardGroup.add(card);
-    return { id: el.dataset.item, pop: poppable(card, { p: new Vector3(0, 0, 0.03), s: 0.15 }) };
+    slot.add(card);
+    boardGroup.add(slot);
+    return { id: el.dataset.item, slot, pin, pop: poppable(card, { p: new Vector3(0, 0, 0.03), s: 0.15 }) };
   });
 
   const updateScreens = () => {
@@ -1253,6 +1258,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const exitFull = (ms = 0, section?: string, aspect = cam.aspect, clock?: Clock) => {
     full = false;
     flying = false;
+    closeBoard();
     hover();
     for (const [k] of shownLabels) {
       clearTimeout(labelTimers.get(k));
@@ -1371,7 +1377,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       dirty = true;
       return;
     }
-    const k = interactiveOf(hit)?.userData.section;
+    const o = interactiveOf(hit);
+    if (o === boardGroup && cards.length) return openBoard();
+    const k = o?.userData.section;
     if (k) visit(k);
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -1407,6 +1415,203 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       flying = false;
       opts.onNavigate(section);
     });
+  };
+
+  // Board view: clicking the pinboard in the full-screen room flies up close to it, where the cards
+  // can be moved (until the next reload). Pressing a card pulls it off the board together with its
+  // pin; it follows the pointer over the board and gets pinned back in, with a bounce, where it's
+  // let go. "Back to room", Escape or a click beside the board return to the orbit.
+  let boardOn = false;
+  let beforeBoard = { t: new Vector3(), p: new Vector3() };
+  const boardUi = document.createElement('div');
+  boardUi.className = 'room-board';
+  boardUi.hidden = true;
+  boardUi.innerHTML =
+    '<button type="button" class="room-pin on" data-board="back">← Back to room</button>' +
+    '<button type="button" class="room-pin on" data-board="page">Playground on the page</button>';
+  boardUi.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-board]')?.dataset.board;
+    if (b === 'back') leaveBoard();
+    else if (b === 'page') {
+      boardUi.hidden = true;
+      visit('playground');
+    }
+  });
+  frame.append(boardUi);
+  const openBoard = () => {
+    if (!full || flying || boardOn) return;
+    boardOn = true;
+    beforeBoard = { t: controls.target.clone(), p: cam.position.clone() };
+    controls.enabled = false;
+    labels.hidden = true;
+    hover();
+    canvas.style.cursor = '';
+    camT.copy(controls.target);
+    const arrived = () => {
+      flying = false;
+      boardUi.hidden = false;
+      dirty = true;
+    };
+    if (opts.reduceMotion) {
+      jump(shots.board);
+      return arrived();
+    }
+    flying = true;
+    tweenTo(place(shots.board), 700, easeInOut, 'board', arrived);
+  };
+  const leaveBoard = () => {
+    if (!boardOn || flying) return;
+    closeBoard();
+    const back = () => {
+      flying = false;
+      controls.enabled = true;
+      labels.hidden = false;
+      canvas.style.cursor = 'grab';
+      dirty = true;
+    };
+    if (opts.reduceMotion) {
+      cam.position.copy(beforeBoard.p);
+      camT.copy(beforeBoard.t);
+      cam.lookAt(camT);
+      return back();
+    }
+    flying = true;
+    tweenTo(beforeBoard, 700, easeInOut, 'full', back);
+  };
+  // Also called when the room closes from the board view.
+  const closeBoard = () => {
+    boardOn = false;
+    boardUi.hidden = true;
+    drop();
+    hoverCard(-1);
+  };
+  addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key !== 'Escape' || !boardOn) return;
+      e.stopImmediatePropagation(); // ahead of RoomPanel's Escape, which closes the whole room
+      leaveBoard();
+    },
+    { capture: true },
+  );
+
+  // Each card's lift off the board (0–1) and scale, as springs; z is its height in the pile.
+  const lifts = cards.map((c) => ({ l: 0, v: 0, t: 0, s: 1, sv: 0, st: 1, z: c.slot.position.z }));
+  const pile = cards.map((_, i) => i);
+  const LIFT = 0.045;
+  const mx = bw / 2 - cs * 0.55, my = bh / 2 - cs * 0.55;
+  const boardPlane = new Plane(), hitP = new Vector3();
+  // Where the pointer ray (set by `hitAt`) meets the board, in the board's own coordinates.
+  const onBoard = () => {
+    boardPlane.setFromNormalAndCoplanarPoint(new Vector3(0, 0, 1).transformDirection(boardGroup.matrixWorld), boardGroup.localToWorld(bc.clone()));
+    return ray.ray.intersectPlane(boardPlane, hitP) && boardGroup.worldToLocal(hitP);
+  };
+  const cardAt = (e: PointerEvent) => cards.findIndex((c) => isIn(hitAt(e) ?? null, c.slot));
+  let drag: { i: number; id: number; dx: number; dy: number } | null = null;
+  let press: [number, number] | null = null;
+  let hoveredCard = -1;
+  const hoverCard = (i: number) => {
+    if (i === hoveredCard) return;
+    if (hoveredCard >= 0) lifts[hoveredCard].st = 1;
+    if (i >= 0 && !opts.reduceMotion) lifts[i].st = 1.04;
+    hoveredCard = i;
+    dirty = true;
+  };
+  const drop = () => {
+    if (!drag) return;
+    const { i } = drag;
+    drag = null;
+    lifts[i].t = 0;
+    // The dropped card goes on top of the pile.
+    pile.splice(pile.indexOf(i), 1);
+    pile.push(i);
+    pile.forEach((j, k) => {
+      lifts[j].z = bc.z + 0.006 + k * 0.0015;
+      cards[j].slot.position.z = lifts[j].z + lifts[j].l * LIFT;
+    });
+    canvas.style.cursor = 'grab';
+    dirty = true;
+  };
+  // These listen on the frame in the capture phase, so in the board view they come before the
+  // canvas's own handlers (orbit, hover bounce, chair) and keep them out.
+  frame.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (!boardOn || e.target !== canvas) return;
+      e.stopPropagation();
+      press = [e.clientX, e.clientY];
+      const i = flying || drag ? -1 : cardAt(e);
+      if (i < 0 || !onBoard()) return;
+      canvas.setPointerCapture(e.pointerId);
+      const p = cards[i].slot.position;
+      drag = { i, id: e.pointerId, dx: p.x - hitP.x, dy: p.y - hitP.y };
+      if (!opts.reduceMotion) lifts[i].t = 1;
+      canvas.style.cursor = 'grabbing';
+      dirty = true;
+    },
+    { capture: true },
+  );
+  frame.addEventListener(
+    'pointermove',
+    (e) => {
+      if (!boardOn || e.target !== canvas) return;
+      e.stopPropagation();
+      if (flying) return;
+      if (!drag) {
+        const i = cardAt(e);
+        hoverCard(i);
+        canvas.style.cursor = i >= 0 ? 'grab' : '';
+        return;
+      }
+      if (e.pointerId !== drag.id) return;
+      hitAt(e);
+      if (!onBoard()) return;
+      const p = cards[drag.i].slot.position;
+      p.x = MathUtils.clamp(hitP.x + drag.dx, bc.x - mx, bc.x + mx);
+      p.y = MathUtils.clamp(hitP.y + drag.dy, bc.y - my, bc.y + my);
+      dirty = true;
+    },
+    { capture: true },
+  );
+  const release = (e: PointerEvent) => {
+    if (!boardOn || e.target !== canvas) return;
+    e.stopPropagation();
+    const p = press;
+    press = null;
+    if (drag) {
+      if (e.pointerId === drag.id) drop();
+      return;
+    }
+    // A click beside the board goes back to the room.
+    if (e.type === 'pointerup' && p && !flying && Math.hypot(e.clientX - p[0], e.clientY - p[1]) < 6 && !isIn(hitAt(e) ?? null, boardGroup)) leaveBoard();
+  };
+  frame.addEventListener('pointerup', release, { capture: true });
+  frame.addEventListener('pointercancel', release, { capture: true });
+  const stepCards = (dt: number) => {
+    let moving = false;
+    lifts.forEach((k, i) => {
+      if (Math.abs(k.t - k.l) < 1e-4 && Math.abs(k.v) < 1e-3 && Math.abs(k.st - k.s) < 1e-4 && Math.abs(k.sv) < 1e-3) return;
+      if (opts.reduceMotion) Object.assign(k, { l: k.t, v: 0, s: k.st, sv: 0 });
+      else {
+        k.v += (300 * (k.t - k.l) - 12 * k.v) * dt;
+        k.l += k.v * dt;
+        // Back on the board: the pin goes in, the card bounces off once and squishes a little.
+        if (k.l < 0 && k.v < 0) {
+          k.sv += k.v * 0.3;
+          k.v *= -0.45;
+          k.l = 0;
+        }
+        k.sv += (520 * (k.st - k.s) - 18 * k.sv) * dt;
+        k.s += k.sv * dt;
+      }
+      const { slot, pin } = cards[i];
+      slot.position.z = k.z + k.l * LIFT;
+      slot.rotation.x = k.l * 0.15;
+      slot.scale.setScalar(k.s);
+      pin.position.z = 0.012 + k.l * 0.01;
+      moving = true;
+    });
+    return moving;
   };
 
   // Resizing clears the canvas, and the ResizeObserver runs after this frame's draw, so redraw
@@ -1450,7 +1655,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     nixie?.update(cur.clock, performance.now());
     skyNight.opacity = cur.night;
     // Hide whichever walls face the camera (dollhouse view).
-    v.copy(cam.position).sub(full ? controls.target : camT);
+    v.copy(cam.position).sub(full && controls.enabled ? controls.target : camT);
     vp.set(v.x, -v.z);
     const wallOn = wallSets.map((w) => vp.dot(w.n) > -0.4 && (!w.also || vp.dot(w.also) > -0.4));
     wallSets.forEach((w, i) => w.objs.forEach((o) => ghost(o, !wallOn[i])));
@@ -1508,6 +1713,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (stepSprings(dt)) dirty = true;
     if (stepChair(dt)) dirty = true;
     if (stepSway(dt)) dirty = true;
+    if (stepCards(dt)) dirty = true;
     lastNow = now;
     // The ambilight breathes and the clock ticks: redraw at ~30 fps while they're on.
     if ((cur.amb > 0.002 && !opts.reduceMotion) || cur.clock > 0.02) {

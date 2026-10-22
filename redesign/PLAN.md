@@ -13,7 +13,6 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 - Travel map: a map poster on the wall → `/travel` (no content yet)
 - Blog / notes (no content yet)
 - Say hi character: a character (design TBD) standing in the room, e.g. by the door, with the contact camera shot aimed at it. When it exists: add the `contact` shot in `SHOTS`, a `Say hi` label anchored on the character, make the character clickable (it bounces like the other interactive objects), and turn `show.contact` on. Until then the Say hi section is hidden and the door is scenery
-- Drag pinned notes on the pinboard: pressing a note pulls the pin out together with the note (both lift off the board), the pair follows the pointer across the board, and on release the pin is pushed back in at the drop point with a small bounce. Open question first: how visitors get close enough to the board to drag (the room camera is too far away), e.g. clicking the pinboard in the full-screen room zooms to a board view. Also decide whether moved notes stay put for that visitor (browser storage) or reset on reload
 - Visitor presence ideas (Spencer Chang's spencer.place); more room detail as new sections appear
 
 ### Not doing
