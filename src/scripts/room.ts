@@ -882,7 +882,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   let hovered: Object3D | undefined;
   const hover = (o?: Object3D) => {
     if (o === hovered) return;
-    if (hovered) springs.get(hovered)!.t = 1;
+    // Objects that don't bounce have no spring, so only spring back the ones that do.
+    const prev = hovered && springs.get(hovered);
+    if (prev) prev.t = 1;
     hovered = o;
     if (!o || !o.userData.bounce) return;
     const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };

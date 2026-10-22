@@ -120,7 +120,7 @@ export const PLACEMENTS: Placement[] = [
 
   // Open floor and the door side: cart by the entry door (clear of its swing).
   { id: 'cart', asset: 'cart', at: [2.9, 0.35] },
-  { id: 'door', name: 'Door', asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
+  { id: 'door', bounce: false, name: 'Door', asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
   { id: 'closetDoor', asset: 'door', at: [3.43, 2.485], yaw: -90, wall: 'E' },
 ];
 
