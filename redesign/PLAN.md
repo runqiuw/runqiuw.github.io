@@ -32,7 +32,7 @@ Not wanted: chat-style home page, room-only navigation (Maxime-style), heavy rea
 | Projects | bookshelf on the left wall, where the side table was | cards | now: each project's cover in a frame on the shelf, the one in view tips forward. Later (deferred): hardware projects as small models |
 | Games | game corner right of the desk: TV on a stand, console, game cases, round rug | cards with a still cover | the TV shows the game in view (cover now; `clip` field in games.yaml plays gameplay); its case lifts |
 | Playground | pinboard wall | a few picks | every pin, on the wall |
-| Contact | door (no camera shot for now: the turn to the door was too big a jump; the camera stays on Playground) | email, links | later: "Madison, N miles from you" on the door |
+| Contact | door (section hidden for now: `show.contact`; the email is in the intro links; no camera shot) | email, links | later: "Madison, N miles from you" on the door |
 
 Dropped: the mirror as a hotspot (the photo-in-mirror effect didn't work; the photo lives in the intro) and the About & CV section.
 

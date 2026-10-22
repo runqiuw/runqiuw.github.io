@@ -34,16 +34,20 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
           </Section>
         )
       }
-      <Section id="contact" title="Say hi">
-        <p class="mail">{profile.email}</p>
-        <p class="muted">{profile.location}. Happy to chat about sensing, machine learning, or games.</p>
-        <div class="links">
-          <a class="pill" href={profile.links.scholar}>Google Scholar</a>
-          <a class="pill" href={profile.links.github}>GitHub</a>
-          <a class="pill" href={profile.links.orcid}>ORCID</a>
-          <a class="pill" href={profile.links.itch}>itch.io</a>
-        </div>
-      </Section>
+      {
+        show.contact && (
+          <Section id="contact" title="Say hi">
+            <p class="mail">{profile.email}</p>
+            <p class="muted">{profile.location}. Happy to chat about sensing, machine learning, or games.</p>
+            <div class="links">
+              <a class="pill" href={profile.links.scholar}>Google Scholar</a>
+              <a class="pill" href={profile.links.github}>GitHub</a>
+              <a class="pill" href={profile.links.orcid}>ORCID</a>
+              <a class="pill" href={profile.links.itch}>itch.io</a>
+            </div>
+          </Section>
+        )
+      }
       <Footer />
     </main>
   </div>

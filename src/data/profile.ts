@@ -34,4 +34,6 @@ export const profile = {
 export const show = {
   /** Playground: only two "coming soon" notes so far. Also update the sitemap filter in astro.config.mjs. */
   playground: false,
+  /** Say hi: hidden for now (the email is in the intro links); the room's door is scenery. */
+  contact: false,
 };
