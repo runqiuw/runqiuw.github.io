@@ -135,7 +135,7 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Hover bounce on interactive objects in the full-screen room (spring with a little overshoot); hovering a label bounces its object
 - [ ] Pin → pinboard card highlight
 - [x] Full-screen room: picking an object or label flies the camera to its shot, then returns to the page
-- [x] Hover name tags in the full-screen room (`name` per placement): "Monitor → Research", "Window · click to roll the blind"
+- Hover name tags were tried and removed (2026-10-21). Only objects that bounce on hover are clickable (monitors, shelf, TV, console, game cases); the desk, TV stand, rug and door are scenery (`bounce: false`)
 - [x] Sky outside the windows (day/night, cross-faded with the lights)
 - [x] Blinds roll up/down on click in the full-screen room (`blind_cloth` / `blind_bar` nodes in asset_window)
 - [x] Full-screen room mode: orbit, labels (Research / Projects / Games / Playground), click label or object → back to that section; Esc, "Back to page" and the back button close it (`#room` in URL). Desktop: "Enter my room" button or click the room; mobile: "Explore my room in 3D" card (3D loads only then)
@@ -151,12 +151,13 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [ ] Archive the al-folio version in a tag (`al-folio-final`)
 
 ### Later
-- [ ] Travel map (a map poster on the wall → `/travel`)
+- [ ] Travel map (a map poster on the wall → `/travel`) — deferred: no content yet
 - [ ] "Madison, N miles from you" as a pinned note on the pinboard, when the Playground comes back (needs a client-side geo lookup; consider privacy)
 - [ ] Drag pinned notes on the pinboard: the pin and note lift off, follow the pointer, and get pinned back where they're dropped (needs a way to zoom in on the board first)
 - [ ] Say hi: a character in the room, with the contact shot aimed at it (no contact shot until then)
 - Decided not to do (2026-10-21): room lights following Madison local time. The room's day/night follows the page theme switch, and splitting them would give a light page with a night room
-- [ ] Blog / notes
+- [ ] Blog / notes — deferred: no content yet
+- News section: shelved (code stays, `SHOW_NEWS` off) until there's a lot of news
 - [ ] More room detail and objects as new sections appear
 - [ ] Course calendar page (old `assets/html/schedule.html`), if needed again
 - [ ] Visitor presence ideas (Spencer Chang's spencer.place)

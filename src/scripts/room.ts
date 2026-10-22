@@ -250,7 +250,6 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     });
     // A section hidden on the page (e.g. Playground) leaves its object as plain decoration.
     g.userData.section = p.section && document.getElementById(p.section) ? p.section : undefined;
-    g.userData.name = p.name;
     g.userData.bounce = p.bounce !== false;
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
@@ -834,7 +833,6 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     full = false;
     flying = false;
     hover();
-    showTip(null, undefined, true);
     if (controls.enabled) camT.copy(controls.target); // otherwise the opening tween was still running
     controls.enabled = false;
     labels.hidden = true;
@@ -860,22 +858,19 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     for (; o; o = o.parent) if (!o.visible) return false;
     return true;
   };
-  const sectionOf = (o: Object3D | null) => {
-    for (; o; o = o.parent) if (o.userData.section) return o.userData.section as string;
-  };
   const hitAt = (e: PointerEvent) => {
     const r = canvas.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, cam);
     return ray.intersectObjects(scene.children, true).find((h) => shown(h.object))?.object;
   };
-  const pick = (e: PointerEvent) => sectionOf(hitAt(e) ?? null);
 
   // Hover bounce: interactive objects (placements with a section) spring up a little under the
   // pointer, with a bit of overshoot, and spring back when it leaves.
   const placedSet = new Set(Object.values(placed));
+  // Only the objects that bounce are clickable; big furniture (desk, TV stand, rug, door) is scenery.
   const interactiveOf = (o: Object3D | null) => {
-    for (; o; o = o.parent) if (placedSet.has(o) && o.userData.section) return o;
+    for (; o; o = o.parent) if (placedSet.has(o)) return o.userData.section && o.userData.bounce ? o : undefined;
   };
   type Spring = { o: Object3D; base: number; s: number; v: number; t: number };
   const springs = new Map<Object3D, Spring>();
@@ -886,7 +881,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const prev = hovered && springs.get(hovered);
     if (prev) prev.t = 1;
     hovered = o;
-    if (!o || !o.userData.bounce) return;
+    if (!o) return;
     const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };
     sp.t = 1.06;
     if (opts.reduceMotion) sp.s = sp.t;
@@ -920,52 +915,17 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       dirty = true;
       return;
     }
-    const k = sectionOf(hit);
+    const k = interactiveOf(hit)?.userData.section;
     if (k) visit(k);
   });
-  // Name tag next to the pointer: the object's name and where a click takes you.
-  const titles = Object.fromEntries(LABELS.map(([k, t]) => [k, t]));
-  const tip = document.createElement('div');
-  tip.className = 'room-tip';
-  tip.hidden = true;
-  frame.append(tip);
-  // It lingers for 2 s after the pointer leaves the object (or hides at once with `now`).
-  let tipTimer = 0;
-  const showTip = (e: PointerEvent | null, text?: string, now = false) => {
-    if (!e || !text) {
-      if (now || tip.hidden) {
-        clearTimeout(tipTimer);
-        tipTimer = 0;
-        tip.hidden = true;
-      } else if (!tipTimer) {
-        // Start the countdown when the pointer leaves the object, not on every move after that.
-        tipTimer = window.setTimeout(() => ((tip.hidden = true), (tipTimer = 0)), 2000);
-      }
-      return;
-    }
-    clearTimeout(tipTimer);
-    tipTimer = 0;
-    tip.textContent = text;
-    tip.hidden = false;
-    const r = frame.getBoundingClientRect();
-    tip.style.left = `${Math.min(e.clientX - r.left + 14, r.width - tip.offsetWidth - 8)}px`;
-    tip.style.top = `${e.clientY - r.top + 16}px`;
-  };
   canvas.addEventListener('pointermove', (e) => {
-    if (!full || down || flying) return showTip(null, undefined, true);
+    if (!full || down || flying) return;
     const hit = hitAt(e) ?? null;
     const o = interactiveOf(hit);
-    const blind = blindOf(hit);
     hover(o);
-    canvas.style.cursor = o || blind ? 'pointer' : 'grab';
-    if (o) showTip(e, `${o.userData.name ?? ''} → ${titles[o.userData.section] ?? ''}`.trim());
-    else if (blind) showTip(e, `${blind.win.userData.name ?? 'Window'} · click to roll the blind`);
-    else showTip(null);
+    canvas.style.cursor = o || blindOf(hit) ? 'pointer' : 'grab';
   });
-  canvas.addEventListener('pointerleave', () => {
-    hover();
-    showTip(null);
-  });
+  canvas.addEventListener('pointerleave', () => hover());
 
   // Picking a section in the full-screen room: fly to its shot first, then hand over to the page
   // (which shrinks the room back into the panel and scrolls there).
@@ -978,7 +938,6 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     controls.enabled = false;
     labels.hidden = true;
     hover();
-    showTip(null, undefined, true);
     canvas.style.cursor = '';
     tweenTo(place(s), 700, easeInOut, section, () => {
       flying = false;
