@@ -595,7 +595,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const v = new Vector3();
     for (const p of PLACEMENTS) {
       const mount = manifest.assets[p.asset]?.mount;
-      if ((mount !== 'floor' && mount !== 'desk') || p.asset === 'rug' || !placed[p.id]) continue;
+      // Not the toys on the bed: they get thrown around, and a painted patch would stay behind.
+      if ((mount !== 'floor' && mount !== 'desk') || p.asset === 'rug' || DECOR.toys.includes(p.id) || !placed[p.id]) continue;
       const g = placed[p.id], base = new Box3().setFromObject(g).min.y, foot = new Box3();
       g.traverse((o) => {
         if (!(o instanceof Mesh)) return;
