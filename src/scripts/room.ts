@@ -4,10 +4,11 @@
 // item in view) decides what that object shows: the paper on the monitors, the game on the TV, the
 // project frame or pinboard card that pops out. The theme switch (`themechange`) turns the lights on
 // or off. `enterFull()` turns it into a free-orbit room with labels; picking a label or an object
-// calls `onNavigate(section)`. There a click also switches a lamp, the TV ambilight or the nixie clock,
-// and dragging the chair spins its top; clicking the pinboard zooms in on it, where its cards can be
-// dragged around. Rendering happens only while something changes (the
-// breathing ambilight and the ticking clock redraw at ~30 fps while they're on).
+// asks the panel for its close-up (`onFocus`, then `focus()`), or calls `onNavigate(section)` when it
+// has none. There a click also switches a lamp, the TV ambilight or the nixie clock, and dragging the
+// chair spins its top; in the pinboard's close-up its cards can be dragged around. Rendering happens
+// only while something changes (the breathing ambilight and the ticking clock redraw at ~30 fps while
+// they're on).
 import {
   AdditiveBlending,
   Box2,
@@ -50,7 +51,7 @@ import {
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { CLOSEUPS, DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
@@ -89,6 +90,10 @@ export interface RoomOptions {
   theme: 'light' | 'dark';
   reduceMotion: boolean;
   onNavigate: (section: string) => void;
+  /** A click asks for a close-up (CLOSEUPS); the panel opens it with `focus`, so it can keep the history. */
+  onFocus: (id: string) => void;
+  /** A click asks to go up one level (e.g. beside the board in its close-up). */
+  onBack: () => void;
 }
 
 export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
@@ -1095,6 +1100,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     return { t, dir: PD(d.dir), r: Math.max(s.x, s.y, s.z) * 0.5 * (d.pad ?? 1.35) + 0.15 };
   };
   const shots = Object.fromEntries(Object.entries(SHOTS).map(([k, d]) => [k, shot(d)])) as Record<string, Shot>;
+  const closeShots = Object.fromEntries(Object.entries(CLOSEUPS).map(([k, c]) => [k, shot(c.shot)])) as Record<string, Shot>;
 
   const labels = document.createElement('div');
   labels.className = 'room-pins';
@@ -1110,7 +1116,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   });
   labels.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
-    if (b) visit(b.dataset.go!);
+    if (b) pick(anchorObj[b.dataset.go!], b.dataset.go!);
   });
   frame.append(labels);
   // Labels show for 2 s when the room opens, then fade; hovering an object (or the label itself)
@@ -1258,7 +1264,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const exitFull = (ms = 0, section?: string, aspect = cam.aspect, clock?: Clock) => {
     full = false;
     flying = false;
-    closeBoard();
+    if (focused) closeupHooks[focused]?.leave?.();
+    focused = null;
     hover();
     for (const [k] of shownLabels) {
       clearTimeout(labelTimers.get(k));
@@ -1343,7 +1350,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   canvas.addEventListener(
     'pointerdown',
     (e) => {
-      if (!full || flying || !chairTop || !isIn(hitAt(e) ?? null, chairTop)) return;
+      if (!full || focused || flying || !chairTop || !isIn(hitAt(e) ?? null, chairTop)) return;
       e.stopImmediatePropagation();
       canvas.setPointerCapture(e.pointerId);
       spin = { id: e.pointerId, x: e.clientX, t: performance.now(), v: 0 };
@@ -1364,7 +1371,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   canvas.addEventListener('pointercancel', endSpin);
   canvas.addEventListener('pointerdown', (e) => (down = [e.clientX, e.clientY]));
   canvas.addEventListener('pointerup', (e) => {
-    if (endSpin(e) || !full || !down) return;
+    if (endSpin(e) || !full || focused || !down) return;
     const moved = Math.hypot(e.clientX - down[0], e.clientY - down[1]);
     down = null;
     if (moved >= 6) return;
@@ -1378,9 +1385,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       return;
     }
     const o = interactiveOf(hit);
-    if (o === boardGroup && cards.length) return openBoard();
-    const k = o?.userData.section;
-    if (k) visit(k);
+    if (o) pick(o, o.userData.section);
   });
   canvas.addEventListener('pointermove', (e) => {
     if (spin && e.pointerId === spin.id) {
@@ -1391,7 +1396,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       dirty = true;
       return;
     }
-    if (!full || down || flying) return;
+    if (!full || focused || down || flying) return;
     const hit = hitAt(e) ?? null;
     const o = interactiveOf(hit);
     hover(o);
@@ -1417,83 +1422,69 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     });
   };
 
-  // Board view: clicking the pinboard in the full-screen room flies up close to it, where the cards
-  // can be moved (until the next reload). Pressing a card pulls it off the board together with its
-  // pin; it follows the pointer over the board and gets pinned back in, with a bounce, where it's
-  // let go. "Back to room", Escape or a click beside the board return to the orbit.
-  let boardOn = false;
-  let beforeBoard = { t: new Vector3(), p: new Vector3() };
-  const boardUi = document.createElement('div');
-  boardUi.className = 'room-board';
-  boardUi.hidden = true;
-  boardUi.innerHTML =
-    '<button type="button" class="room-pin on" data-board="back">← Back to room</button>' +
-    '<button type="button" class="room-pin on" data-board="page">Playground on the page</button>';
-  boardUi.addEventListener('click', (e) => {
-    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-board]')?.dataset.board;
-    if (b === 'back') leaveBoard();
-    else if (b === 'page') {
-      boardUi.hidden = true;
-      visit('playground');
+  // A click on an object (or its label) in the room: its close-up if it has one, else its section.
+  const pick = (o: Object3D | undefined, section?: string) => {
+    const id = Object.keys(CLOSEUPS).find((k) => o && placed[CLOSEUPS[k].object] === o);
+    if (id) opts.onFocus(id);
+    else if (section) visit(section);
+  };
+
+  // Close-ups (CLOSEUPS): the panel decides when to open or leave one, since it keeps the views and
+  // the history; here the camera flies there and back, and each close-up's own interaction turns on
+  // and off. Orbit, labels and hover are off while one is open.
+  let focused: string | null = null;
+  let beforeFocus = { t: new Vector3(), p: new Vector3() };
+  const closeupHooks: Record<string, { leave?: () => void }> = { board: { leave: () => closeBoard() } };
+  const flyTo = (q: { t: Vector3; p: Vector3 }, id: string) =>
+    new Promise<void>((done) => {
+      if (opts.reduceMotion) {
+        tween = null;
+        cam.position.copy(q.p);
+        camT.copy(q.t);
+        cam.lookAt(camT);
+        dirty = true;
+        return done();
+      }
+      flying = true;
+      tweenTo(q, 700, easeInOut, id, () => {
+        flying = false;
+        done();
+      });
+    });
+  const focus = async (id: string) => {
+    if (!full || focused === id || !closeShots[id]) return;
+    if (focused) closeupHooks[focused]?.leave?.();
+    else {
+      beforeFocus = { t: controls.target.clone(), p: cam.position.clone() };
+      camT.copy(controls.target);
     }
-  });
-  frame.append(boardUi);
-  const openBoard = () => {
-    if (!full || flying || boardOn) return;
-    boardOn = true;
-    beforeBoard = { t: controls.target.clone(), p: cam.position.clone() };
+    focused = id;
     controls.enabled = false;
     labels.hidden = true;
     hover();
     canvas.style.cursor = '';
-    camT.copy(controls.target);
-    const arrived = () => {
-      flying = false;
-      boardUi.hidden = false;
-      dirty = true;
-    };
-    if (opts.reduceMotion) {
-      jump(shots.board);
-      return arrived();
-    }
-    flying = true;
-    tweenTo(place(shots.board), 700, easeInOut, 'board', arrived);
+    await flyTo(place(closeShots[id]), `closeup:${id}`);
+    dirty = true;
   };
-  const leaveBoard = () => {
-    if (!boardOn || flying) return;
-    closeBoard();
-    const back = () => {
-      flying = false;
-      controls.enabled = true;
-      labels.hidden = false;
-      canvas.style.cursor = 'grab';
-      dirty = true;
-    };
-    if (opts.reduceMotion) {
-      cam.position.copy(beforeBoard.p);
-      camT.copy(beforeBoard.t);
-      cam.lookAt(camT);
-      return back();
-    }
-    flying = true;
-    tweenTo(beforeBoard, 700, easeInOut, 'full', back);
+  const unfocus = async () => {
+    if (!focused) return;
+    closeupHooks[focused]?.leave?.();
+    focused = null;
+    await flyTo(beforeFocus, 'full');
+    if (!full || focused) return;
+    controls.enabled = true;
+    labels.hidden = false;
+    canvas.style.cursor = 'grab';
+    dirty = true;
   };
-  // Also called when the room closes from the board view.
+
+  // The board's close-up: its cards can be moved (until the next reload). Pressing a card pulls it
+  // off the board together with its pin; it follows the pointer over the board and gets pinned back
+  // in, with a bounce, where it's let go. A click beside the board goes back to the room.
   const closeBoard = () => {
-    boardOn = false;
-    boardUi.hidden = true;
     drop();
     hoverCard(-1);
   };
-  addEventListener(
-    'keydown',
-    (e) => {
-      if (e.key !== 'Escape' || !boardOn) return;
-      e.stopImmediatePropagation(); // ahead of RoomPanel's Escape, which closes the whole room
-      leaveBoard();
-    },
-    { capture: true },
-  );
 
   // Each card's lift off the board (0–1) and scale, as springs; z is its height in the pile.
   const lifts = cards.map((c) => ({ l: 0, v: 0, t: 0, s: 1, sv: 0, st: 1, z: c.slot.position.z }));
@@ -1537,7 +1528,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   frame.addEventListener(
     'pointerdown',
     (e) => {
-      if (!boardOn || e.target !== canvas) return;
+      if (focused !== 'board' || e.target !== canvas) return;
       e.stopPropagation();
       press = [e.clientX, e.clientY];
       const i = flying || drag ? -1 : cardAt(e);
@@ -1554,7 +1545,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   frame.addEventListener(
     'pointermove',
     (e) => {
-      if (!boardOn || e.target !== canvas) return;
+      if (focused !== 'board' || e.target !== canvas) return;
       e.stopPropagation();
       if (flying) return;
       if (!drag) {
@@ -1574,7 +1565,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     { capture: true },
   );
   const release = (e: PointerEvent) => {
-    if (!boardOn || e.target !== canvas) return;
+    if (focused !== 'board' || e.target !== canvas) return;
     e.stopPropagation();
     const p = press;
     press = null;
@@ -1583,7 +1574,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       return;
     }
     // A click beside the board goes back to the room.
-    if (e.type === 'pointerup' && p && !flying && Math.hypot(e.clientX - p[0], e.clientY - p[1]) < 6 && !isIn(hitAt(e) ?? null, boardGroup)) leaveBoard();
+    if (e.type === 'pointerup' && p && !flying && Math.hypot(e.clientX - p[0], e.clientY - p[1]) < 6 && !isIn(hitAt(e) ?? null, boardGroup)) opts.onBack();
   };
   frame.addEventListener('pointerup', release, { capture: true });
   frame.addEventListener('pointercancel', release, { capture: true });
@@ -1739,5 +1730,5 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     updateScreens();
   });
   window.addEventListener('themechange', (e) => setTheme((e as CustomEvent<'light' | 'dark'>).detail));
-  return { canvas, enterFull, exitFull };
+  return { canvas, enterFull, exitFull, focus, unfocus, visit };
 }

@@ -1,7 +1,9 @@
 ---
 // Left-hand room panel. Shows a still render first; on desktop it swaps in the live 3D room once
 // the page is idle. "Enter my room" (or the mobile button in the intro, via `roomopen`) opens a
-// full-screen orbit view; labels and objects navigate back to page sections.
+// full-screen orbit view. This script keeps the three levels of views: the page (0), the room (1) and
+// a close-up in the room (2, CLOSEUPS in room.config.ts). Forward pushes a history entry (#room,
+// #room/<id>); Esc, the Back buttons and the browser's back all pop one level.
 import { Image } from 'astro:assets';
 import day from '../assets/img/room/poster-day.webp';
 import night from '../assets/img/room/poster-night.webp';
@@ -21,17 +23,22 @@ import night from '../assets/img/room/poster-night.webp';
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20.5 20.5-4.5-4.5M11 8v6M8 11h6" /></svg>
         <span aria-hidden="true">Zoom</span><span class="sr">Scroll or pinch to zoom.</span>
       </li>
-      <li title="Tap a label or an object to jump to that part of the page">
+      <li title="Tap a label or an object to go there">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 9 5 12 1.8-5.2L21 14Z" /><path d="M7.2 2.2 8 5.1M5.1 8l-2.9-.8M14 4.1 12 6M6 12l-1.9 2" /></svg>
-        <span aria-hidden="true">Tap</span><span class="sr">Tap a label or an object to jump to that part of the page.</span>
+        <span aria-hidden="true">Tap</span><span class="sr">Tap a label or an object to go there.</span>
       </li>
     </ul>
     <button class="exit" type="button" id="room-exit" hidden>Back to page ✕</button>
+    <div class="closeup" hidden>
+      <button type="button" class="room-pin on" data-closeup="back">← Back to room</button>
+      <button type="button" class="room-pin on" data-closeup="page"></button>
+    </div>
     <p class="loading" hidden>Building the room…</p>
   </div>
 </aside>
 
 <script>
+  import { CLOSEUPS } from '../scripts/room.config';
   type Room = Awaited<ReturnType<typeof import('../scripts/room').mountRoom>>;
 
   const aside = document.getElementById('room-panel')!;
@@ -40,6 +47,8 @@ import night from '../assets/img/room/poster-night.webp';
   const exitBtn = document.getElementById('room-exit')!;
   const help = frame.querySelector<HTMLElement>('.help')!;
   const loading = frame.querySelector<HTMLElement>('.loading')!;
+  const closeBar = frame.querySelector<HTMLElement>('.closeup')!;
+  const toPage = closeBar.querySelector<HTMLElement>('[data-closeup="page"]')!;
   const wide = matchMedia('(min-width: 901px)');
   const webgl = (() => {
     try {
@@ -50,7 +59,11 @@ import night from '../assets/img/room/poster-night.webp';
   })();
 
   let room: Promise<Room> | null = null;
+  // Level 1 (the room) and, inside it, level 2: the open close-up.
   let isFull = false;
+  let closeup = '';
+  /** Our history entries: { room: 1 } for #room, { room: 2, closeup } for #room/<id>. */
+  const entry = () => history.state as { room?: number; closeup?: string } | null;
 
   // Opening and closing morph the frame between its place on the page and the whole window, while
   // the camera moves on the same curve and for the same time, so both read as one quick motion.
@@ -111,6 +124,8 @@ import night from '../assets/img/room/poster-night.webp';
           theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
           reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
           onNavigate: (section) => close(section),
+          onFocus: (id) => focus(id),
+          onBack: () => back(),
         }),
       )
       .then((r) => {
@@ -125,7 +140,7 @@ import night from '../assets/img/room/poster-night.webp';
     return room;
   };
 
-  async function open() {
+  async function open(push = true) {
     if (isFull || !webgl) return;
     const from = home();
     isFull = true;
@@ -139,7 +154,7 @@ import night from '../assets/img/room/poster-night.webp';
     // The page scroll stays put underneath; stop the browser from "restoring" it when we pop
     // the #room entry, which would cancel the jump to the chosen section.
     history.scrollRestoration = 'manual';
-    history.pushState({ room: true }, '', '#room');
+    if (push) history.pushState({ room: 1 }, '', '#room');
     const to = viewport();
     const opened = morph(from?.rect ?? shrunk(to, 0.2), to, OPEN_MS, [from?.radius ?? '28px', '0px'], [from ? 1 : 0, 1]);
     if (live) (await room)!.enterFull(OPEN_MS, to.width / to.height, clockOf(morphing!));
@@ -156,6 +171,8 @@ import night from '../assets/img/room/poster-night.webp';
   async function close(section?: string, fromHistory = false) {
     if (!isFull) return;
     isFull = false;
+    closeup = '';
+    closeBar.hidden = true;
     exitBtn.hidden = true;
     help.hidden = true;
     loading.hidden = true;
@@ -165,10 +182,11 @@ import night from '../assets/img/room/poster-night.webp';
     const to = target?.rect ?? shrunk(viewport(), 0.2);
     const closing = morph(viewport(), to, CLOSE_MS, ['0px', target?.radius ?? '28px'], [1, target ? 1 : 0]);
     if (frame.classList.contains('live')) (await room)?.exitFull(CLOSE_MS, section, to.width / to.height, clockOf(morphing!));
-    if (!fromHistory && history.state?.room) {
-      // Leave the #room history entry first, so its scroll restore can't undo the jump below.
+    if (!fromHistory && entry()?.room) {
+      // Leave our history entries first (#room, and #room/<id> from a close-up), so their scroll
+      // restore can't undo the jump below.
       const popped = new Promise((r) => addEventListener('popstate', r, { once: true }));
-      history.back();
+      history.go(-entry()!.room!);
       await popped;
     }
     // Jump the page under the room (it still covers most of the window at this point).
@@ -180,6 +198,45 @@ import night from '../assets/img/room/poster-night.webp';
     document.body.style.overflow = '';
     enterBtn.hidden = !wide.matches;
     setTimeout(() => (history.scrollRestoration = 'auto'), 1500);
+  }
+
+  // Level 2: fly into a close-up (from a click in the room, or the browser's forward button).
+  async function focus(id: string, push = true) {
+    if (!isFull || closeup === id || !CLOSEUPS[id]) return;
+    closeup = id;
+    if (push) history.pushState({ room: 2, closeup: id }, '', `#room/${id}`);
+    exitBtn.hidden = true;
+    help.hidden = true;
+    const section = CLOSEUPS[id].section;
+    toPage.textContent = `${document.querySelector(`#${section} h2`)?.textContent?.trim() || 'This'} on the page →`;
+    await (await room)!.focus(id);
+    if (closeup !== id) return;
+    closeBar.hidden = false;
+    closeBar.querySelector<HTMLElement>('button')!.focus({ preventScroll: true });
+  }
+  async function unfocus() {
+    if (!closeup) return;
+    closeup = '';
+    closeBar.hidden = true;
+    await (await room)!.unfocus();
+    if (!isFull || closeup) return;
+    exitBtn.hidden = false;
+    help.hidden = false;
+    exitBtn.focus({ preventScroll: true });
+  }
+  // One level up. Through the history when our entry is on top, so this and the browser's back agree.
+  function back() {
+    if (entry()?.room) history.back();
+    else if (closeup) unfocus();
+    else close();
+  }
+  // The history moved (back, forward, or our own `back`): go to the level its entry is for.
+  async function onHistory() {
+    const e = entry(), to = e?.room ?? 0;
+    if (to === 0) return close(undefined, true);
+    if (!isFull) await open(false);
+    if (to === 1) unfocus();
+    else if (e?.closeup) focus(e.closeup, false);
   }
 
   if (webgl) {
@@ -195,16 +252,24 @@ import night from '../assets/img/room/poster-night.webp';
     start();
     wide.addEventListener('change', start);
 
-    enterBtn.addEventListener('click', open);
+    enterBtn.addEventListener('click', () => open());
     frame.addEventListener('click', (e) => {
       if (!isFull && wide.matches && !(e.target as HTMLElement).closest('button')) open();
     });
-    exitBtn.addEventListener('click', () => close());
-    addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') close();
+    exitBtn.addEventListener('click', back);
+    closeBar.addEventListener('click', async (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-closeup]')?.dataset.closeup;
+      if (b === 'back') back();
+      else if (b === 'page' && closeup) {
+        closeBar.hidden = true;
+        (await room)!.visit(CLOSEUPS[closeup].section);
+      }
     });
-    addEventListener('popstate', () => close(undefined, true));
-    addEventListener('roomopen', open);
+    addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isFull) back();
+    });
+    addEventListener('popstate', onHistory);
+    addEventListener('roomopen', () => open());
     document.documentElement.classList.add('has-room');
   }
 </script>
@@ -420,8 +485,8 @@ import night from '../assets/img/room/poster-night.webp';
       scale 0.3s var(--spring),
       opacity 0.35s ease;
   }
-  /* Buttons of the pinboard close-up (board view in room.ts). */
-  .frame :global(.room-board) {
+  /* Buttons of a close-up (level 2): back to the room, and its section on the page. */
+  .closeup {
     position: absolute;
     inset: auto 0 calc(18px + env(safe-area-inset-bottom, 0px));
     z-index: 3;
@@ -431,18 +496,18 @@ import night from '../assets/img/room/poster-night.webp';
     gap: 8px;
     pointer-events: none;
   }
-  .frame :global(.room-board[hidden]) {
+  .closeup[hidden] {
     display: none;
   }
-  .frame :global(.room-board:not([hidden])) {
+  .closeup:not([hidden]) {
     animation: room-ui-in 0.28s ease-out both;
   }
-  .frame :global(.room-board .room-pin) {
+  .closeup .room-pin {
     position: static;
     translate: none;
   }
   @media (prefers-reduced-motion: reduce) {
-    .frame :global(.room-board:not([hidden])) {
+    .closeup:not([hidden]) {
       animation: none;
     }
   }
