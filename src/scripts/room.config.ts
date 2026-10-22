@@ -24,6 +24,8 @@ export interface Placement {
   section?: string;
   /** Shown next to the pointer when hovering the object in the full-screen room. */
   name?: string;
+  /** `false`: no hover bounce (big furniture looks odd growing); it stays clickable. */
+  bounce?: boolean;
   /** Set for things in or against a wall (doors, windows): they hide with that wall in the dollhouse view. */
   wall?: Wall['side'];
   /** `false` turns the baked ambient occlusion off (the blinds sit in a niche and bake too dark). */
@@ -92,20 +94,20 @@ export const PLACEMENTS: Placement[] = [
   // Floor lamp: base near the back wall next to the desk's left leg (far enough out that the head
   // clears the pinboard); the head arches over the desk.
   { id: 'lamp', asset: 'lamp', at: [0.55, 3.45], yaw: 90, colors: { frame: '#ffc93c', accent: '#ffc93c' } },
-  { id: 'desk', name: 'Desk', asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
+  { id: 'desk', bounce: false, name: 'Desk', asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
   { id: 'monitorL', name: 'Monitor', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'monitorR', name: 'Monitor', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
   { id: 'pinboard', name: 'Pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: BLUE }, section: 'playground' },
-  { id: 'tvstand', name: 'TV stand', asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
+  { id: 'tvstand', bounce: false, name: 'TV stand', asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
   { id: 'tv', name: 'TV', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
   { id: 'console', name: 'Game console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
   { id: 'gameA', name: 'Game case', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
   { id: 'gameB', name: 'Game case', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },
   { id: 'gameC', name: 'Game case', asset: 'gamebox', at: [2.96, 3.52], z: 0.05, section: 'games' },
   // Rug instead of a beanbag: marks the game corner without blocking the closet door (it swings over it).
-  { id: 'rug', name: 'Rug', asset: 'rug', at: [2.78, 2.6], section: 'games' },
+  { id: 'rug', bounce: false, name: 'Rug', asset: 'rug', at: [2.78, 2.6], section: 'games' },
 
   // Left wall: single bed, nightstand, bookshelf where the side table was.
   { id: 'shelf', name: 'Bookshelf', asset: 'shelf', at: [0.15, 3.28], yaw: 90, colors: { wood: '#ffb36b' }, section: 'projects' },

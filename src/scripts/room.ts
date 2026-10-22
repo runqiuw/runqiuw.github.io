@@ -251,6 +251,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     // A section hidden on the page (e.g. Playground) leaves its object as plain decoration.
     g.userData.section = p.section && document.getElementById(p.section) ? p.section : undefined;
     g.userData.name = p.name;
+    g.userData.bounce = p.bounce !== false;
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
     placed[p.id] = g;
@@ -833,7 +834,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     full = false;
     flying = false;
     hover();
-    showTip(null);
+    showTip(null, undefined, true);
     if (controls.enabled) camT.copy(controls.target); // otherwise the opening tween was still running
     controls.enabled = false;
     labels.hidden = true;
@@ -883,7 +884,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (o === hovered) return;
     if (hovered) springs.get(hovered)!.t = 1;
     hovered = o;
-    if (!o) return;
+    if (!o || !o.userData.bounce) return;
     const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };
     sp.t = 1.06;
     if (opts.reduceMotion) sp.s = sp.t;
@@ -926,8 +927,22 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   tip.className = 'room-tip';
   tip.hidden = true;
   frame.append(tip);
-  const showTip = (e: PointerEvent | null, text?: string) => {
-    if (!e || !text) return void (tip.hidden = true);
+  // It lingers for 2 s after the pointer leaves the object (or hides at once with `now`).
+  let tipTimer = 0;
+  const showTip = (e: PointerEvent | null, text?: string, now = false) => {
+    if (!e || !text) {
+      if (now || tip.hidden) {
+        clearTimeout(tipTimer);
+        tipTimer = 0;
+        tip.hidden = true;
+      } else if (!tipTimer) {
+        // Start the countdown when the pointer leaves the object, not on every move after that.
+        tipTimer = window.setTimeout(() => ((tip.hidden = true), (tipTimer = 0)), 2000);
+      }
+      return;
+    }
+    clearTimeout(tipTimer);
+    tipTimer = 0;
     tip.textContent = text;
     tip.hidden = false;
     const r = frame.getBoundingClientRect();
@@ -935,7 +950,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     tip.style.top = `${e.clientY - r.top + 16}px`;
   };
   canvas.addEventListener('pointermove', (e) => {
-    if (!full || down || flying) return showTip(null);
+    if (!full || down || flying) return showTip(null, undefined, true);
     const hit = hitAt(e) ?? null;
     const o = interactiveOf(hit);
     const blind = blindOf(hit);
@@ -961,7 +976,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     controls.enabled = false;
     labels.hidden = true;
     hover();
-    showTip(null);
+    showTip(null, undefined, true);
     canvas.style.cursor = '';
     tweenTo(place(s), 700, easeInOut, section, () => {
       flying = false;
