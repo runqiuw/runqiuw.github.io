@@ -8,6 +8,7 @@ import Section from '../components/Section.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import GameCard from '../components/GameCard.astro';
 import Pinboard from '../components/Pinboard.astro';
+import Footer from '../components/Footer.astro';
 import { profile, show } from '../data/profile';
 
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
@@ -43,6 +44,7 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
           <a class="pill" href={profile.links.itch}>itch.io</a>
         </div>
       </Section>
+      <Footer />
     </main>
   </div>
 </Base>

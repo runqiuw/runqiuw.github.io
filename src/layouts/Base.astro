@@ -78,7 +78,8 @@ const person = {
     <a class="skip" href="#main">Skip to content</a>
     <Nav home={home} />
     <slot />
-    <Footer />
+    {/* The home page puts the footer at the end of its right-hand column instead, so the room panel isn't pushed up. */}
+    {!home && <Footer />}
   </body>
 </html>
 

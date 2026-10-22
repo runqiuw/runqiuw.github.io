@@ -250,6 +250,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     });
     // A section hidden on the page (e.g. Playground) leaves its object as plain decoration.
     g.userData.section = p.section && document.getElementById(p.section) ? p.section : undefined;
+    g.userData.name = p.name;
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
     placed[p.id] = g;
@@ -715,7 +716,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   });
   labels.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
-    if (b) opts.onNavigate(b.dataset.go!);
+    if (b) visit(b.dataset.go!);
   });
   frame.append(labels);
   const anchors = Object.fromEntries(LABELS.map(([k, , a]) => [k, top(bounds([a]), 0.12)]));
@@ -830,7 +831,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Closing: back to the shot of `section` (the one picked in the room) or of the current section.
   const exitFull = (ms = 0, section?: string, aspect = cam.aspect, clock?: Clock) => {
     full = false;
+    flying = false;
     hover();
+    showTip(null);
     if (controls.enabled) camT.copy(controls.target); // otherwise the opening tween was still running
     controls.enabled = false;
     labels.hidden = true;
@@ -915,16 +918,56 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       return;
     }
     const k = sectionOf(hit);
-    if (k) opts.onNavigate(k);
+    if (k) visit(k);
   });
+  // Name tag next to the pointer: the object's name and where a click takes you.
+  const titles = Object.fromEntries(LABELS.map(([k, t]) => [k, t]));
+  const tip = document.createElement('div');
+  tip.className = 'room-tip';
+  tip.hidden = true;
+  frame.append(tip);
+  const showTip = (e: PointerEvent | null, text?: string) => {
+    if (!e || !text) return void (tip.hidden = true);
+    tip.textContent = text;
+    tip.hidden = false;
+    const r = frame.getBoundingClientRect();
+    tip.style.left = `${Math.min(e.clientX - r.left + 14, r.width - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${e.clientY - r.top + 16}px`;
+  };
   canvas.addEventListener('pointermove', (e) => {
-    if (!full || down) return;
+    if (!full || down || flying) return showTip(null);
     const hit = hitAt(e) ?? null;
     const o = interactiveOf(hit);
+    const blind = blindOf(hit);
     hover(o);
-    canvas.style.cursor = o || blindOf(hit) ? 'pointer' : 'grab';
+    canvas.style.cursor = o || blind ? 'pointer' : 'grab';
+    if (o) showTip(e, `${o.userData.name ?? ''} → ${titles[o.userData.section] ?? ''}`.trim());
+    else if (blind) showTip(e, `${blind.win.userData.name ?? 'Window'} · click to roll the blind`);
+    else showTip(null);
   });
-  canvas.addEventListener('pointerleave', () => hover());
+  canvas.addEventListener('pointerleave', () => {
+    hover();
+    showTip(null);
+  });
+
+  // Picking a section in the full-screen room: fly to its shot first, then hand over to the page
+  // (which shrinks the room back into the panel and scrolls there).
+  let flying = false;
+  const visit = (section: string) => {
+    if (!full || flying) return;
+    const s = shots[section];
+    if (!s || opts.reduceMotion) return opts.onNavigate(section);
+    flying = true;
+    controls.enabled = false;
+    labels.hidden = true;
+    hover();
+    showTip(null);
+    canvas.style.cursor = '';
+    tweenTo(place(s), 700, easeInOut, section, () => {
+      flying = false;
+      opts.onNavigate(section);
+    });
+  };
 
   // Resizing clears the canvas, and the ResizeObserver runs after this frame's draw, so redraw
   // right away; otherwise the room would vanish while the frame morphs in and out of full screen.

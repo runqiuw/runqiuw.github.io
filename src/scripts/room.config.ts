@@ -22,6 +22,8 @@ export interface Placement {
   colors?: Partial<Record<Role, string>>;
   /** Clicking this object in the full-screen room jumps to that page section. */
   section?: string;
+  /** Shown next to the pointer when hovering the object in the full-screen room. */
+  name?: string;
   /** Set for things in or against a wall (doors, windows): they hide with that wall in the dollhouse view. */
   wall?: Wall['side'];
   /** `false` turns the baked ambient occlusion off (the blinds sit in a niche and bake too dark). */
@@ -90,25 +92,25 @@ export const PLACEMENTS: Placement[] = [
   // Floor lamp: base near the back wall next to the desk's left leg (far enough out that the head
   // clears the pinboard); the head arches over the desk.
   { id: 'lamp', asset: 'lamp', at: [0.55, 3.45], yaw: 90, colors: { frame: '#ffc93c', accent: '#ffc93c' } },
-  { id: 'desk', asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
-  { id: 'monitorL', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
-  { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
+  { id: 'desk', name: 'Desk', asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
+  { id: 'monitorL', name: 'Monitor', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
+  { id: 'monitorR', name: 'Monitor', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
-  { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: BLUE }, section: 'playground' },
-  { id: 'tvstand', asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
-  { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
-  { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
-  { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
-  { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },
-  { id: 'gameC', asset: 'gamebox', at: [2.96, 3.52], z: 0.05, section: 'games' },
+  { id: 'pinboard', name: 'Pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: BLUE }, section: 'playground' },
+  { id: 'tvstand', name: 'TV stand', asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
+  { id: 'tv', name: 'TV', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
+  { id: 'console', name: 'Game console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
+  { id: 'gameA', name: 'Game case', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
+  { id: 'gameB', name: 'Game case', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },
+  { id: 'gameC', name: 'Game case', asset: 'gamebox', at: [2.96, 3.52], z: 0.05, section: 'games' },
   // Rug instead of a beanbag: marks the game corner without blocking the closet door (it swings over it).
-  { id: 'rug', asset: 'rug', at: [2.78, 2.6], section: 'games' },
+  { id: 'rug', name: 'Rug', asset: 'rug', at: [2.78, 2.6], section: 'games' },
 
   // Left wall: single bed, nightstand, bookshelf where the side table was.
-  { id: 'shelf', asset: 'shelf', at: [0.15, 3.28], yaw: 90, colors: { wood: '#ffb36b' }, section: 'projects' },
-  { id: 'windowA', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
-  { id: 'windowB', asset: 'window', at: [-0.064, 2.385], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
+  { id: 'shelf', name: 'Bookshelf', asset: 'shelf', at: [0.15, 3.28], yaw: 90, colors: { wood: '#ffb36b' }, section: 'projects' },
+  { id: 'windowA', name: 'Window', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
+  { id: 'windowB', name: 'Window', asset: 'window', at: [-0.064, 2.385], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
   { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72' } },
   { id: 'nightstand', asset: 'nightstand', at: [0.188, 1.315], yaw: 90, colors: { frame: '#1fbf93', wood: '#1fbf93' } },
@@ -116,7 +118,7 @@ export const PLACEMENTS: Placement[] = [
 
   // Open floor and the door side: cart by the entry door (clear of its swing).
   { id: 'cart', asset: 'cart', at: [2.9, 0.35] },
-  { id: 'door', asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
+  { id: 'door', name: 'Door', asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
   { id: 'closetDoor', asset: 'door', at: [3.43, 2.485], yaw: -90, wall: 'E' },
 ];
 
