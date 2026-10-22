@@ -135,7 +135,7 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Hover bounce on interactive objects in the full-screen room (spring with a little overshoot); hovering a label bounces its object
 - [ ] Pin → pinboard card highlight
 - [x] Sky outside the windows (day/night, cross-faded with the lights)
-- [ ] Blinds roll up/down on click (code done; waits for `blind_cloth`/`blind_bar` nodes in asset_window)
+- [x] Blinds roll up/down on click in the full-screen room (`blind_cloth` / `blind_bar` nodes in asset_window)
 - [x] Full-screen room mode: orbit, labels (Research / Projects / Games / Playground), click label or object → back to that section; Esc, "Back to page" and the back button close it (`#room` in URL). Desktop: "Enter my room" button or click the room; mobile: "Explore my room in 3D" card (3D loads only then)
 - [x] Smooth open/close of the full-screen room: the frame morphs between the panel (mobile: the "Explore my room" card, or the middle of the screen) and the window while the camera moves on the same ease-out curve; 560 ms open, 460 ms close; off with reduced motion
 - [x] Dynamic textures from content (monitors, TV, game cases, project frames, pinboard cards from `playground.yaml`)
