@@ -1002,6 +1002,27 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Pinboard cards: a sticky note (or a photo) per playground item, pinned on the `board` plane.
   const boardGroup = placed[SCREENS.pinboard];
   const board = boardGroup.getObjectByName('board')!;
+  // The board and its cards cast no real-time shadows (at the close-up they came out blocky and
+  // noisy); a soft shadow painted on the wall behind the board stands in for them.
+  boardGroup.traverse((o) => (o.castShadow = false));
+  {
+    const fb = new Box3().setFromObject(boardGroup), fs = fb.getSize(new Vector3()), m = 0.16;
+    const W = Math.max(fs.x, fs.z) + 2 * m, Hs = fs.y + 2 * m;
+    const { c, x, tex } = canvasTex(512, (512 * Hs) / W);
+    const k = c.width / W;
+    // Only the blurred shadow of a rect drawn off the canvas lands on it.
+    x.shadowColor = 'rgba(20, 16, 40, 0.5)';
+    x.shadowBlur = 0.07 * k;
+    x.shadowOffsetX = c.width;
+    x.shadowOffsetY = 0.025 * k;
+    x.fillRect(m * k - c.width, m * k, c.width - 2 * m * k, c.height - 2 * m * k);
+    const wallShadow = new Mesh(new PlaneGeometry(W, Hs), new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    const fc = fb.getCenter(new Vector3());
+    wallShadow.position.set(fc.x, fc.y, fb.min.z + 0.002);
+    wallShadow.raycast = () => {};
+    scene.add(wallShadow);
+    onWall.push({ n: inward.N, o: wallShadow });
+  }
   const bb = new Box3().setFromObject(board);
   const bc = boardGroup.worldToLocal(bb.getCenter(new Vector3()));
   const bsize = bb.getSize(new Vector3());
@@ -1052,7 +1073,6 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       new MeshStandardMaterial({ map: tex, roughness: 0.9 }),
       frameMat,
     ]);
-    card.castShadow = true;
     const pin = new Mesh(new SphereGeometry(0.014, 12, 10), new MeshStandardMaterial({ color: new Color(PIN_COLORS[i % 3]) }));
     pin.position.set(0, cs * 0.4, 0.012);
     card.add(pin);
