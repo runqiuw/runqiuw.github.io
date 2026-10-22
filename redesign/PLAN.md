@@ -62,7 +62,7 @@ Everything the room needs that isn't in the repo yet. 3D assets are specified in
 | MoiréSkin demo clip | Research monitor | Done: UMI gripper clip from the project page | — |
 | MoiréLens demo clip, 5–10 s | Research monitor | Done: cut from the YouTube video | — |
 | Bargain Brawl gameplay, 5–10 s | Game corner TV | Done: trailer from map select to the results screen, ~10 s (`clip` in games.yaml) | — |
-| Zelda + Timebreaker gameplay, 5–10 s each | Game corner TV | Coming from me (screen recordings) | me |
+| Zelda + Timebreaker gameplay, 5–10 s each | Game corner TV | Done: my screen recordings, 10 s each | — |
 | CAD of rover, robotic arm, vehicle (STEP/STL/SolidWorks) | Projects shelf | Deferred 2026-10-21 (decide later) | me |
 | Playground items (~10 photos / things) | Pinboard | Only two "coming soon" notes; the section is hidden (`show.playground` in src/data/profile.ts) until there's real content | me |
 | Blender assets | Whole room | BLENDER_TODO.md §2: §2.1–2.2 done; project models (§2.3) and desk props (§2.4) open | me |

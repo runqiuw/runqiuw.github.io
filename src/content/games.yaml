@@ -22,6 +22,7 @@
   built_with: Unity (C#)
   cover: ../assets/img/games/zelda.png
   play: https://runqiu.itch.io/the-legend-of-zelda
+  clip: /assets/video/games/zelda.mp4
 
 - id: timebreaker
   order: 3
@@ -32,3 +33,4 @@
   built_with: Unity (C#)
   cover: ../assets/img/games/timebreaker.png
   play: https://runqiu.itch.io/p2
+  clip: /assets/video/games/timebreaker.mp4
