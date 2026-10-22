@@ -18,7 +18,7 @@
         "fabric"
       ],
       "triangles": 1840,
-      "bytes": 10368,
+      "bytes": 11204,
       "description": "Bean bag seat in front of the TV; makes the game corner readable at a glance."
     },
     "bed": {
@@ -92,8 +92,8 @@
         "fabric",
         "frame"
       ],
-      "triangles": 8908,
-      "bytes": 74912,
+      "triangles": 9404,
+      "bytes": 81040,
       "description": "B100 mesh chair, headrest removed so it does not block the monitors."
     },
     "console": {
@@ -112,7 +112,7 @@
         "glow"
       ],
       "triangles": 7500,
-      "bytes": 34792,
+      "bytes": 34684,
       "description": "Game console with two chunky controllers (toy proportions)."
     },
     "desk": {
@@ -352,6 +352,23 @@
         1.43,
         0.83
       ]
+    },
+    "rug": {
+      "file": "rug.glb",
+      "catalog": "Sections/Games",
+      "mount": "floor",
+      "size": [
+        1.2,
+        1.2,
+        0.012
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric"
+      ],
+      "triangles": 572,
+      "bytes": 5624,
+      "description": "Round rug, 120 cm, 1.2 cm thick: cream with a darker ring near the edge."
     },
     "shelf": {
       "file": "shelf.glb",

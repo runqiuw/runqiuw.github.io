@@ -29,8 +29,8 @@ Not wanted: chat-style home page, room-only navigation (Maxime-style), heavy rea
 |---|---|---|---|
 | Intro | room overview | photo (with the hover swap), the old bio (education lives in its text), links incl. CV PDF. News is in the code but hidden (`SHOW_NEWS` in Intro.astro) | later: lights follow Madison local time; the monitor shows what I'm working on now |
 | Research & Publications | desk + monitors | title (links to the official project page), authors, venue, links, small still thumbnail | left monitor: the paper's figure, or its `teaser` clip (bib field); right monitor: title + venue. Later: pinboard notes as research themes, the current paper's note lit |
-| Projects | bookshelf on the left wall, where the side table was (layout B, 2026-10-21) | cards | now: each project's cover in a frame on the shelf, the one in view tips forward. Later (deferred): hardware projects as small models |
-| Games | game corner right of the desk: TV on a stand, console, game cases, beanbag | cards with a still cover | the TV shows the game in view (cover now; `clip` field in games.yaml plays gameplay); its case lifts |
+| Projects | bookshelf against the closet front, facing the room (keeps both windows free) | cards | now: each project's cover in a frame on the shelf, the one in view tips forward. Later (deferred): hardware projects as small models |
+| Games | game corner right of the desk: TV on a stand, console, game cases, round rug | cards with a still cover | the TV shows the game in view (cover now; `clip` field in games.yaml plays gameplay); its case lifts |
 | Playground | pinboard wall | a few picks | every pin, on the wall |
 | Contact | door | email, links | later: "Madison, N miles from you" on the door |
 
@@ -155,4 +155,4 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [ ] Visitor presence ideas (Spencer Chang's spencer.place)
 
 ## Open questions
-- Layout (2026-10-21, layout B): single bed (`bed_single`; the queen `bed` asset is kept for a later idea), nightstand moved next to it, side table removed, bookshelf in its place on the left wall, game corner right of the desk, cart against the closet front, mirror back by the entry door. Layout A (game corner on the left wall, shelf right of the desk) is saved in `redesign/layout-trials/` with a comparison image.
+- Layout (2026-10-21, layout B): single bed (`bed_single`; the queen `bed` asset is kept for a later idea), nightstand moved next to it, side table removed, bookshelf against the closet front (scaled 0.84 so it fits; it kept blocking a window on the left wall), game corner right of the desk with a round rug (the beanbag blocked the closet door), glass table removed, cart next to the entry door, mirror between the entry door and the shelf with a live reflection (three.js Reflector; walls are shown and its own frame hidden while it renders). Layout A (game corner on the left wall, shelf right of the desk) is saved in `redesign/layout-trials/` with a comparison image.

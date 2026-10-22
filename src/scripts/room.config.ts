@@ -94,7 +94,8 @@ export const PLACEMENTS: Placement[] = [
   { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
   { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },
   { id: 'gameC', asset: 'gamebox', at: [2.96, 3.52], z: 0.05, section: 'games' },
-  { id: 'beanbag', asset: 'beanbag', at: [2.3, 2.3], yaw: 30, section: 'games' },
+  // Rug instead of a beanbag: marks the game corner without blocking the closet door (it swings over it).
+  { id: 'rug', asset: 'rug', at: [2.78, 2.6], section: 'games' },
 
   // Left wall: single bed, nightstand, bookshelf where the side table was.
   { id: 'windowA', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', colors: { frame: BLUE, fabric: '#e2e4ff' } },
@@ -103,12 +104,13 @@ export const PLACEMENTS: Placement[] = [
   { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72' } },
   { id: 'nightstand', asset: 'nightstand', at: [0.188, 1.315], yaw: 90, colors: { frame: '#1fbf93', wood: '#1fbf93' } },
   { id: 'bedLamp', asset: 'desklamp', at: [0.2, 1.315], z: 0.7188, yaw: -70, colors: { frame: '#ffc93c', metal: '#ffc93c' } },
-  { id: 'shelf', asset: 'shelf', at: [0.15, 2.3], yaw: 90, colors: { wood: '#ffb36b' }, section: 'projects' },
 
-  // Open floor and the door side: cart against the closet front, mirror by the entry door.
-  { id: 'glasstable', asset: 'glasstable', at: [2.48, 0.67], yaw: -90, colors: { frame: NAVY } },
-  { id: 'cart', asset: 'cart', at: [3.62, 1.6] },
-  { id: 'mirror', asset: 'mirror', at: [4.057, 1.4], z: 0.0105, yaw: -90, wall: 'E', colors: { frame: NAVY } },
+  // Open floor and the door side: cart by the entry door (clear of its swing), mirror on the door wall.
+  { id: 'cart', asset: 'cart', at: [2.9, 0.35] },
+  // Bookshelf against the closet front (scaled to its 67 cm), facing the room: it keeps the windows free.
+  { id: 'shelf', asset: 'shelf', at: [3.795, 1.674], scale: 0.84, colors: { wood: '#ffb36b' }, section: 'projects' },
+  // Mirror between the entry door and the shelf; its glass is a live reflection (see MIRRORS).
+  { id: 'mirror', asset: 'mirror', at: [4.057, 1.27], z: 0.0105, yaw: -90, wall: 'E', colors: { frame: NAVY } },
   { id: 'door', asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
   { id: 'closetDoor', asset: 'door', at: [3.43, 2.485], yaw: -90, wall: 'E' },
 ];
@@ -117,19 +119,19 @@ export const PLACEMENTS: Placement[] = [
 export const SHOTS: Record<string, Shot> = {
   top: { center: [2.05, 1.85, 0.85], r: 3.35, dir: [1, -1, 0.9] },
   research: { frame: ['monitorL', 'monitorR'], dir: [0.2, -1, 0.55], pad: 1.2, lift: -0.04 },
-  projects: { frame: ['shelf'], dir: [1, -0.3, 0.35], pad: 1.1 },
-  games: { frame: ['tv', 'tvstand'], dir: [0.3, -1, 0.45], pad: 1.3 },
+  projects: { frame: ['shelf'], dir: [0.3, -1, 0.35], pad: 1.1 },
+  games: { frame: ['tv', 'tvstand', 'rug'], dir: [0.3, -1, 0.7], pad: 1.05 },
   playground: { frame: ['pinboard'], dir: [0.12, -1, 0.08], pad: 1.2 },
   contact: { frame: ['door'], dir: [-1, 0.35, 0.85], pad: 1.5 },
 };
 
-/** Labels in the full-screen room: [section, object name, section title, placement the label sits on]. */
-export const LABELS: [section: string, object: string, title: string, anchor: string][] = [
-  ['research', 'Desk', 'Research', 'monitorR'],
-  ['projects', 'Shelf', 'Projects', 'shelf'],
-  ['games', 'Game corner', 'Games', 'tv'],
-  ['playground', 'Pinboard', 'Playground', 'pinboard'],
-  ['contact', 'Door', 'Say hi', 'door'],
+/** Labels in the full-screen room: [section, section title, placement the label sits on]. */
+export const LABELS: [section: string, title: string, anchor: string][] = [
+  ['research', 'Research', 'monitorR'],
+  ['projects', 'Projects', 'shelf'],
+  ['games', 'Games', 'tv'],
+  ['playground', 'Playground', 'pinboard'],
+  ['contact', 'Say hi', 'door'],
 ];
 
 /** Night lights sit at these placements (the lamp heads and the screens). */
@@ -145,6 +147,9 @@ export const LAMP_AIM: Record<string, [x: number, y: number, z: number]> = {
   lamp: [0, -0.914, -0.406],
   desklamp: [0.8, 0, -0.6],
 };
+
+/** Placements whose `glass` part becomes a live mirror. */
+export const MIRRORS = ['mirror'];
 
 /** Which placements show page content. */
 export const SCREENS = {

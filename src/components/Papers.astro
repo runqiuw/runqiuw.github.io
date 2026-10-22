@@ -11,16 +11,11 @@ const ME = 'Runqiu Wang';
 const venueLabel = (s: string) => s.replace(/'(\d\d)/, '’$1');
 // What the room's monitors show while a paper is in view (read by src/scripts/room.ts).
 const screenImg = async (img?: ImageMetadata) => (img ? (await getImage({ src: img, width: 640, format: 'webp' })).src : undefined);
-const screens = Object.fromEntries(await Promise.all(papers.map(async ({ id, data: p }) => [id, await screenImg(preview(p.preview))])));
+const screens = Object.fromEntries(await Promise.all(papers.map(async ({ id, data: p }) => [id, await screenImg(preview(p.screen ?? p.preview))])));
 ---
 
 <section id="research" data-section="research" class="block">
-  <p class="kicker">On the desk</p>
   <h2>Research</h2>
-  <p class="muted lede">
-    Applied machine learning and computer vision for ubiquitous and ambient sensing, tying the physical and digital worlds
-    together.
-  </p>
   <ol class="papers">
     {
       papers.map(({ id, data: p }) => {
@@ -60,8 +55,8 @@ const screens = Object.fromEntries(await Promise.all(papers.map(async ({ id, dat
               <p class="where">
                 {p.venue}
                 {p.location ? `, ${p.location}` : ''}
-                {p.equal.length > 0 && <span> · * equal contribution</span>}
               </p>
+              {p.equal.length > 0 && <p class="where">* Equal contribution</p>}
               <ul class="plinks">
                 {links.map(([l, h]) => <li><a href={h}>{l}</a></li>)}
               </ul>
@@ -74,10 +69,6 @@ const screens = Object.fromEntries(await Promise.all(papers.map(async ({ id, dat
 </section>
 
 <style>
-  .lede {
-    max-width: 60ch;
-    margin: 8px 0 18px;
-  }
   .papers {
     list-style: none;
     margin: 0;

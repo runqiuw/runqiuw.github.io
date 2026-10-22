@@ -20,16 +20,16 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
     <main id="main" class="content">
       <Intro />
       <Papers />
-      <Section id="projects" kicker="On the shelf" title="Projects">
+      <Section id="projects" title="Projects">
         <div class="grid">{projects.map((p) => <ProjectCard project={p} />)}</div>
       </Section>
-      <Section id="games" kicker="In the game corner" title="Games" lede="Games I’ve made with Unity. All three run in your browser on itch.io.">
+      <Section id="games" title="Games" lede="Games I’ve made with Unity. All three run in your browser on itch.io.">
         <div class="grid">{games.map((g) => <GameCard game={g} />)}</div>
       </Section>
-      <Section id="playground" kicker="On the wall" title="Playground" lede="Things I like, pinned to the wall above my desk.">
+      <Section id="playground" title="Playground" lede="Things I like, pinned to the wall above my desk.">
         <Pinboard />
       </Section>
-      <Section id="contact" kicker="By the door" title="Say hi">
+      <Section id="contact" title="Say hi">
         <p class="mail">{profile.email}</p>
         <p class="muted">{profile.location}. Happy to chat about sensing, machine learning, or games.</p>
         <div class="links">

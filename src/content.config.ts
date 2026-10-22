@@ -81,6 +81,7 @@ const papers = defineCollection({
       appendix: f.appendix,
       preview: f.preview,
       teaser: f.teaser,
+      screen: f.screen,
       selected: f.selected === 'true',
     }));
   },
@@ -103,6 +104,8 @@ const papers = defineCollection({
     preview: z.string().optional(),
     /** Short muted demo clip (mp4/webm under public/) played on the room's monitor. */
     teaser: z.string().optional(),
+    /** Image for the room's monitor when it should differ from `preview` (file in src/assets/img/papers/). */
+    screen: z.string().optional(),
     selected: z.boolean(),
   }),
 });

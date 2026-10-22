@@ -12,9 +12,11 @@ import {
   Color,
   DirectionalLight,
   ExtrudeGeometry,
+  FrontSide,
   Group,
   HemisphereLight,
   MathUtils,
+  Matrix4,
   type Material,
   Mesh,
   MeshBasicMaterial,
@@ -27,6 +29,7 @@ import {
   Raycaster,
   Scene,
   Shape,
+  type Side,
   SphereGeometry,
   SpotLight,
   SRGBColorSpace,
@@ -38,7 +41,8 @@ import {
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { Reflector } from 'three/addons/objects/Reflector.js';
+import { LABELS, LAMP_AIM, LIGHTS, MIRRORS, PLACEMENTS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
@@ -126,17 +130,21 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // --- materials: one per role + color; parts without an override keep their Blender (vertex) colors
   const glows: MeshStandardMaterial[] = [];
   const matCache = new Map<string, MeshStandardMaterial>();
-  const material = (role: string, color?: string, vertex = false) => {
-    const key = `${role}|${color ?? ''}|${vertex && !color}`;
+  // `side` comes from the exported material: Blender exports double-sided materials, and thin
+  // single-layer parts (the chair's mesh back, the blind, planes) vanish from behind without it.
+  const material = (role: string, color?: string, vertex = false, side: Side = FrontSide) => {
+    const key = `${role}|${color ?? ''}|${vertex && !color}|${side}`;
     let m = matCache.get(key);
     if (m) return m;
     m = new MeshStandardMaterial({
       color: new Color(color ?? '#ffffff'),
       vertexColors: vertex && !color,
+      side,
       roughness: role === 'glass' ? 0.2 : role === 'screen' ? 0.4 : 0.82,
       metalness: 0,
     });
     if (role === 'glass') Object.assign(m, { transparent: true, opacity: 0.4, depthWrite: false });
+    m.userData.role = role;
     if (role === 'screen' && !color) m.color.set(INK);
     if (role === 'glow') {
       m.emissive.set('#ffd98a');
@@ -161,10 +169,22 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const inward = { N: new Vector2(0, -1), S: new Vector2(0, 1), E: new Vector2(-1, 0), W: new Vector2(1, 0) };
   const wallSets: { n: Vector2; also?: Vector2; objs: Object3D[] }[] = [];
   const onWall: { n: Vector2; o: Object3D }[] = [];
-  SHELL.walls.forEach((w) => {
+  // The outline runs counter-clockwise, so a right turn at a wall's end is a concave (inner) corner.
+  // There both walls' thickness would fill the same square outside the room (overlapping faces
+  // flicker), so the next wall starts T later and that corner gets no post.
+  const concave = (i: number) => {
+    const a = SHELL.walls[i], b = SHELL.walls[(i + 1) % SHELL.walls.length];
+    const d1 = [a.to[0] - a.from[0], a.to[1] - a.from[1]], d2 = [b.to[0] - b.from[0], b.to[1] - b.from[1]];
+    return d1[0] * d2[1] - d1[1] * d2[0] < 0;
+  };
+  SHELL.walls.forEach((w, wi) => {
     const n = inward[w.side];
     const alongX = w.side === 'N' || w.side === 'S';
-    const [u0, u1] = alongX ? [w.from[0], w.to[0]].sort((a, b) => a - b) : [w.from[1], w.to[1]].sort((a, b) => a - b);
+    let [u0, u1] = alongX ? [w.from[0], w.to[0]].sort((a, b) => a - b) : [w.from[1], w.to[1]].sort((a, b) => a - b);
+    if (concave((wi + SHELL.walls.length - 1) % SHELL.walls.length)) {
+      if ((alongX ? w.from[0] : w.from[1]) === u0) u0 += T;
+      else u1 -= T;
+    }
     const line = alongX ? w.from[1] : w.from[0];
     const holes = (w.openings ?? []).slice().sort((a, b) => a.span[0] - b.span[0]);
     const pieces: [number, number, number, number][] = [];
@@ -190,6 +210,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Corner posts close the gaps where two walls meet; each shows only when both walls do.
   const posts: { a: number; b: number; m: Mesh }[] = [];
   SHELL.walls.forEach((w, i) => {
+    if (concave(i)) return;
     const j = (i + 1) % SHELL.walls.length;
     const out = inward[w.side].clone().add(inward[SHELL.walls[j].side]).multiplyScalar(-T / 2);
     const m = new Mesh(new BoxGeometry(T, H, T), (wallSets[i].objs[0] as Mesh).material);
@@ -208,7 +229,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     g.traverse((o) => {
       if (!(o instanceof Mesh)) return;
       const role = (o.material as Material).name as Role;
-      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'));
+      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side);
       o.castShadow = role !== 'glass';
       o.receiveShadow = true;
     });
@@ -218,6 +239,65 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     placed[p.id] = g;
   }
   scene.updateMatrixWorld(true);
+
+  // Mirrors: replace the `glass` part with a Reflector (the scene re-rendered from the mirrored
+  // camera). It only costs a render while the mirror is on screen; it hides with its wall.
+  for (const id of MIRRORS) {
+    const g = placed[id];
+    if (!g) continue;
+    const glass: Mesh[] = [];
+    g.traverse((o) => o instanceof Mesh && (o.material as MeshStandardMaterial).userData.role === 'glass' && glass.push(o));
+    const pts: Vector3[] = [];
+    for (const m of glass) {
+      const pos = m.geometry.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) pts.push(new Vector3().fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld));
+    }
+    if (!pts.length) continue;
+    // Plane axes: width along the asset's x; "up" is the glass's long direction across that (the
+    // mirror leans); the normal faces the asset's front.
+    const q = g.getWorldQuaternion(new Quaternion());
+    const across = new Vector3(1, 0, 0).applyQuaternion(q);
+    const front = new Vector3(0, 0, 1).applyQuaternion(q);
+    const c = pts.reduce((a, p) => a.add(p), new Vector3()).divideScalar(pts.length);
+    const span = (dir: Vector3) => pts.reduce(([lo, hi], p) => { const d = v3.subVectors(p, c).dot(dir); return [Math.min(lo, d), Math.max(hi, d)]; }, [Infinity, -Infinity]);
+    const v3 = new Vector3();
+    let up = new Vector3(0, 1, 0);
+    let best = 0;
+    for (let a = -0.4; a <= 0.4; a += 0.02) {
+      const cand = new Vector3(0, 1, 0).applyAxisAngle(across, a);
+      const [lo, hi] = span(cand);
+      if (hi - lo > best) [best, up] = [hi - lo, cand];
+    }
+    const normal = new Vector3().crossVectors(across, up).normalize();
+    if (normal.dot(front) < 0) normal.negate();
+    const [w0, w1] = span(across), [h0, h1] = span(up);
+    const center = c.clone().addScaledVector(across, (w0 + w1) / 2).addScaledVector(up, (h0 + h1) / 2);
+    const front0 = Math.max(...pts.map((p) => v3.subVectors(p, c).dot(normal)));
+    const mirror = new Reflector(new PlaneGeometry((w1 - w0) * 0.98, (h1 - h0) * 0.98), {
+      textureWidth: 512,
+      textureHeight: 1024,
+      color: 0xc9cde0,
+      clipBias: 0.003,
+    });
+    mirror.position.copy(center).addScaledVector(normal, front0 + 0.002);
+    mirror.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(across.clone().crossVectors(up, normal).normalize(), up, normal));
+    for (const m of glass) m.visible = false;
+    g.attach(mirror);
+    // The dollhouse view hides the walls facing the camera, but the mirror looks the other way:
+    // show every wall (and what hangs on them) while it renders its reflection…
+    const reflect = mirror.onBeforeRender.bind(mirror);
+    mirror.onBeforeRender = (...args: Parameters<typeof reflect>) => {
+      const hidden = [...wallSets.flatMap((w) => w.objs), ...posts.map((p) => p.m), ...onWall.map((w) => w.o)].filter((o) => !o.visible);
+      hidden.forEach((o) => (o.visible = true));
+      // …and leave the mirror's own frame out of its reflection (it sits right behind the glass).
+      const own = g.children.filter((o) => o !== mirror && o.visible);
+      own.forEach((o) => (o.visible = false));
+      reflect(...args);
+      hidden.forEach((o) => (o.visible = false));
+      own.forEach((o) => (o.visible = true));
+    };
+  }
+
   const bounds = (ids: string[]) => ids.reduce((b, id) => b.union(new Box3().setFromObject(placed[id])), new Box3());
   const top = (b: Box3, dy = 0) => new Vector3((b.min.x + b.max.x) / 2, b.max.y + dy, (b.min.z + b.max.z) / 2);
 
@@ -405,8 +485,16 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     x.fill();
     x.fillStyle = '#ffffff';
     x.fillText(venue, 54, 69);
-    x.font = FONT(600, 44);
-    wrap(x, title, w - 72, Math.floor((h - 130) / 54)).forEach((l, i) => x.fillText(l, 36, 150 + i * 54));
+    // Largest size (44 → 24 px) at which the whole title fits under the venue chip.
+    let px = 44, lines: string[] = [];
+    for (; px >= 24; px -= 2) {
+      x.font = FONT(600, px);
+      const max = Math.floor((h - 112) / (px * 1.22));
+      lines = wrap(x, title, w - 72, 99);
+      if (lines.length <= max) break;
+    }
+    lines = wrap(x, title, w - 72, Math.floor((h - 112) / (px * 1.22)));
+    lines.forEach((l, i) => x.fillText(l, 36, 112 + px + i * px * 1.22));
   };
   const pressStart = (x: CanvasRenderingContext2D, w: number, h: number) => {
     plain(x, w, h);
@@ -561,14 +649,14 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const labels = document.createElement('div');
   labels.className = 'room-pins';
   labels.hidden = true;
-  labels.innerHTML = LABELS.map(([k, o, t]) => `<button type="button" class="room-pin" data-go="${k}"><small>${o}</small>${t}</button>`).join('');
+  labels.innerHTML = LABELS.map(([k, t]) => `<button type="button" class="room-pin" data-go="${k}">${t}</button>`).join('');
   labels.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
     if (b) opts.onNavigate(b.dataset.go!);
   });
   frame.append(labels);
-  const anchors = Object.fromEntries(LABELS.map(([k, , , a]) => [k, top(bounds([a]), 0.12)]));
-  const anchorObj = Object.fromEntries(LABELS.map(([k, , , a]) => [k, placed[a]]));
+  const anchors = Object.fromEntries(LABELS.map(([k, , a]) => [k, top(bounds([a]), 0.12)]));
+  const anchorObj = Object.fromEntries(LABELS.map(([k, , a]) => [k, placed[a]]));
 
   // --- framing, tweening, render on demand
   const camT = new Vector3();
