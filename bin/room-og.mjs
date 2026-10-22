@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const URL = process.env.URL ?? 'http://localhost:4321';
+const SITE = process.env.URL ?? 'http://localhost:4321';
 const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = new URL('../public/og.png', import.meta.url);
 const PORT = 9335;
@@ -33,7 +33,7 @@ try {
   const evaluate = (expression) => send('Runtime.evaluate', { expression, awaitPromise: true });
 
   await send('Emulation.setDeviceMetricsOverride', { width: 1200, height: 630, deviceScaleFactor: 1, mobile: false });
-  await send('Page.navigate', { url: `${URL}/` });
+  await send('Page.navigate', { url: `${SITE}/` });
   await sleep(1200);
   await evaluate(`localStorage.setItem('theme', 'light'); location.reload(); 1`);
   await sleep(800);

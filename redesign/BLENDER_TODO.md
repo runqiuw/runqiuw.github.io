@@ -92,7 +92,7 @@ Toy-sized figurines (fit in a 30 cm tier; real scale doesn't apply, the config s
 | `asset_moirelens` | MoiréLens | Small camera on a tripod pointing at a striped card |
 
 ### 2.5 Finishing, every asset
-- [ ] Bevel modifier (width ~1–2 cm, 2–3 segments, "Harden Normals"): done on the 7 new assets (§2.2); **not** on the 15 assets from the measured model (`build_existing` in `scripts/build_assets.py` only joins parts)
+- [x] Bevel modifier: on all assets (measured-model parts get 3 segments, ≤ 12 mm, harden normals; 2026-10-21)
 - [x] Materials renamed to roles (`frame`, `fabric`, `wood`, `metal`, `screen`, `glass`, `glow`, `accent`)
 - [ ] Clay colors: the new assets use the clay palette; the measured-model assets keep their product colors in the `Color` vertex attribute (black chair, grey desk, black metal frames). Either recolor in Blender or override by role in `room.config.ts`
 - [x] Origin bottom center, front −Y, scale applied

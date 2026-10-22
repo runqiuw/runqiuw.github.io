@@ -97,7 +97,7 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Export + watch script: `bin/room-assets [--watch]` exports every asset collection to `public/room/assets/` with `manifest.json`, meshopt-compressed (0.77 MB total)
 - [x] First asset set from the existing model: bed, desk, monitor, chair, lamp, cart, side table, nightstand, mirror, door, window (+ glass table, desk lamp, keyboard, paper)
 - [x] New assets: pinboard, game corner (tv, tvstand, console, beanbag, gamebox), projects bookshelf
-- [ ] Clay look on assets: bevels and clay colors done on the new assets only; the 15 measured-model assets still need both (BLENDER_TODO §2.5); optional per-asset baked AO
+- [x] Clay look on assets: bevels on all assets (2026-10-21); measured-model assets take clay colors by role in `room.config.ts`; optional per-asset baked AO still open
 
 ### Phase 2: Astro skeleton
 - [x] New Astro project on branch `astro-redesign` (worktree `.claude/worktrees/astro-redesign`, uncommitted); remove Jekyll/al-folio files (CONTENT.md §5) in the same branch
