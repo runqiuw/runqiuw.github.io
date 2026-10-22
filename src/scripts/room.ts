@@ -311,10 +311,11 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const w = placed[id];
     if (!w) continue;
     const size = new Box3().setFromObject(w).getSize(new Vector3());
-    // Window-local: the front (+z) faces the room, so the sky goes behind it, beyond the wall.
-    // Just larger than the window: any bigger and it shows above the wall.
-    const geo = new PlaneGeometry(Math.max(size.x, size.z) + 0.1, size.y + 0.08);
-    for (const [mat, dz] of [[skyDay, -0.4], [skyNight, -0.39]] as const) {
+    // Window-local: the front (+z) faces the room. The sky sits just behind the glass (which is at
+    // the wall's outer face) and is no bigger than the window, so it's only seen through the
+    // opening; a bigger or farther plane shows beside the wall when the room is turned.
+    const geo = new PlaneGeometry(Math.max(size.x, size.z) - 0.04, size.y - 0.02);
+    for (const [mat, dz] of [[skyDay, -0.1], [skyNight, -0.098]] as const) {
       const p = new Mesh(geo, mat);
       p.position.set(0, size.y / 2, dz);
       w.add(p);

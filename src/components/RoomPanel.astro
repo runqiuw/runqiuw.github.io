@@ -60,7 +60,9 @@ import night from '../assets/img/room/poster-night.webp';
   const CLOSE_MS = 460;
   let morphing: Animation | null = null;
   const box = (r: DOMRect) => ({ top: `${r.top}px`, left: `${r.left}px`, width: `${r.width}px`, height: `${r.height}px` });
-  const viewport = () => new DOMRect(0, 0, document.documentElement.clientWidth, document.documentElement.clientHeight);
+  // The full-screen room keeps the top bar (theme switch, section links), so it fills the window below it.
+  const navH = () => document.querySelector('.nav')?.getBoundingClientRect().height ?? 0;
+  const viewport = () => new DOMRect(0, navH(), document.documentElement.clientWidth, document.documentElement.clientHeight - navH());
   const shrunk = (r: DOMRect, k: number) => new DOMRect(r.x + (r.width * k) / 2, r.y + (r.height * k) / 2, r.width * (1 - k), r.height * (1 - k));
   // Where the room lives on the page: the panel on desktop, the "Explore my room" card on mobile
   // (when it's on screen). Without one, the room grows from / fades into the middle.
@@ -222,7 +224,7 @@ import night from '../assets/img/room/poster-night.webp';
   }
   .room.full .frame {
     position: fixed;
-    inset: 0;
+    inset: var(--nav-h) 0 0 0;
     width: auto;
     height: auto;
     cursor: auto;
