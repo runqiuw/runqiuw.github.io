@@ -8,7 +8,7 @@ import Section from '../components/Section.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import GameCard from '../components/GameCard.astro';
 import Pinboard from '../components/Pinboard.astro';
-import { profile } from '../data/profile';
+import { profile, show } from '../data/profile';
 
 const projects = (await getCollection('projects')).sort((a, b) => a.data.order - b.data.order);
 const games = (await getCollection('games')).sort((a, b) => a.data.order - b.data.order);
@@ -26,9 +26,13 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
       <Section id="games" title="Games" lede="Games I’ve made with Unity. All three run in your browser on itch.io.">
         <div class="grid">{games.map((g) => <GameCard game={g} />)}</div>
       </Section>
-      <Section id="playground" title="Playground" lede="Things I like, pinned to the wall above my desk.">
-        <Pinboard />
-      </Section>
+      {
+        show.playground && (
+          <Section id="playground" title="Playground" lede="Things I like, pinned to the wall above my desk.">
+            <Pinboard />
+          </Section>
+        )
+      }
       <Section id="contact" title="Say hi">
         <p class="mail">{profile.email}</p>
         <p class="muted">{profile.location}. Happy to chat about sensing, machine learning, or games.</p>

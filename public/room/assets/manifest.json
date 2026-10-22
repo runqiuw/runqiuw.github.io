@@ -37,8 +37,8 @@
         "frame",
         "wood"
       ],
-      "triangles": 22548,
-      "bytes": 177908,
+      "triangles": 28910,
+      "bytes": 227260,
       "description": "Queen bed with sheet and pillows; foot end is the front."
     },
     "bed_single": {
@@ -57,8 +57,8 @@
         "frame",
         "wood"
       ],
-      "triangles": 22360,
-      "bytes": 174148,
+      "triangles": 28722,
+      "bytes": 223660,
       "description": "Twin bed (mattress 99×190.5) built from the queen bed parts, one pillow; foot end is the front."
     },
     "cart": {
@@ -74,8 +74,8 @@
       "roles": [
         "frame"
       ],
-      "triangles": 5076,
-      "bytes": 86404,
+      "triangles": 9684,
+      "bytes": 132016,
       "description": "Brightroom 3-tier cart."
     },
     "chair": {
@@ -92,8 +92,8 @@
         "fabric",
         "frame"
       ],
-      "triangles": 9404,
-      "bytes": 81040,
+      "triangles": 12860,
+      "bytes": 120028,
       "description": "B100 mesh chair, headrest removed so it does not block the monitors."
     },
     "console": {
@@ -112,7 +112,7 @@
         "glow"
       ],
       "triangles": 7500,
-      "bytes": 39236,
+      "bytes": 38588,
       "description": "Game console with two chunky controllers (toy proportions)."
     },
     "desk": {
@@ -131,8 +131,8 @@
         "metal",
         "wood"
       ],
-      "triangles": 4920,
-      "bytes": 70072,
+      "triangles": 7400,
+      "bytes": 93940,
       "description": "edx 160×61 standing desk at 74 cm."
     },
     "desklamp": {
@@ -150,8 +150,8 @@
         "glow",
         "metal"
       ],
-      "triangles": 6088,
-      "bytes": 79080,
+      "triangles": 6664,
+      "bytes": 82828,
       "description": "Gooseneck table lamp; bulb is `glow`. Placed on side table and nightstand."
     },
     "door": {
@@ -167,8 +167,8 @@
       "roles": [
         "frame"
       ],
-      "triangles": 84,
-      "bytes": 3988,
+      "triangles": 1316,
+      "bytes": 12640,
       "description": "Door with frame, 99×210; also used for the closet door."
     },
     "gamebox": {
@@ -237,7 +237,7 @@
       "mount": "floor",
       "size": [
         0.245,
-        0.3738,
+        0.3733,
         1.6918
       ],
       "elevation": 0,
@@ -246,8 +246,8 @@
         "frame",
         "glow"
       ],
-      "triangles": 2788,
-      "bytes": 39196,
+      "triangles": 5092,
+      "bytes": 65848,
       "description": "PACOVY floor lamp; head is `glow`."
     },
     "mirror": {
@@ -282,8 +282,8 @@
         "frame",
         "screen"
       ],
-      "triangles": 578,
-      "bytes": 15532,
+      "triangles": 754,
+      "bytes": 16872,
       "description": "27\" monitor. `screen` plane: papers and demo clips play on it. Placed twice.",
       "screen": {
         "width": 0.5977,
@@ -323,8 +323,8 @@
       "roles": [
         "accent"
       ],
-      "triangles": 12,
-      "bytes": 2812,
+      "triangles": 188,
+      "bytes": 4084,
       "description": "Sticky note / paper."
     },
     "pinboard": {
@@ -471,8 +471,8 @@
         "glass",
         "metal"
       ],
-      "triangles": 688,
-      "bytes": 16696,
+      "triangles": 5040,
+      "bytes": 52096,
       "description": "Left-wall window with blind; placed twice. Bottom = sill."
     }
   }

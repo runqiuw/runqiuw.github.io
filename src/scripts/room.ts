@@ -230,7 +230,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       o.castShadow = role !== 'glass';
       o.receiveShadow = true;
     });
-    g.userData.section = p.section;
+    // A section hidden on the page (e.g. Playground) leaves its object as plain decoration.
+    g.userData.section = p.section && document.getElementById(p.section) ? p.section : undefined;
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
     placed[p.id] = g;
@@ -588,7 +589,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const labels = document.createElement('div');
   labels.className = 'room-pins';
   labels.hidden = true;
-  labels.innerHTML = LABELS.map(([k, t]) => `<button type="button" class="room-pin" data-go="${k}">${t}</button>`).join('');
+  const shownLabels = LABELS.filter(([k]) => document.getElementById(k));
+  labels.innerHTML = shownLabels.map(([k, t]) => `<button type="button" class="room-pin" data-go="${k}">${t}</button>`).join('');
   labels.addEventListener('pointerover', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
     if (b) hover(anchorObj[b.dataset.go!]);

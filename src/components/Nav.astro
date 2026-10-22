@@ -1,5 +1,5 @@
 ---
-import { profile } from '../data/profile';
+import { profile, show } from '../data/profile';
 
 interface Props {
   home: boolean;
@@ -10,7 +10,7 @@ const sections = [
   { id: 'research', label: 'Research' },
   { id: 'projects', label: 'Projects' },
   { id: 'games', label: 'Games' },
-  { id: 'playground', label: 'Playground' },
+  ...(show.playground ? [{ id: 'playground', label: 'Playground' }] : []),
 ];
 ---
 

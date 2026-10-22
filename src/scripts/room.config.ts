@@ -79,6 +79,8 @@ export const SHELL = {
 };
 
 const NAVY = '#2b3170';
+/** Screens' bezels: near-black, so the monitors and TV read apart from the navy desk. */
+const BEZEL = '#15172a';
 const BLUE = '#3d5afe';
 
 export const PLACEMENTS: Placement[] = [
@@ -86,13 +88,13 @@ export const PLACEMENTS: Placement[] = [
   // Floor lamp: base against the back wall next to the desk's left leg; the head arches over the desk.
   { id: 'lamp', asset: 'lamp', at: [0.55, 3.59], yaw: 90, colors: { frame: '#ffc93c', accent: '#ffc93c' } },
   { id: 'desk', asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
-  { id: 'monitorL', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: NAVY }, section: 'research' },
-  { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: NAVY }, section: 'research' },
+  { id: 'monitorL', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
+  { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: BLUE }, section: 'playground' },
   { id: 'tvstand', asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
-  { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: NAVY }, section: 'games' },
+  { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
   { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
   { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
   { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },

@@ -13,8 +13,8 @@ export const profile = {
   role: 'PhD student · Computer Sciences · UW–Madison',
   location: 'Madison, Wisconsin',
   email: 'rwang837@wisc.edu',
-  description:
-    'Runqiu Wang is a PhD student in Computer Sciences at the University of Wisconsin–Madison, working on applied machine learning and computer vision for ubiquitous and ambient sensing.',
+  // Page description for search and link previews: the opening line of the intro.
+  description: 'I’m Runqiu Wang, a first-year Ph.D. student in Computer Sciences at the University of Wisconsin–Madison.',
   photos: { main: runqiu, fun },
   links: {
     cv: '/assets/pdf/cv.pdf',
@@ -28,4 +28,10 @@ export const profile = {
     { degree: 'B.S.E., Computer Science', school: 'University of Michigan', years: '2024 – 2026', logo: umich, url: 'https://cse.engin.umich.edu/' },
     { degree: 'B.S., Mechanical Engineering', school: 'Shanghai Jiao Tong University', years: '2022 – 2026', logo: sjtu, url: 'https://gc.sjtu.edu.cn/' },
   ],
+};
+
+/** Sections that can be switched off while they have no real content (page, nav, room and sitemap follow). */
+export const show = {
+  /** Playground: only two "coming soon" notes so far. Also update the sitemap filter in astro.config.mjs. */
+  playground: false,
 };

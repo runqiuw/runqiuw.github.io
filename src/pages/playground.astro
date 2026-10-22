@@ -1,6 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 import Pinboard from '../components/Pinboard.astro';
+import { show } from '../data/profile';
+
+// Hidden while the playground has no real content.
+if (!show.playground) return Astro.redirect('/');
 ---
 
 <Base title="Playground" description="Things Runqiu likes: photos, notes, and other bits pinned to the wall.">

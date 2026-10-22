@@ -65,7 +65,7 @@ Everything the room needs that isn't in the repo yet. 3D assets are specified in
 | Bargain Brawl gameplay, 5–10 s | Game corner TV | YouTube trailer only (same question as MoiréLens) | me |
 | Zelda + Timebreaker gameplay, 5–10 s each | Game corner TV | itch.io pages have one screenshot each; needs a screen recording | me |
 | CAD of rover, robotic arm, vehicle (STEP/STL/SolidWorks) | Projects shelf | Deferred 2026-10-21 (decide later) | me |
-| Playground items (~10 photos / things) | Pinboard | Only two "coming soon" notes today | me |
+| Playground items (~10 photos / things) | Pinboard | Only two "coming soon" notes; the section is hidden (`show.playground` in src/data/profile.ts) until there's real content | me |
 | Blender assets | Whole room | BLENDER_TODO.md §2: §2.1–2.2 done; project models (§2.3) and desk props (§2.4) open | me |
 
 Clips: any resolution; Claude trims to ≤ ~1 MB muted mp4 under `public/assets/video/`.
@@ -113,10 +113,10 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Components (first pass): intro, news list, paper item (thumb, venue chip, authors with me in bold, equal-contribution mark, links: project page / PDF / code / video / talk), project card, game card, pinboard grid, compact education list (in the intro), contact
 - [x] Name-pronunciation button with the existing audio
 - [x] Project detail page template (gallery, video, links). SketchGenie and Telegram Chatbot have no detail page: their cards link straight to GitHub (`external:` in front matter)
-- [ ] Accessibility: keyboard focus, reduced motion, color contrast in both modes (basics in place; needs an audit)
+- [~] Accessibility: keyboard focus, reduced motion, color contrast in both modes (basics in place; full audit skipped for launch, 2026-10-21)
 - [x] Mobile nav (menu button + popover under 760 px)
 - [x] Replace the temporary room posters (`src/assets/img/room/`) with stills rendered from the three.js scene: `bin/room-posters` (headless Chrome, needs the preview server on :4321). Rerun after layout or lighting changes, then rebuild
-- [ ] Pick a license for the repo (the al-folio MIT license was removed with the template)
+- [x] License: MIT for the code, all rights reserved for the content (LICENSE)
 
 ### Phase 4: Room component
 - [x] Temporary live room on desktop (`src/scripts/room.ts`): prototype model, rough code-defined camera shots per section, day/night lights, render on demand. Mobile keeps the list only
@@ -139,11 +139,11 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Smooth open/close of the full-screen room: the frame morphs between the panel (mobile: the "Explore my room" card, or the middle of the screen) and the window while the camera moves on the same ease-out curve; 560 ms open, 460 ms close; off with reduced motion
 - [x] Dynamic textures from content (monitors, TV, game cases, project frames, pinboard cards from `playground.yaml`)
 - [x] Day/night cross-fade tied to the theme switch
-- [ ] Performance pass against the budget; test on my laptop, phone, and Safari
+- [~] Performance pass against the budget; test on my laptop, phone, and Safari (skipped for launch, 2026-10-21)
 
 ### Phase 5: Launch
-- [ ] SEO: titles, descriptions, Open Graph image (room render), Scholar-friendly metadata
-- [ ] Content proofread
+- [x] SEO: title = name, description = the intro's first line, Open Graph/Twitter cards with a room render (`public/og.png`, made by `bin/room-og.mjs`), Person JSON-LD on the home page
+- [x] Content proofread (checked by me, 2026-10-21)
 - [ ] Merge, deploy, check every old URL
 - [ ] Archive the al-folio version in a tag (`al-folio-final`)
 

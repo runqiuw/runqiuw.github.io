@@ -5,7 +5,8 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://runqiuw.github.io',
   trailingSlash: 'ignore',
-  integrations: [sitemap()],
+  // /playground is hidden for now (`show.playground` in src/data/profile.ts).
+  integrations: [sitemap({ filter: (page) => !page.includes('/playground') })],
   // Keep links to the old al-folio site working.
   redirects: {
     '/games': '/#games',

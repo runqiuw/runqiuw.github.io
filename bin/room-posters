@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Re-render the room panel's still images (shown until the live 3D room loads, and when WebGL is
 # unavailable) from the current build: headless Chrome screenshots the panel in the light and dark
-# theme, and sharp writes src/assets/img/room/poster-{day,night}.webp.
+# theme, and sharp writes src/assets/img/room/poster-{day,night}.webp. Also renders public/og.png.
 # Needs a server on :4321 serving dist/ (npm run build && npm run preview). Rebuild afterwards.
 set -euo pipefail
 
@@ -42,3 +42,6 @@ node -e '
     sharp(`${tmp}/${t}.png`).extract(crop).webp({ quality: 88 }).toFile(`${out}/poster-${name}.webp`)
   )).then((r) => console.log("posters:", r.map((x) => `${x.width}x${x.height} ${(x.size / 1024).toFixed(0)} KB`).join(", ")));
 ' "$TMP" "$REPO_ROOT/src/assets/img/room"
+
+# The 1200×630 link-preview image (public/og.png) from the same build.
+node "$REPO_ROOT/bin/room-og.mjs"
