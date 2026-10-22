@@ -27,6 +27,9 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  NeutralToneMapping,
+  PMREMGenerator,
+  BackSide,
   type Object3D,
   PCFShadowMap,
   PerspectiveCamera,
@@ -55,14 +58,14 @@ import { CLOSEUPS, DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Ro
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
-  assets: Record<string, { size: number[]; tiers?: number[]; screen?: { aspect: number }; cover?: { aspect: number } }>;
+  assets: Record<string, { size: number[]; mount?: string; tiers?: number[]; screen?: { aspect: number }; cover?: { aspect: number } }>;
 };
 
 const ASSETS = '/room/assets/';
 const INK = '#14183a';
 const LEVELS = {
-  light: { hemi: 2.3, sun: 2.4, screen: 0, tv: 0, emis: 0.12, night: 0 },
-  dark: { hemi: 0.62, sun: 0.4, screen: 3.2, tv: 1.8, emis: 1.2, night: 1 },
+  light: { hemi: 0.65, env: 0.6, sun: 2.6, screen: 0, tv: 0, emis: 0.12, night: 0 },
+  dark: { hemi: 0.5, env: 1, sun: 0.4, screen: 3.2, tv: 1.8, emis: 1.2, night: 1 },
 };
 /** Lights you can click on and off in the full-screen room, and each one's level when on. They all
  * come on with the dark theme and go off with the light one; a click flips one until the next switch. */
@@ -71,6 +74,9 @@ type Switch = keyof typeof SWITCH_ON;
 /** TV ambilight: one breath every `AMB_MS`, a new color at the bottom of each breath. */
 const AMB_MS = 4000;
 const AMB_COLORS = ['#ff3d6e', '#3d5afe', '#1fbf93', '#ffc93c', '#b45cff', '#00c2ff'];
+/** Surface finish per material role: fabric is matte, wood and paint have a soft sheen, screens and
+ * metal are glossy enough to catch the window in the environment light. */
+const ROUGH: Record<string, number> = { fabric: 0.95, leaf: 0.7, wood: 0.55, frame: 0.5, accent: 0.5, metal: 0.38, screen: 0.22, glass: 0.06, glow: 0.6, digit: 0.6 };
 const NOTE_COLORS = ['#fff1a8', '#c9efe1', '#ffd6cf', '#d9dcff'];
 const PIN_COLORS = ['#ff6b5e', '#3d5afe', '#1fbf93'];
 
@@ -107,6 +113,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
+  // Neutral (Khronos PBR Neutral) keeps the toy palette's hues and only rolls off the highlights.
+  renderer.toneMapping = NeutralToneMapping;
   renderer.setPixelRatio(Math.min(1.75, devicePixelRatio || 1));
 
   const scene = new Scene();
@@ -162,6 +170,24 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const ambL = new PointLight(0xffffff, 0, 1.6, 1.5);
   scene.add(hemi, sun, sun.target, ambL);
 
+  // Environment light: a tiny stand-in room in the room's own colors (warm floor, lavender walls, the
+  // bright window wall to the west), blurred into an environment map. It gives the soft bounce light
+  // and window reflections a flat sky light can't: warm from below, brighter on the window side.
+  const pmrem = new PMREMGenerator(renderer);
+  const envMap = (night: boolean) => {
+    const c = (hex: string, k = 1) => new MeshBasicMaterial({ color: new Color(hex).multiplyScalar(k), side: BackSide });
+    const faces = night
+      ? [c('#2a2d5c'), c('#4a5aa8', 1.1), c('#15173a'), c('#3a3550', 0.9), c('#262a58'), c('#2a2d5c')]
+      : [c('#e9e6fb'), c('#ffffff', 1.7), c('#ffffff', 1.15), c(SHELL.floor, 0.6), c('#efecff'), c('#e9e6fb')];
+    const env = new Scene();
+    env.add(new Mesh(new BoxGeometry(8, 3, 8), faces)); // faces: +x, -x (west windows), up, down, +z, -z
+    const t = pmrem.fromScene(env, 0.06).texture;
+    faces.forEach((m) => m.dispose());
+    return t;
+  };
+  const envs = { light: envMap(false), dark: envMap(true) };
+  pmrem.dispose();
+
   // Canvas text uses the site fonts; wait for them briefly so the first textures aren't in a fallback.
   const fontsReady = Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1500))]);
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -205,8 +231,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       color: new Color(color ?? '#ffffff'),
       vertexColors: vertex && !color,
       side,
-      roughness: role === 'glass' ? 0.2 : role === 'screen' ? 0.4 : 0.82,
-      metalness: 0,
+      roughness: ROUGH[role] ?? 0.8,
+      metalness: role === 'metal' ? 0.25 : 0,
     });
     if (role === 'glass') Object.assign(m, { transparent: true, opacity: 0.4, depthWrite: false });
     m.userData.role = role;
@@ -223,7 +249,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
 
   // --- room shell: floor slab and walls with window/door openings, built from the measured outline
   const T = SHELL.thickness, H = SHELL.height;
-  const floorMat = new MeshStandardMaterial({ color: new Color(SHELL.floor), roughness: 0.9 });
+  const floorMat = new MeshStandardMaterial({ color: new Color(SHELL.floor), roughness: 0.6 });
   const floor = new Mesh(
     new ExtrudeGeometry(new Shape(SHELL.outline.map(([x, y]) => new Vector2(x, y))), { depth: 0.08, bevelEnabled: false }),
     floorMat,
@@ -331,6 +357,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   }
   scene.updateMatrixWorld(true);
   for (const p of PLACEMENTS) if (p.on && placed[p.id] && placed[p.on]) placed[p.on].attach(placed[p.id]);
+
 
   // Sky outside the windows: a day and a night painting on planes behind each window, cross-faded
   // with the lights. They hang on the window, so they hide with its wall.
@@ -545,6 +572,40 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     tex.flipY = flipY;
     return { c, x: c.getContext('2d')!, tex };
   };
+
+  // Contact shadows: a soft dark patch where each floor or desk object meets its surface, sized to the
+  // footprint of its lowest 6 cm (legs, base, wheels). Real-time shadows are too sharp and too faint
+  // right at the contact; this gives things weight. Painted once, so it costs nothing per frame.
+  {
+    const { c, x, tex } = canvasTex(128, 128);
+    x.shadowColor = 'rgba(30, 22, 40, 0.75)';
+    x.shadowBlur = 22;
+    x.shadowOffsetX = c.width;
+    x.fillRect(34 - c.width, 34, 60, 60);
+    const mat = new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const v = new Vector3();
+    for (const p of PLACEMENTS) {
+      const mount = manifest.assets[p.asset]?.mount;
+      if ((mount !== 'floor' && mount !== 'desk') || p.asset === 'rug' || !placed[p.id]) continue;
+      const g = placed[p.id], base = new Box3().setFromObject(g).min.y, foot = new Box3();
+      g.traverse((o) => {
+        if (!(o instanceof Mesh)) return;
+        const pos = o.geometry.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+          if (v.y < base + 0.06) foot.expandByPoint(v);
+        }
+      });
+      if (foot.isEmpty()) continue;
+      const fs = foot.getSize(new Vector3()), fc = foot.getCenter(new Vector3());
+      // The texture's dark core fills its middle 47%; pad so the blur reaches past the footprint.
+      const patch = new Mesh(new PlaneGeometry((fs.x + 0.08) / 0.62, (fs.z + 0.08) / 0.62), mat);
+      patch.rotation.x = -Math.PI / 2;
+      patch.position.set(fc.x, base + 0.002, fc.z);
+      patch.raycast = () => {};
+      scene.add(patch);
+    }
+  }
 
   // --- TV ambilight: no LED strip, just its glow. A soft halo on the wall behind the TV (additive,
   // so black adds nothing) and a point light that tints the wall and stand; both breathe in `draw`.
@@ -856,7 +917,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const makeScreen = (id: string, node: string, aspect: number, width = 640, glowing = true) => {
     const mesh = placed[id].getObjectByName(node) as Mesh;
     const { c, x, tex } = canvasTex(width, width / aspect, false);
-    const mat = glowing ? new MeshBasicMaterial({ map: tex }) : new MeshStandardMaterial({ map: tex, roughness: 0.7 });
+    const mat = glowing ? new MeshBasicMaterial({ map: tex, toneMapped: false }) : new MeshStandardMaterial({ map: tex, roughness: 0.7 });
     mesh.material = mat;
     let video: HTMLVideoElement | null = null;
     let vtex: VideoTexture | null = null;
@@ -1236,6 +1297,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     target = levels();
     fading = true;
     hemi.color.set(t === 'dark' ? 0x7d84ff : 0xffffff);
+    scene.environment = envs[t];
     sun.color.set(t === 'dark' ? 0x9fb2ff : 0xffffff);
     // Both come in through the west windows (the only way in); the sun a little higher than the moon.
     sun.position.copy(center.clone().add(t === 'dark' ? new Vector3(-6, 3.65, 1) : new Vector3(-5.5, 4.2, 2)));
@@ -1660,6 +1722,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const draw = () => {
     dirty = false;
     hemi.intensity = cur.hemi;
+    scene.environmentIntensity = cur.env;
     sun.intensity = cur.sun;
     lampL.intensity = cur.lamp;
     screenLs.forEach((l) => (l.intensity = cur.screen));
