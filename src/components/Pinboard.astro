@@ -141,36 +141,37 @@ const avatar = (await getImage({ src: avatarImg, width: 96, format: 'png' })).sr
       el.hidden = true;
     }
   };
-  if (note) {
-    const io = new IntersectionObserver(
-      async (entries) => {
-        if (!entries.some((e) => e.isIntersecting)) return;
-        io.disconnect();
-        const spot = await locate();
-        showMap(spot);
-        if (!spot) return;
-        const d = km(MADISON, spot.at);
-        const miles = MILES.has(spot.country ?? '');
-        const n = miles ? d / 1.609344 : d;
-        const unit = miles ? 'miles' : 'km';
-        // Short line for the room's note; the page also says where the guess came from.
-        let line: string, page: string;
-        if (spot.byIp && d < 40) line = page = 'You’re right here in town!';
-        else if (spot.byIp) {
-          line = `Roughly ${n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${unit} from you.`;
-          page = `${line.slice(0, -1)}, going by your IP address.`;
-        } else {
-          line = `About ${Number(n.toPrecision(2)).toLocaleString('en-US')} ${unit} from you.`;
-          page = `${line.slice(0, -1)}, going by your time zone.`;
-        }
-        note.querySelector('small')!.textContent = page;
-        note.dataset.screenCaption = line;
-        window.dispatchEvent(new CustomEvent('pinchange', { detail: note.dataset.item }));
-      },
-      { rootMargin: '400px 0px' },
-    );
-    io.observe(note);
-  }
+  // Starts once the card nears the viewport, or as soon as the full-screen room opens (`roomlevel`
+  // from RoomPanel), so the room's board already has the map when the page part was never seen.
+  let started = false;
+  const start = async () => {
+    if (started || !note) return;
+    started = true;
+    io?.disconnect();
+    const spot = await locate();
+    showMap(spot);
+    if (!spot) return;
+    const d = km(MADISON, spot.at);
+    const miles = MILES.has(spot.country ?? '');
+    const n = miles ? d / 1.609344 : d;
+    const unit = miles ? 'miles' : 'km';
+    // Short line for the room's note; the page also says where the guess came from.
+    let line: string, page: string;
+    if (spot.byIp && d < 40) line = page = 'You’re right here in town!';
+    else if (spot.byIp) {
+      line = `Roughly ${n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${unit} from you.`;
+      page = `${line.slice(0, -1)}, going by your IP address.`;
+    } else {
+      line = `About ${Number(n.toPrecision(2)).toLocaleString('en-US')} ${unit} from you.`;
+      page = `${line.slice(0, -1)}, going by your time zone.`;
+    }
+    note.querySelector('small')!.textContent = page;
+    note.dataset.screenCaption = line;
+    window.dispatchEvent(new CustomEvent('pinchange', { detail: note.dataset.item }));
+  };
+  const io = note ? new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && start(), { rootMargin: '400px 0px' }) : null;
+  if (note) io!.observe(note);
+  addEventListener('roomlevel', (e) => (e as CustomEvent<number>).detail > 0 && start());
 </script>
 
 <style>

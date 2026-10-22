@@ -64,6 +64,8 @@ import night from '../assets/img/room/poster-night.webp';
   let closeup = '';
   /** Our history entries: { room: 1 } for #room, { room: 2, closeup } for #room/<id>. */
   const entry = () => history.state as { room?: number; closeup?: string } | null;
+  // Tells the page which level is showing (the Playground's distance card starts when the room opens).
+  const announce = () => dispatchEvent(new CustomEvent('roomlevel', { detail: !isFull ? 0 : closeup ? 2 : 1 }));
 
   // Opening and closing morph the frame between its place on the page and the whole window, while
   // the camera moves on the same curve and for the same time, so both read as one quick motion.
@@ -123,7 +125,7 @@ import night from '../assets/img/room/poster-night.webp';
           section: document.documentElement.dataset.section ?? 'top',
           theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
           reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
-          onNavigate: (section) => close(section),
+          onNavigate: (section, item) => close(section, false, item),
           onFocus: (id) => focus(id),
           onBack: () => back(),
         }),
@@ -144,6 +146,7 @@ import night from '../assets/img/room/poster-night.webp';
     if (isFull || !webgl) return;
     const from = home();
     isFull = true;
+    announce();
     aside.classList.add('full');
     document.body.style.overflow = 'hidden';
     enterBtn.hidden = true;
@@ -168,10 +171,11 @@ import night from '../assets/img/room/poster-night.webp';
     if (isFull) exitBtn.focus({ preventScroll: true });
   }
 
-  async function close(section?: string, fromHistory = false) {
+  async function close(section?: string, fromHistory = false, item?: string) {
     if (!isFull) return;
     isFull = false;
     closeup = '';
+    announce();
     closeBar.hidden = true;
     exitBtn.hidden = true;
     help.hidden = true;
@@ -190,8 +194,12 @@ import night from '../assets/img/room/poster-night.webp';
       await popped;
     }
     // Jump the page under the room (it still covers most of the window at this point).
-    if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'instant' });
+    const picked = item ? document.querySelector<HTMLElement>(`#${section} [data-item="${CSS.escape(item)}"]`) : null;
+    if (picked) picked.scrollIntoView({ behavior: 'instant', block: 'center' });
+    else if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'instant' });
     const closed = await closing;
+    // The item picked in the room (a pinboard card) gives a little hop once the room is gone.
+    if (closed && picked && !reduce) picked.animate([{ translate: '0 0' }, { translate: '0 -10px' }, { translate: '0 0' }], { duration: 520, easing: 'cubic-bezier(0.34, 1.8, 0.5, 1)' });
     if (!closed || isFull) return; // reopened meanwhile
     aside.classList.remove('full');
     morphing?.cancel();
@@ -204,6 +212,7 @@ import night from '../assets/img/room/poster-night.webp';
   async function focus(id: string, push = true) {
     if (!isFull || closeup === id || !CLOSEUPS[id]) return;
     closeup = id;
+    announce();
     if (push) history.pushState({ room: 2, closeup: id }, '', `#room/${id}`);
     exitBtn.hidden = true;
     help.hidden = true;
@@ -217,6 +226,7 @@ import night from '../assets/img/room/poster-night.webp';
   async function unfocus() {
     if (!closeup) return;
     closeup = '';
+    announce();
     closeBar.hidden = true;
     await (await room)!.unfocus();
     if (!isFull || closeup) return;

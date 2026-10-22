@@ -24,7 +24,7 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
       <Section id="projects" title="Projects">
         <div class="grid">{projects.map((p) => <ProjectCard project={p} />)}</div>
       </Section>
-      <Section id="games" title="Games" lede="Games I’ve made with Unity. All three run in your browser on itch.io.">
+      <Section id="games" title="Games">
         <div class="grid">{games.map((g) => <GameCard game={g} />)}</div>
       </Section>
       {

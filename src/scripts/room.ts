@@ -89,7 +89,8 @@ export interface RoomOptions {
   section: string;
   theme: 'light' | 'dark';
   reduceMotion: boolean;
-  onNavigate: (section: string) => void;
+  /** Leave the room for `section` on the page (and, if given, that item in it). */
+  onNavigate: (section: string, item?: string) => void;
   /** A click asks for a close-up (CLOSEUPS); the panel opens it with `focus`, so it can keep the history. */
   onFocus: (id: string) => void;
   /** A click asks to go up one level (e.g. beside the board in its close-up). */
@@ -137,11 +138,13 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 20 });
   // Night lights are spots, so lamp shades and screens light a cone instead of the whole room.
   // `shadow` makes furniture block them (the bed for the bedside lamp, the desk for the floor lamp).
-  const spot = (color: number, angle: number, dist: number, shadow = false) => {
-    const l = new SpotLight(color, 0, dist, angle, 0.7, 1.5);
+  const spot = (color: number, angle: number, dist: number, shadow = false, penumbra = 0.7) => {
+    const l = new SpotLight(color, 0, dist, angle, penumbra, 1.5);
     if (shadow) {
       l.castShadow = true;
-      l.shadow.mapSize.set(512, 512);
+      // 1024 and a soft edge: at 512 the board's shadow on the wall beside it read as stair steps.
+      l.shadow.mapSize.set(1024, 1024);
+      l.shadow.radius = 4;
       l.shadow.bias = -0.002;
       l.shadow.normalBias = 0.02;
       l.shadow.camera.near = 0.05;
@@ -149,7 +152,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     scene.add(l, l.target);
     return l;
   };
-  const lampL = spot(0xffc06a, 0.9, 5, true);
+  // Wide and soft: a tighter cone cut a hard diagonal across the pinboard next to it.
+  const lampL = spot(0xffc06a, 1.15, 5, true, 1);
   const bedL = spot(0xffa860, 0.95, 3, true);
   // One per monitor light bar (LIGHTS.screen).
   const screenLs = LIGHTS.screen.map(() => spot(0xfff1dc, 0.65, 1.6, true));
@@ -314,7 +318,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       if (!(o instanceof Mesh)) return;
       const role = (o.material as Material).name as Role;
       o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, p.ao !== false && o.geometry.hasAttribute('_ao'), role === 'glow' && lampIds.has(p.id) ? p.id : '');
-      o.castShadow = role !== 'glass';
+      // A lamp's own head would shade its light with a hard edge right beside it (the pinboard).
+      o.castShadow = role !== 'glass' && !lampIds.has(p.id);
       o.receiveShadow = true;
     });
     // A section hidden on the page (e.g. Playground) leaves its object as plain decoration.
@@ -1407,10 +1412,10 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Picking a section in the full-screen room: fly to its shot first, then hand over to the page
   // (which shrinks the room back into the panel and scrolls there).
   let flying = false;
-  const visit = (section: string) => {
+  const visit = (section: string, item?: string) => {
     if (!full || flying) return;
     const s = shots[section];
-    if (!s || opts.reduceMotion) return opts.onNavigate(section);
+    if (!s || opts.reduceMotion) return opts.onNavigate(section, item);
     flying = true;
     controls.enabled = false;
     labels.hidden = true;
@@ -1418,7 +1423,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     canvas.style.cursor = '';
     tweenTo(place(s), 700, easeInOut, section, () => {
       flying = false;
-      opts.onNavigate(section);
+      opts.onNavigate(section, item);
     });
   };
 
@@ -1569,12 +1574,17 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     e.stopPropagation();
     const p = press;
     press = null;
+    const still = e.type === 'pointerup' && p && !flying && Math.hypot(e.clientX - p[0], e.clientY - p[1]) < 6;
     if (drag) {
-      if (e.pointerId === drag.id) drop();
+      if (e.pointerId !== drag.id) return;
+      const { i } = drag;
+      drop();
+      // A click (no drag) on a card goes to that card on the page.
+      if (still) visit(CLOSEUPS.board.section, cards[i].id);
       return;
     }
     // A click beside the board goes back to the room.
-    if (e.type === 'pointerup' && p && !flying && Math.hypot(e.clientX - p[0], e.clientY - p[1]) < 6 && !isIn(hitAt(e) ?? null, boardGroup)) opts.onBack();
+    if (still && !isIn(hitAt(e) ?? null, boardGroup)) opts.onBack();
   };
   frame.addEventListener('pointerup', release, { capture: true });
   frame.addEventListener('pointercancel', release, { capture: true });
