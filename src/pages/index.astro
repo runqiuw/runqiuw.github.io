@@ -108,10 +108,21 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
     display: grid;
     grid-template-columns: 42% minmax(0, 1fr);
   }
+  /* The column fills the space next to the room; its text stays a readable width, centred,
+     while the footer's rule runs edge to edge. */
   .content {
-    padding: 8px clamp(20px, 4vw, 64px) 60px;
+    --gutter: clamp(20px, 4vw, 64px);
+    --measure: 692px;
+    padding: 8px var(--gutter) 60px;
     min-width: 0;
-    max-width: 820px;
+  }
+  .content > :global(:not(footer)) {
+    max-width: var(--measure);
+    margin-inline: auto;
+  }
+  .content > :global(footer) {
+    margin-inline: calc(-1 * var(--gutter));
+    padding-inline: calc(var(--gutter) + max(0px, (100% - var(--measure)) / 2));
   }
   .content :global(.block) {
     padding-block: 40px;

@@ -1050,7 +1050,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       }
       dirty = true;
     }
-    if (full && !tween && controls.update()) dirty = true;
+    // Not while disabled: right after the fly to a section ends, `full` is still set for this
+    // frame, and an update would turn the camera to the orbit target for one frame.
+    if (full && controls.enabled && !tween && controls.update()) dirty = true;
     if (stepPops()) dirty = true;
     if (stepBlinds()) dirty = true;
     if (stepSprings(Math.min(0.033, (now - (lastNow || now)) / 1000))) dirty = true;
