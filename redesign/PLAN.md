@@ -4,26 +4,22 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 
 ## To do
 
-### 1. Quick (no new material, small changes)
-- [ ] Delete the merged `astro-redesign` branch on GitHub, and `gh-pages` (Pages now deploys from Actions) (Claude, after my OK)
-- [ ] Privacy look at the public room: stylized, no address or exact orientation (me)
-
-### 2. Needs new material or bigger work
+### 1. Needs new material or bigger work
 - [ ] Playground: more pins, ~10 photos / things (me), then pin → pinboard card highlight. The section is back (2026-10-22) with one card: how far the visitor is from Madison, after joshwcomeau.com/about-josh. A MapLibre map (OpenFreeMap tiles, no key) pulls back from the visitor's pin and draws a dotted great-circle line to my avatar pin; the room's pinboard gets a still of it. Location: city-level IP lookup from the browser via get.geojs.io, else the time zone, else "Where I live and work." (`distance: true` in `playground.yaml`, code in `src/scripts/distance-map.ts`). The map (~440 KB gzip with its worker) loads only when the card nears the viewport
 
-### 3. Deferred
+### 2. Deferred
 - Project models for the shelf (deferred 2026-10-21). Toy-sized figurines that fit a 30 cm tier; the item in view lights up. Rover, robotic arm, vehicle from CAD (STEP/STL → decimate → clay roles; fallback: model from photos); IMU = phone + watch + earbuds; SketchGenie = AR headset; Telegram Chatbot = robot head / speech bubble
-- Research desk props (deferred 2026-10-21): MoiréSkin gel puck (~8 cm, striped top, clear base), MoiréLens camera on a tripod facing a striped card; lit when the paper is in view
 - Bed pillows (deferred 2026-10-22): three pillows printed with the school logos (SJTU-UM Joint Institute, UMich, UW-Madison). Mascot plush toys were tried as concept renders and dropped: not feasible within the asset budget
 - Travel map: a map poster on the wall → `/travel` (no content yet)
 - Blog / notes (no content yet)
-- News section: code stays, `SHOW_NEWS` off in `Intro.astro` until there's a lot of news
-- Contact section (`show.contact`) and Say hi: a character in the room with the contact shot aimed at it
-- Drag pinned notes on the pinboard (needs zooming in on the board first)
-- Course calendar page (old `assets/html/schedule.html`), if needed again
+- Say hi character: a character (design TBD) standing in the room, e.g. by the door, with the contact camera shot aimed at it. When it exists: add the `contact` shot in `SHOTS`, a `Say hi` label anchored on the character, make the character clickable (it bounces like the other interactive objects), and turn `show.contact` on. Until then the Say hi section is hidden and the door is scenery
+- Drag pinned notes on the pinboard: pressing a note pulls the pin out together with the note (both lift off the board), the pair follows the pointer across the board, and on release the pin is pushed back in at the drop point with a small bounce. Open question first: how visitors get close enough to the board to drag (the room camera is too far away), e.g. clicking the pinboard in the full-screen room zooms to a board view. Also decide whether moved notes stay put for that visitor (browser storage) or reset on reload
 - Visitor presence ideas (Spencer Chang's spencer.place); more room detail as new sections appear
 
 ### Not doing
+- News section (2026-10-22): the code stays in `Intro.astro` with `SHOW_NEWS` off, but no plan to turn it on
+- Course calendar page (old `assets/html/schedule.html`) (2026-10-22)
+- Research desk props (2026-10-22): the monitors already play each paper's demo clip
 - Room lights following Madison local time: day/night follows the theme switch, otherwise a light page gets a night room
 - Mirror as a hotspot, and an About & CV section
 - Design-tokens doc and a dev-only placement helper: style and layout are settled (proposed 2026-10-22)
@@ -60,7 +56,8 @@ Clips: any resolution; trim to ≤ ~1 MB muted mp4 under `public/assets/video/`.
 
 ### Performance budget
 - Text first: static HTML, LCP never waits for 3D. three.js loads on idle on desktop, on demand on mobile.
-- No physics or post-processing. Real-time light (hemisphere + one shadowed sun + night lamps); per-asset baked AO only. Render on demand; stop when off-screen or the tab is hidden.
+- No physics or post-processing. Real-time light (hemisphere + one shadowed sun/moon + night lamps); per-asset baked AO only. Render on demand; stop when off-screen or the tab is hidden.
+- Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a shadow-only ceiling and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22).
 - All 3D assets ≤ ~3 MB (now 0.77 MB, meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
 - Lighthouse home page: Performance ≥ 90 desktop / ≥ 80 mobile, Accessibility ≥ 95.
 
