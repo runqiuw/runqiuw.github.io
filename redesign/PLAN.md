@@ -60,10 +60,9 @@ Everything the room needs that isn't in the repo yet. 3D assets are specified in
 | What | For | Status / source | Who |
 |---|---|---|---|
 | MoiréSkin demo clip | Research monitor | Done: UMI gripper clip from the project page | — |
-| MoiréLens demo clip, 5–10 s | Research monitor | Project page has no media files (carousel image is the template placeholder); only the YouTube video. Need the original mp4, or OK to cut from YouTube with `yt-dlp` | me |
-| MP-Former animation | Research monitor | None exists; keeps the still figure. Optional | me |
-| Bargain Brawl gameplay, 5–10 s | Game corner TV | YouTube trailer only (same question as MoiréLens) | me |
-| Zelda + Timebreaker gameplay, 5–10 s each | Game corner TV | itch.io pages have one screenshot each; needs a screen recording | me |
+| MoiréLens demo clip, 5–10 s | Research monitor | Done: cut from the YouTube video | — |
+| Bargain Brawl gameplay, 5–10 s | Game corner TV | Done: trailer from map select to the results screen, ~10 s (`clip` in games.yaml) | — |
+| Zelda + Timebreaker gameplay, 5–10 s each | Game corner TV | Coming from me (screen recordings) | me |
 | CAD of rover, robotic arm, vehicle (STEP/STL/SolidWorks) | Projects shelf | Deferred 2026-10-21 (decide later) | me |
 | Playground items (~10 photos / things) | Pinboard | Only two "coming soon" notes; the section is hidden (`show.playground` in src/data/profile.ts) until there's real content | me |
 | Blender assets | Whole room | BLENDER_TODO.md §2: §2.1–2.2 done; project models (§2.3) and desk props (§2.4) open | me |
@@ -97,7 +96,7 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Export + watch script: `bin/room-assets [--watch]` exports every asset collection to `public/room/assets/` with `manifest.json`, meshopt-compressed (0.77 MB total)
 - [x] First asset set from the existing model: bed, desk, monitor, chair, lamp, cart, side table, nightstand, mirror, door, window (+ glass table, desk lamp, keyboard, paper)
 - [x] New assets: pinboard, game corner (tv, tvstand, console, beanbag, gamebox), projects bookshelf
-- [x] Clay look on assets: bevels on all assets (2026-10-21); measured-model assets take clay colors by role in `room.config.ts`; optional per-asset baked AO still open
+- [x] Clay look on assets: bevels on all assets; clay colors by role in `room.config.ts`; per-asset baked AO (`_AO` attribute, 60% on ambient / 20% on direct light; off for the windows) (2026-10-21)
 
 ### Phase 2: Astro skeleton
 - [x] New Astro project on branch `astro-redesign` (worktree `.claude/worktrees/astro-redesign`, uncommitted); remove Jekyll/al-folio files (CONTENT.md §5) in the same branch
@@ -129,12 +128,14 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [x] Research: monitors show the item in view (figure or `teaser` clip on the left, title + venue on the right); camera shot raised over the chair
 - [ ] Teaser clips for papers: short muted mp4/webm (≤ ~1 MB each) in `public/assets/video/papers/`, set `teaser` in `papers.bib`
   - [x] MoiréSkin: UMI gripper + strawberry clip from the project page (`moireskin-gripper.mp4`, 8.7 s, 120 KB)
-  - [ ] MoiréLens: the project page has no media files (its carousel image is the template placeholder); the only demo is the YouTube video. Needs the original mp4 or a cut from YouTube
-  - [ ] MP-Former: no project page or video; keeps the still figure unless a trajectory animation exists
+  - [x] MoiréLens: 10 s loop of the airflow views at 1:23, 2:03 and 2:10 of the YouTube video (`moirelens-airflow.mp4`)
+  - MP-Former: no animation exists; the monitor shows Figure 2 (dropped from the list, 2026-10-21)
 - [ ] Projects: hardware projects as objects; item in view lights up (shelf exists; project models deferred, BLENDER_TODO §2.3)
 - [x] Games: TV shows the game in view (cover, or `clip` when set); game cases carry the covers. Gameplay clips still missing (see Materials)
 - [x] Hover bounce on interactive objects in the full-screen room (spring with a little overshoot); hovering a label bounces its object
 - [ ] Pin → pinboard card highlight
+- [x] Sky outside the windows (day/night, cross-faded with the lights)
+- [ ] Blinds roll up/down on click (code done; waits for `blind_cloth`/`blind_bar` nodes in asset_window)
 - [x] Full-screen room mode: orbit, labels (Research / Projects / Games / Playground), click label or object → back to that section; Esc, "Back to page" and the back button close it (`#room` in URL). Desktop: "Enter my room" button or click the room; mobile: "Explore my room in 3D" card (3D loads only then)
 - [x] Smooth open/close of the full-screen room: the frame morphs between the panel (mobile: the "Explore my room" card, or the middle of the screen) and the window while the camera moves on the same ease-out curve; 560 ms open, 460 ms close; off with reduced motion
 - [x] Dynamic textures from content (monitors, TV, game cases, project frames, pinboard cards from `playground.yaml`)

@@ -15,7 +15,7 @@ def base(name):
     return re.sub(r"\.\d{3}$", "", name)
 
 def dims(objs):
-    pts = [o.matrix_world @ v.co for o in objs for v in o.data.vertices]
+    pts = [o.matrix_world @ v.co for o in objs if o.type == "MESH" for v in o.data.vertices]
     lo = [min(p[i] for p in pts) for i in range(3)]
     hi = [max(p[i] for p in pts) for i in range(3)]
     return lo, hi
@@ -32,7 +32,8 @@ def export(coll):
     saved = {o: (o.location.copy(), o.name) for o in objs}
     # move to origin and give nodes clean names (Blender forces .001 on repeats)
     for o in objs:
-        o.location -= offset
+        if o.parent is None:  # children follow their parent (blind_cloth / blind_bar empties)
+            o.location -= offset
         clean = base(o.name)
         clash = bpy.data.objects.get(clean)
         if clash and clash is not o:
@@ -47,15 +48,17 @@ def export(coll):
     path = out_dir / f"{name}.glb"
     bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", use_selection=True,
                               export_apply=True, export_vertex_color="ACTIVE",
-                              export_cameras=False, export_lights=False, export_materials="EXPORT")
-    tris = sum(len(p.vertices) - 2 for o in objs for p in o.data.polygons)
+                              export_cameras=False, export_lights=False, export_materials="EXPORT",
+                              export_attributes=True)  # writes `_AO` (baked occlusion, 1 = open)
+    meshes = [o for o in objs if o.type == "MESH"]
+    tris = sum(len(p.vertices) - 2 for o in meshes for p in o.data.polygons)
     entry = {
         "file": f"{name}.glb",
         "catalog": coll.get("catalog"),
         "mount": coll.get("mount", "floor"),
         "size": [round(hi[i] - lo[i], 4) for i in range(3)],  # x (width), y (depth), z (height), m
         "elevation": coll.get("elevation", 0.0),  # height above floor in the measured room
-        "roles": sorted({m.name for o in objs for m in o.data.materials if m}),
+        "roles": sorted({m.name for o in meshes for m in o.data.materials if m}),
         "triangles": tris,
         "bytes": path.stat().st_size,
         "description": coll.asset_data.description if coll.asset_data else "",
@@ -66,7 +69,7 @@ def export(coll):
     for key in ("tiers", "board_size"):
         if key in coll:
             entry[key] = json.loads(coll[key])
-    for key in ("tier_clear", "cover_aspect"):
+    for key in ("tier_clear", "cover_aspect", "blind_cloth_length", "blind_bar_height"):
         if key in coll:
             entry[key] = coll[key]
     for o, (loc, n) in saved.items():

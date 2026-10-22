@@ -11,6 +11,8 @@
   cover: ../assets/img/games/bargain-brawl.png
   play: https://alistayyds.itch.io/bargain-brawl
   trailer: https://www.youtube.com/watch?v=Mxd6trUlRZo
+  # Gameplay loop for the room's TV: the trailer from map select to the results screen, ~10 s.
+  clip: /assets/video/games/bargain-brawl.mp4
 
 - id: zelda-remaster
   order: 2

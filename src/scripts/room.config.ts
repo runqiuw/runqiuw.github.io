@@ -24,6 +24,8 @@ export interface Placement {
   section?: string;
   /** Set for things in or against a wall (doors, windows): they hide with that wall in the dollhouse view. */
   wall?: Wall['side'];
+  /** `false` turns the baked ambient occlusion off (the blinds sit in a niche and bake too dark). */
+  ao?: boolean;
 }
 
 export interface Wall {
@@ -85,8 +87,9 @@ const BLUE = '#3d5afe';
 
 export const PLACEMENTS: Placement[] = [
   // Layout B — desk wall: floor lamp, desk (measured position), game corner up to the closet wall.
-  // Floor lamp: base against the back wall next to the desk's left leg; the head arches over the desk.
-  { id: 'lamp', asset: 'lamp', at: [0.55, 3.59], yaw: 90, colors: { frame: '#ffc93c', accent: '#ffc93c' } },
+  // Floor lamp: base near the back wall next to the desk's left leg (far enough out that the head
+  // clears the pinboard); the head arches over the desk.
+  { id: 'lamp', asset: 'lamp', at: [0.55, 3.45], yaw: 90, colors: { frame: '#ffc93c', accent: '#ffc93c' } },
   { id: 'desk', asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
   { id: 'monitorL', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
@@ -104,8 +107,8 @@ export const PLACEMENTS: Placement[] = [
 
   // Left wall: single bed, nightstand, bookshelf where the side table was.
   { id: 'shelf', asset: 'shelf', at: [0.15, 3.28], yaw: 90, colors: { wood: '#ffb36b' }, section: 'projects' },
-  { id: 'windowA', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', colors: { frame: BLUE, fabric: '#e2e4ff' } },
-  { id: 'windowB', asset: 'window', at: [-0.064, 2.385], z: 0.61, yaw: 90, wall: 'W', colors: { frame: BLUE, fabric: '#e2e4ff' } },
+  { id: 'windowA', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
+  { id: 'windowB', asset: 'window', at: [-0.064, 2.385], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
   { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72' } },
   { id: 'nightstand', asset: 'nightstand', at: [0.188, 1.315], yaw: 90, colors: { frame: '#1fbf93', wood: '#1fbf93' } },
@@ -121,7 +124,7 @@ export const PLACEMENTS: Placement[] = [
 export const SHOTS: Record<string, Shot> = {
   top: { center: [2.05, 1.85, 0.85], r: 3.35, dir: [1, -1, 0.9] },
   research: { frame: ['monitorL', 'monitorR'], dir: [0.2, -1, 0.55], pad: 1.2, lift: -0.04 },
-  projects: { frame: ['shelf'], dir: [0.8, -1, 0.4], pad: 1.1 },
+  projects: { frame: ['shelf'], dir: [1, -0.45, 0.75], pad: 1.1 },
   games: { frame: ['tv', 'tvstand', 'rug'], dir: [0.3, -1, 0.7], pad: 1.05 },
   playground: { frame: ['pinboard'], dir: [0.12, -1, 0.08], pad: 1.2 },
   // No shot for `contact` for now: turning to the door at the end of the page was too big a jump,
@@ -150,6 +153,9 @@ export const LAMP_AIM: Record<string, [x: number, y: number, z: number]> = {
   lamp: [0, -0.914, -0.406],
   desklamp: [0.8, 0, -0.6],
 };
+
+/** Windows get a sky outside (day/night) and a blind you can click to roll up or down. */
+export const WINDOWS = ['windowA', 'windowB'];
 
 /** Which placements show page content. */
 export const SCREENS = {

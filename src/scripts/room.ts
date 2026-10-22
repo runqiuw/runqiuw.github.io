@@ -40,7 +40,7 @@ import {
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
@@ -130,8 +130,24 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const matCache = new Map<string, MeshStandardMaterial>();
   // `side` comes from the exported material: Blender exports double-sided materials, and thin
   // single-layer parts (the chair's mesh back, the blind, planes) vanish from behind without it.
-  const material = (role: string, color?: string, vertex = false, side: Side = FrontSide) => {
-    const key = `${role}|${color ?? ''}|${vertex && !color}|${side}`;
+  // Baked ambient occlusion: assets carry a per-vertex `_AO` (three: `_ao`, 1 = open). It darkens
+  // the ambient light (60%) and a little of the direct light, so gaps and corners settle without greying
+  // sunlit faces. Only geometry that has the attribute gets the patched material.
+  const AO_INDIRECT = 0.6, AO_DIRECT = 0.2;
+  const withAO = (m: MeshStandardMaterial) => {
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = 'attribute float _ao;\nvarying float vAo;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vAo = _ao;');
+      sh.fragmentShader = 'varying float vAo;\n' + sh.fragmentShader.replace(
+        '#include <aomap_fragment>',
+        `#include <aomap_fragment>
+  reflectedLight.indirectDiffuse *= mix(1.0, vAo, ${AO_INDIRECT.toFixed(2)});
+  reflectedLight.directDiffuse *= mix(1.0, vAo, ${AO_DIRECT.toFixed(2)});`,
+      );
+    };
+    m.customProgramCacheKey = () => 'baked-ao';
+  };
+  const material = (role: string, color?: string, vertex = false, side: Side = FrontSide, ao = false) => {
+    const key = `${role}|${color ?? ''}|${vertex && !color}|${side}|${ao}`;
     let m = matCache.get(key);
     if (m) return m;
     m = new MeshStandardMaterial({
@@ -142,6 +158,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       metalness: 0,
     });
     if (role === 'glass') Object.assign(m, { transparent: true, opacity: 0.4, depthWrite: false });
+    m.userData.role = role;
+    if (ao) withAO(m);
     if (role === 'screen' && !color) m.color.set(INK);
     if (role === 'glow') {
       m.emissive.set('#ffd98a');
@@ -226,7 +244,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     g.traverse((o) => {
       if (!(o instanceof Mesh)) return;
       const role = (o.material as Material).name as Role;
-      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side);
+      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, p.ao !== false && o.geometry.hasAttribute('_ao'));
       o.castShadow = role !== 'glass';
       o.receiveShadow = true;
     });
@@ -237,6 +255,102 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     placed[p.id] = g;
   }
   scene.updateMatrixWorld(true);
+
+  // Sky outside the windows: a day and a night painting on planes behind each window, cross-faded
+  // with the lights. They hang on the window, so they hide with its wall.
+  const skyCanvas = (night: boolean) => {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 512;
+    const x = c.getContext('2d')!;
+    const g = x.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, night ? '#0a0f2e' : '#7fbfff');
+    g.addColorStop(1, night ? '#2a3270' : '#e6f4ff');
+    x.fillStyle = g;
+    x.fillRect(0, 0, 256, 512);
+    let seed = night ? 7 : 3;
+    const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    if (night) {
+      for (let i = 0; i < 70; i++) {
+        x.fillStyle = `rgba(255,255,255,${0.4 + rnd() * 0.6})`;
+        x.beginPath();
+        x.arc(rnd() * 256, rnd() * 360, rnd() * 1.6 + 0.4, 0, Math.PI * 2);
+        x.fill();
+      }
+      // A crescent moon.
+      x.fillStyle = '#fff6d6';
+      x.beginPath();
+      x.arc(180, 90, 22, 0, Math.PI * 2);
+      x.fill();
+      x.fillStyle = '#0d1336';
+      x.beginPath();
+      x.arc(190, 84, 20, 0, Math.PI * 2);
+      x.fill();
+    } else {
+      x.fillStyle = 'rgba(255,255,255,0.9)';
+      for (const [cx, cy, r] of [[70, 110, 26], [100, 100, 34], [132, 112, 24], [180, 250, 20], [205, 242, 27], [228, 252, 18]]) {
+        x.beginPath();
+        x.arc(cx, cy, r, 0, Math.PI * 2);
+        x.fill();
+      }
+    }
+    // A soft line of trees at the bottom.
+    x.fillStyle = night ? '#121a3f' : '#8fcf9f';
+    x.beginPath();
+    x.moveTo(0, 512);
+    for (let i = 0; i <= 16; i++) x.lineTo(i * 16, 440 - Math.abs(Math.sin(i * 1.7)) * 34 - (i % 3) * 8);
+    x.lineTo(256, 512);
+    x.fill();
+    const t = new CanvasTexture(c);
+    t.colorSpace = SRGBColorSpace;
+    return t;
+  };
+  const skyDay = new MeshBasicMaterial({ map: skyCanvas(false) });
+  const skyNight = new MeshBasicMaterial({ map: skyCanvas(true), transparent: true, opacity: 0, depthWrite: false });
+  for (const id of WINDOWS) {
+    const w = placed[id];
+    if (!w) continue;
+    const size = new Box3().setFromObject(w).getSize(new Vector3());
+    // Window-local: the front (+z) faces the room, so the sky goes behind it, beyond the wall.
+    // Just larger than the window: any bigger and it shows above the wall.
+    const geo = new PlaneGeometry(Math.max(size.x, size.z) + 0.1, size.y + 0.08);
+    for (const [mat, dz] of [[skyDay, -0.4], [skyNight, -0.39]] as const) {
+      const p = new Mesh(geo, mat);
+      p.position.set(0, size.y / 2, dz);
+      w.add(p);
+    }
+  }
+
+  // Blinds: in full-screen mode a click on a window rolls its blind up or down. The asset has the
+  // cloth (`blind_cloth`, origin on the roller) and the bottom bar (`blind_bar`) as their own nodes;
+  // the cloth scales toward the roller and the bar follows its bottom edge.
+  type Blind = { win: Object3D; cloth: Object3D; bar?: Object3D; len: number; barY: number; k: number; t: number };
+  const blinds: Blind[] = [];
+  for (const id of WINDOWS) {
+    const win = placed[id];
+    const cloth = win?.getObjectByName('blind_cloth');
+    if (!win || !cloth) continue;
+    const bar = win.getObjectByName('blind_bar') ?? undefined;
+    const b = new Box3().setFromObject(cloth);
+    blinds.push({ win, cloth, bar, len: (b.max.y - b.min.y) / win.scale.y, barY: bar?.position.y ?? 0, k: 1, t: 1 });
+  }
+  const blindOf = (o: Object3D | null) => {
+    for (; o; o = o.parent) {
+      const b = blinds.find((x) => x.win === o);
+      if (b) return b;
+    }
+  };
+  const stepBlinds = () => {
+    let moving = false;
+    for (const b of blinds) {
+      if (Math.abs(b.t - b.k) < 0.001) continue;
+      b.k = opts.reduceMotion ? b.t : b.k + (b.t - b.k) * 0.14;
+      b.cloth.scale.y = b.k;
+      if (b.bar) b.bar.position.y = b.barY + (1 - b.k) * b.len;
+      moving = true;
+    }
+    return moving;
+  };
 
   const bounds = (ids: string[]) => ids.reduce((b, id) => b.union(new Box3().setFromObject(placed[id])), new Box3());
   const top = (b: Box3, dy = 0) => new Vector3((b.min.x + b.max.x) / 2, b.max.y + dy, (b.min.z + b.max.z) / 2);
@@ -791,14 +905,23 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (!full || !down) return;
     const moved = Math.hypot(e.clientX - down[0], e.clientY - down[1]);
     down = null;
-    const k = moved < 6 ? pick(e) : undefined;
+    if (moved >= 6) return;
+    const hit = hitAt(e) ?? null;
+    const blind = blindOf(hit);
+    if (blind) {
+      blind.t = blind.t > 0.5 ? 0.06 : 1;
+      dirty = true;
+      return;
+    }
+    const k = sectionOf(hit);
     if (k) opts.onNavigate(k);
   });
   canvas.addEventListener('pointermove', (e) => {
     if (!full || down) return;
-    const o = interactiveOf(hitAt(e) ?? null);
+    const hit = hitAt(e) ?? null;
+    const o = interactiveOf(hit);
     hover(o);
-    canvas.style.cursor = o ? 'pointer' : 'grab';
+    canvas.style.cursor = o || blindOf(hit) ? 'pointer' : 'grab';
   });
   canvas.addEventListener('pointerleave', () => hover());
 
@@ -833,6 +956,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     bedL.intensity = cur.bed;
     tvL.intensity = cur.tv;
     for (const m of glows) m.emissiveIntensity = cur.emis * 1.2;
+    skyNight.opacity = Math.min(1, cur.lamp / LEVELS.dark.lamp);
     // Hide whichever walls face the camera (dollhouse view).
     v.copy(cam.position).sub(full ? controls.target : camT);
     vp.set(v.x, -v.z);
@@ -885,6 +1009,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     }
     if (full && !tween && controls.update()) dirty = true;
     if (stepPops()) dirty = true;
+    if (stepBlinds()) dirty = true;
     if (stepSprings(Math.min(0.033, (now - (lastNow || now)) / 1000))) dirty = true;
     lastNow = now;
     if (videos.some((vid) => !vid.paused)) dirty = true;

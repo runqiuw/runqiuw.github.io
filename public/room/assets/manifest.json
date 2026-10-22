@@ -18,7 +18,7 @@
         "fabric"
       ],
       "triangles": 1840,
-      "bytes": 11080,
+      "bytes": 12092,
       "description": "Bean bag seat in front of the TV; makes the game corner readable at a glance."
     },
     "bed": {
@@ -38,7 +38,7 @@
         "wood"
       ],
       "triangles": 28910,
-      "bytes": 227260,
+      "bytes": 255136,
       "description": "Queen bed with sheet and pillows; foot end is the front."
     },
     "bed_single": {
@@ -58,7 +58,7 @@
         "wood"
       ],
       "triangles": 28722,
-      "bytes": 223660,
+      "bytes": 250880,
       "description": "Twin bed (mattress 99×190.5) built from the queen bed parts, one pillow; foot end is the front."
     },
     "cart": {
@@ -75,7 +75,7 @@
         "frame"
       ],
       "triangles": 9684,
-      "bytes": 132016,
+      "bytes": 144784,
       "description": "Brightroom 3-tier cart."
     },
     "chair": {
@@ -93,7 +93,7 @@
         "frame"
       ],
       "triangles": 12860,
-      "bytes": 120028,
+      "bytes": 133960,
       "description": "B100 mesh chair, headrest removed so it does not block the monitors."
     },
     "console": {
@@ -112,7 +112,7 @@
         "glow"
       ],
       "triangles": 7500,
-      "bytes": 38588,
+      "bytes": 42952,
       "description": "Game console with two chunky controllers (toy proportions)."
     },
     "desk": {
@@ -132,7 +132,7 @@
         "wood"
       ],
       "triangles": 7400,
-      "bytes": 93940,
+      "bytes": 104140,
       "description": "edx 160×61 standing desk at 74 cm."
     },
     "desklamp": {
@@ -151,7 +151,7 @@
         "metal"
       ],
       "triangles": 6664,
-      "bytes": 82828,
+      "bytes": 92500,
       "description": "Gooseneck table lamp; bulb is `glow`. Placed on side table and nightstand."
     },
     "door": {
@@ -168,7 +168,7 @@
         "frame"
       ],
       "triangles": 1316,
-      "bytes": 12640,
+      "bytes": 14044,
       "description": "Door with frame, 99×210; also used for the closet door."
     },
     "gamebox": {
@@ -187,7 +187,7 @@
         "screen"
       ],
       "triangles": 122,
-      "bytes": 6696,
+      "bytes": 7808,
       "description": "Game case with a `cover` plane (UV 0–1, aspect ~0.6). Placed 3×, one per game.",
       "cover": {
         "width": 0.095,
@@ -211,7 +211,7 @@
         "glass"
       ],
       "triangles": 1692,
-      "bytes": 32568,
+      "bytes": 36772,
       "description": "Glass shelf at the bed end (size estimated from photos)."
     },
     "keyboard": {
@@ -228,7 +228,7 @@
         "metal"
       ],
       "triangles": 188,
-      "bytes": 5640,
+      "bytes": 6016,
       "description": "External keyboard."
     },
     "lamp": {
@@ -247,7 +247,7 @@
         "glow"
       ],
       "triangles": 5092,
-      "bytes": 65848,
+      "bytes": 72648,
       "description": "PACOVY floor lamp; head is `glow`."
     },
     "mirror": {
@@ -265,7 +265,7 @@
         "glass"
       ],
       "triangles": 1848,
-      "bytes": 28140,
+      "bytes": 31164,
       "description": "EDX full-length mirror, leaning."
     },
     "monitor": {
@@ -283,7 +283,7 @@
         "screen"
       ],
       "triangles": 754,
-      "bytes": 16872,
+      "bytes": 19248,
       "description": "27\" monitor. `screen` plane: papers and demo clips play on it. Placed twice.",
       "screen": {
         "width": 0.5977,
@@ -307,7 +307,7 @@
         "wood"
       ],
       "triangles": 3008,
-      "bytes": 50576,
+      "bytes": 57244,
       "description": "Furnulem 3-drawer bedside cabinet."
     },
     "paper": {
@@ -324,7 +324,7 @@
         "accent"
       ],
       "triangles": 188,
-      "bytes": 4084,
+      "bytes": 4452,
       "description": "Sticky note / paper."
     },
     "pinboard": {
@@ -341,7 +341,7 @@
         "wood"
       ],
       "triangles": 446,
-      "bytes": 7156,
+      "bytes": 8408,
       "description": "Cork pinboard 150×90, wall-mounted (origin = back-face bottom center). Code pins cards on the `board` plane.",
       "board": {
         "width": 1.43,
@@ -367,7 +367,7 @@
         "fabric"
       ],
       "triangles": 572,
-      "bytes": 5624,
+      "bytes": 6224,
       "description": "Round rug, 120 cm, 1.2 cm thick: cream with a darker ring near the edge."
     },
     "shelf": {
@@ -384,7 +384,7 @@
         "wood"
       ],
       "triangles": 972,
-      "bytes": 8668,
+      "bytes": 10084,
       "description": "Open bookshelf 80×30×150, 4 tiers (~33 cm clear). Project models sit on the tiers; heights in the `tiers` property.",
       "tiers": [
         0.075,
@@ -408,7 +408,7 @@
         "frame"
       ],
       "triangles": 2172,
-      "bytes": 33836,
+      "bytes": 38056,
       "description": "Black side table 80×50×75."
     },
     "tv": {
@@ -427,7 +427,7 @@
         "screen"
       ],
       "triangles": 634,
-      "bytes": 9564,
+      "bytes": 11292,
       "description": "TV, 16:9 `screen` plane (108×61 cm). Gameplay clips play on it.",
       "screen": {
         "width": 1.08,
@@ -452,7 +452,7 @@
         "wood"
       ],
       "triangles": 1640,
-      "bytes": 15312,
+      "bytes": 18032,
       "description": "Low TV console 120×40×50: two doors and an open middle cubby for the console."
     },
     "window": {
@@ -472,8 +472,10 @@
         "metal"
       ],
       "triangles": 5040,
-      "bytes": 52096,
-      "description": "Left-wall window with blind; placed twice. Bottom = sill."
+      "bytes": 62916,
+      "description": "Left-wall window with blind; placed twice. Bottom = sill.",
+      "blind_cloth_length": 1.738,
+      "blind_bar_height": 0.012
     }
   }
 }
