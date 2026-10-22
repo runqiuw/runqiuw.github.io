@@ -2,12 +2,15 @@
 import { Image, getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import { getCollection } from 'astro:content';
+import avatarImg from '../assets/img/profile/avatar.png';
 
 const items = (await getCollection('playground')).sort((a, b) => a.data.order - b.data.order);
 const tilts = ['-2.5deg', '1.8deg', '-1deg', '2.2deg', '-1.6deg', '1.2deg'];
 // Each item is also a card on the room's pinboard (read by src/scripts/room.ts).
 const cardImg = async (img?: ImageMetadata) => (img ? (await getImage({ src: img, width: 256, format: 'webp' })).src : undefined);
 const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
+// My avatar in the Madison pin on the distance card's map.
+const avatar = (await getImage({ src: avatarImg, width: 96, format: 'png' })).src;
 ---
 
 <div class="board">
@@ -20,6 +23,12 @@ const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
           <b>{it.data.title}</b>
           <small>{it.data.caption} Coming soon.</small>
         </>
+      ) : it.data.distance ? (
+        <>
+          <div class="map" aria-hidden="true" />
+          <b>{it.data.title}</b>
+          <small aria-live="polite">{it.data.caption}</small>
+        </>
       ) : (
         <>
           {it.data.image && <Image src={it.data.image} alt="" widths={[240, 480]} sizes="240px" />}
@@ -27,9 +36,11 @@ const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
           {it.data.caption && <small>{it.data.caption}</small>}
         </>
       );
-      const cls = it.data.soon ? 'pin note' : 'pin polaroid';
+      const cls = it.data.soon ? 'pin note' : it.data.distance ? 'pin polaroid postcard' : 'pin polaroid';
       const data = {
         'data-item': it.id,
+        'data-distance': it.data.distance || undefined,
+        'data-avatar': it.data.distance ? avatar : undefined,
         'data-screen-title': it.data.title,
         'data-screen-caption': it.data.caption,
         'data-screen-type': it.data.type,
@@ -43,6 +54,124 @@ const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
     })
   }
 </div>
+
+<script>
+  // "How far are you from me" note, after joshwcomeau.com/about-josh. The visitor's spot comes from a
+  // city-level IP lookup made straight from the browser (get.geojs.io; nothing reaches this site or is
+  // stored), else from the browser's time zone; with neither the note keeps its YAML caption. It runs
+  // once the note scrolls near the viewport, and the room redraws its copy on `pinchange`.
+  type Spot = { at: [number, number]; country?: string; byIp: boolean };
+  const MADISON: [number, number] = [43.0731, -89.4012];
+  const MILES = new Set(['US', 'GB', 'LR', 'MM']);
+  // Rough centers of common time zones, used when the IP lookup fails.
+  const ZONES: Record<string, [number, number]> = {
+    'America/New_York': [40.71, -74.01],
+    'America/Chicago': [41.88, -87.63],
+    'America/Denver': [39.74, -104.99],
+    'America/Phoenix': [33.45, -112.07],
+    'America/Los_Angeles': [34.05, -118.24],
+    'America/Anchorage': [61.22, -149.9],
+    'Pacific/Honolulu': [21.31, -157.86],
+    'America/Toronto': [43.65, -79.38],
+    'America/Vancouver': [49.28, -123.12],
+    'America/Mexico_City': [19.43, -99.13],
+    'America/Sao_Paulo': [-23.55, -46.63],
+    'America/Argentina/Buenos_Aires': [-34.6, -58.38],
+    'Europe/London': [51.51, -0.13],
+    'Europe/Paris': [48.86, 2.35],
+    'Europe/Berlin': [52.52, 13.4],
+    'Europe/Madrid': [40.42, -3.7],
+    'Europe/Rome': [41.9, 12.5],
+    'Europe/Amsterdam': [52.37, 4.9],
+    'Europe/Zurich': [47.38, 8.54],
+    'Europe/Stockholm': [59.33, 18.07],
+    'Europe/Moscow': [55.76, 37.62],
+    'Africa/Cairo': [30.04, 31.24],
+    'Africa/Lagos': [6.52, 3.38],
+    'Africa/Johannesburg': [-26.2, 28.05],
+    'Asia/Dubai': [25.2, 55.27],
+    'Asia/Kolkata': [28.61, 77.21],
+    'Asia/Calcutta': [28.61, 77.21],
+    'Asia/Singapore': [1.35, 103.82],
+    'Asia/Shanghai': [31.23, 121.47],
+    'Asia/Hong_Kong': [22.32, 114.17],
+    'Asia/Taipei': [25.03, 121.57],
+    'Asia/Seoul': [37.57, 126.98],
+    'Asia/Tokyo': [35.68, 139.69],
+    'Australia/Sydney': [-33.87, 151.21],
+    'Australia/Melbourne': [-37.81, 144.96],
+    'Pacific/Auckland': [-36.85, 174.76],
+  };
+
+  const km = ([a, b]: [number, number], [c, d]: [number, number]) => {
+    const r = Math.PI / 180;
+    const h = Math.sin(((c - a) * r) / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin(((d - b) * r) / 2) ** 2;
+    return 12742 * Math.asin(Math.sqrt(h));
+  };
+
+  const locate = async (): Promise<Spot | null> => {
+    try {
+      const g = await (await fetch('https://get.geojs.io/v1/ip/geo.json', { signal: AbortSignal.timeout(4000) })).json();
+      const at: [number, number] = [Number(g.latitude), Number(g.longitude)];
+      if (at.every(Number.isFinite)) return { at, country: g.country_code, byIp: true };
+    } catch {}
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const us = /^(America\/(New_York|Chicago|Denver|Phoenix|Los_Angeles|Anchorage)|Pacific\/Honolulu)$/.test(tz);
+    return ZONES[tz] ? { at: ZONES[tz], country: us ? 'US' : navigator.language.split('-')[1]?.toUpperCase(), byIp: false } : null;
+  };
+
+  const note = document.querySelector<HTMLElement>('[data-distance]');
+  // The map (MapLibre, ~250 KB) loads only now. Without WebGL the card keeps just its text.
+  const showMap = async (spot: Spot | null) => {
+    const el = note!.querySelector<HTMLElement>('.map')!;
+    try {
+      const { mountDistanceMap } = await import('../scripts/distance-map');
+      mountDistanceMap({
+        el,
+        home: [MADISON[1], MADISON[0]],
+        visitor: spot ? [spot.at[1], spot.at[0]] : undefined,
+        avatar: note!.dataset.avatar!,
+        reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        onStill: (url) => {
+          note!.dataset.screenImg = url;
+          window.dispatchEvent(new CustomEvent('pinchange', { detail: note!.dataset.item }));
+        },
+      });
+    } catch {
+      el.hidden = true;
+    }
+  };
+  if (note) {
+    const io = new IntersectionObserver(
+      async (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        const spot = await locate();
+        showMap(spot);
+        if (!spot) return;
+        const d = km(MADISON, spot.at);
+        const miles = MILES.has(spot.country ?? '');
+        const n = miles ? d / 1.609344 : d;
+        const unit = miles ? 'miles' : 'km';
+        // Short line for the room's note; the page also says where the guess came from.
+        let line: string, page: string;
+        if (spot.byIp && d < 40) line = page = 'You’re right here in town!';
+        else if (spot.byIp) {
+          line = `Roughly ${n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${unit} from you.`;
+          page = `${line.slice(0, -1)}, going by your IP address.`;
+        } else {
+          line = `About ${Number(n.toPrecision(2)).toLocaleString('en-US')} ${unit} from you.`;
+          page = `${line.slice(0, -1)}, going by your time zone.`;
+        }
+        note.querySelector('small')!.textContent = page;
+        note.dataset.screenCaption = line;
+        window.dispatchEvent(new CustomEvent('pinchange', { detail: note.dataset.item }));
+      },
+      { rootMargin: '400px 0px' },
+    );
+    io.observe(note);
+  }
+</script>
 
 <style>
   .board {
@@ -84,6 +213,72 @@ const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
   .pin small {
     color: #5c628c;
     font-size: 12.5px;
+  }
+  /* The distance card: a map across the whole board row, then the line of text. */
+  .postcard {
+    grid-column: 1 / -1;
+    padding: 8px 8px 12px;
+  }
+  .postcard b,
+  .postcard small {
+    padding-inline: 6px;
+  }
+  .map {
+    aspect-ratio: 16 / 7;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #dfe3ec;
+  }
+  .map :global(.maplibregl-ctrl-attrib) {
+    font-size: 9px;
+    padding: 0 4px;
+    background: rgb(255 255 255 / 0.6);
+  }
+  .map :global(.map-pin) {
+    width: 40px;
+    height: 52px;
+    opacity: 0;
+    translate: 0 -24px;
+    transition: opacity 0.25s, translate 0.6s var(--spring);
+  }
+  .map :global(.map-pin.in) {
+    opacity: 1;
+    translate: 0 0;
+  }
+  .map :global(.map-pin svg) {
+    width: 100%;
+    height: 100%;
+    fill: #ffffff;
+    filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.35));
+  }
+  .map :global(.map-pin img) {
+    position: absolute;
+    left: 4px;
+    top: 3.5px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+  .map :global(.map-pin.you) {
+    width: 22px;
+    height: 29px;
+  }
+  .map :global(.map-pin.you svg) {
+    fill: #7d8597;
+  }
+  .map :global(.map-pin.you i) {
+    position: absolute;
+    left: 7px;
+    top: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffffff;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .map :global(.map-pin) {
+      transition: none;
+    }
   }
   .note {
     background: #fff1a8;

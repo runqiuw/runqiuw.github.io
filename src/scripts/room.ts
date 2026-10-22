@@ -971,6 +971,13 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     };
     note();
     if (el.dataset.screenImg) loadImg(el.dataset.screenImg).then(note, () => {});
+    // The distance card fills in its caption, then a still of its map, once the page has located the
+    // visitor (Pinboard.astro).
+    window.addEventListener('pinchange', (e) => {
+      if ((e as CustomEvent<string>).detail !== el.dataset.item) return;
+      if (el.dataset.screenImg) loadImg(el.dataset.screenImg).then(note, () => {});
+      else note();
+    });
     const card = new Mesh(new BoxGeometry(cs, cs, 0.004), [
       ...Array(4).fill(frameMat),
       new MeshStandardMaterial({ map: tex, roughness: 0.9 }),

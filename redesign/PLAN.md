@@ -9,7 +9,7 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 - [ ] Privacy look at the public room: stylized, no address or exact orientation (me)
 
 ### 2. Needs new material or bigger work
-- [ ] Playground: ~10 photos / things (me). Then turn `show.playground` on in `src/data/profile.ts`, remove the two `soon` notes, and add pin → pinboard card highlight
+- [ ] Playground: more pins, ~10 photos / things (me), then pin → pinboard card highlight. The section is back (2026-10-22) with one card: how far the visitor is from Madison, after joshwcomeau.com/about-josh. A MapLibre map (OpenFreeMap tiles, no key) pulls back from the visitor's pin and draws a dotted great-circle line to my avatar pin; the room's pinboard gets a still of it. Location: city-level IP lookup from the browser via get.geojs.io, else the time zone, else "Where I live and work." (`distance: true` in `playground.yaml`, code in `src/scripts/distance-map.ts`). The map (~440 KB gzip with its worker) loads only when the card nears the viewport
 
 ### 3. Deferred
 - Project models for the shelf (deferred 2026-10-21). Toy-sized figurines that fit a 30 cm tier; the item in view lights up. Rover, robotic arm, vehicle from CAD (STEP/STL → decimate → clay roles; fallback: model from photos); IMU = phone + watch + earbuds; SketchGenie = AR headset; Telegram Chatbot = robot head / speech bubble
@@ -19,7 +19,6 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 - Blog / notes (no content yet)
 - News section: code stays, `SHOW_NEWS` off in `Intro.astro` until there's a lot of news
 - Contact section (`show.contact`) and Say hi: a character in the room with the contact shot aimed at it
-- "Madison, N miles from you" as a pinned note, when the Playground is back (client-side geo lookup; mind privacy)
 - Drag pinned notes on the pinboard (needs zooming in on the board first)
 - Course calendar page (old `assets/html/schedule.html`), if needed again
 - Visitor presence ideas (Spencer Chang's spencer.place); more room detail as new sections appear
@@ -52,7 +51,7 @@ Not wanted: chat-style home page, room-only navigation, heavy real-time scenes.
 | Research | desk + two monitors | left: the paper's figure or `teaser` clip (bib field); right: title + venue |
 | Projects | bookshelf, left-wall corner by the desk | each project's cover in a frame; the one in view tips forward |
 | Games | TV on a stand, console, game cases, round rug, right of the desk | the TV plays the game in view (`clip` in games.yaml); its case lifts |
-| Playground | pinboard wall (hidden for now) | every pin |
+| Playground | pinboard wall | every pin |
 | Contact | door (hidden for now) | — |
 
 Layout B (2026-10-21): single bed with the nightstand beside it, shelf in the left-wall corner clear of both windows, floor lamp on the back wall between shelf and desk, game corner right of the desk, cart by the entry door. No side table, glass table or mirror (a live Reflector mirror is in commit 6c0fef0). Layout A is in `layout-trials/`.

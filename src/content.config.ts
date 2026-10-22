@@ -56,6 +56,8 @@ const playground = defineCollection({
       image: image().optional(),
       href: z.string().optional(),
       soon: z.boolean().default(false),
+      /** Sticky note whose caption becomes the visitor's distance from Madison (Pinboard.astro). */
+      distance: z.boolean().default(false),
     }),
 });
 

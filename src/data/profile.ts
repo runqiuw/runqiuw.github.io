@@ -32,8 +32,8 @@ export const profile = {
 
 /** Sections that can be switched off while they have no real content (page, nav, room and sitemap follow). */
 export const show = {
-  /** Playground: only two "coming soon" notes so far. Also update the sitemap filter in astro.config.mjs. */
-  playground: false,
+  /** Playground: the pinboard. When switching it off, also filter /playground out of the sitemap in astro.config.mjs. */
+  playground: true,
   /** Say hi: hidden for now (the email is in the intro links); the room's door is scenery. */
   contact: false,
 };
