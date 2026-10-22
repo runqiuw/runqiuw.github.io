@@ -29,10 +29,10 @@ Not wanted: chat-style home page, room-only navigation (Maxime-style), heavy rea
 |---|---|---|---|
 | Intro | room overview | photo (with the hover swap), the old bio (education lives in its text), links incl. CV PDF. News is in the code but hidden (`SHOW_NEWS` in Intro.astro) | later: lights follow Madison local time; the monitor shows what I'm working on now |
 | Research & Publications | desk + monitors | title (links to the official project page), authors, venue, links, small still thumbnail | left monitor: the paper's figure, or its `teaser` clip (bib field); right monitor: title + venue. Later: pinboard notes as research themes, the current paper's note lit |
-| Projects | bookshelf against the closet front, facing the room (keeps both windows free) | cards | now: each project's cover in a frame on the shelf, the one in view tips forward. Later (deferred): hardware projects as small models |
+| Projects | bookshelf on the left wall, where the side table was | cards | now: each project's cover in a frame on the shelf, the one in view tips forward. Later (deferred): hardware projects as small models |
 | Games | game corner right of the desk: TV on a stand, console, game cases, round rug | cards with a still cover | the TV shows the game in view (cover now; `clip` field in games.yaml plays gameplay); its case lifts |
 | Playground | pinboard wall | a few picks | every pin, on the wall |
-| Contact | door | email, links | later: "Madison, N miles from you" on the door |
+| Contact | door (no camera shot for now: the turn to the door was too big a jump; the camera stays on Playground) | email, links | later: "Madison, N miles from you" on the door |
 
 Dropped: the mirror as a hotspot (the photo-in-mirror effect didn't work; the photo lives in the intro) and the About & CV section.
 
@@ -133,7 +133,8 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
   - [ ] MP-Former: no project page or video; keeps the still figure unless a trajectory animation exists
 - [ ] Projects: hardware projects as objects; item in view lights up (shelf exists; project models deferred, BLENDER_TODO §2.3)
 - [x] Games: TV shows the game in view (cover, or `clip` when set); game cases carry the covers. Gameplay clips still missing (see Materials)
-- [ ] Hover highlight on the object itself; pin → pinboard card
+- [x] Hover bounce on interactive objects in the full-screen room (spring with a little overshoot); hovering a label bounces its object
+- [ ] Pin → pinboard card highlight
 - [x] Full-screen room mode: orbit, labels (Research / Projects / Games / Playground), click label or object → back to that section; Esc, "Back to page" and the back button close it (`#room` in URL). Desktop: "Enter my room" button or click the room; mobile: "Explore my room in 3D" card (3D loads only then)
 - [x] Smooth open/close of the full-screen room: the frame morphs between the panel (mobile: the "Explore my room" card, or the middle of the screen) and the window while the camera moves on the same ease-out curve; 560 ms open, 460 ms close; off with reduced motion
 - [x] Dynamic textures from content (monitors, TV, game cases, project frames, pinboard cards from `playground.yaml`)
@@ -155,4 +156,4 @@ Asset rules and checklist in [BLENDER_TODO.md](BLENDER_TODO.md). Modeling by me;
 - [ ] Visitor presence ideas (Spencer Chang's spencer.place)
 
 ## Open questions
-- Layout (2026-10-21, layout B): single bed (`bed_single`; the queen `bed` asset is kept for a later idea), nightstand moved next to it, side table removed, bookshelf against the closet front (scaled 0.84 so it fits; it kept blocking a window on the left wall), game corner right of the desk with a round rug (the beanbag blocked the closet door), glass table removed, cart next to the entry door, mirror between the entry door and the shelf with a live reflection (three.js Reflector; walls are shown and its own frame hidden while it renders). Layout A (game corner on the left wall, shelf right of the desk) is saved in `redesign/layout-trials/` with a comparison image.
+- Layout (2026-10-21, layout B): single bed (`bed_single`; the queen `bed` asset is kept for a later idea), nightstand moved next to it, side table removed, bookshelf in the left-wall corner by the desk, clear of both windows (windows at their measured spots); floor lamp moved against the back wall between shelf and desk, game corner right of the desk with a round rug (the beanbag blocked the closet door), glass table removed, cart next to the entry door, mirror removed (a live three.js Reflector version stalled on its first render; it's in commit 6c0fef0). Layout A (game corner on the left wall, shelf right of the desk) is saved in `redesign/layout-trials/` with a comparison image.

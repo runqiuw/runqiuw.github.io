@@ -18,7 +18,7 @@
         "fabric"
       ],
       "triangles": 1840,
-      "bytes": 11204,
+      "bytes": 11080,
       "description": "Bean bag seat in front of the TV; makes the game corner readable at a glance."
     },
     "bed": {
@@ -112,7 +112,7 @@
         "glow"
       ],
       "triangles": 7500,
-      "bytes": 34684,
+      "bytes": 39236,
       "description": "Game console with two chunky controllers (toy proportions)."
     },
     "desk": {
@@ -472,7 +472,7 @@
         "metal"
       ],
       "triangles": 688,
-      "bytes": 16700,
+      "bytes": 16696,
       "description": "Left-wall window with blind; placed twice. Bottom = sill."
     }
   }

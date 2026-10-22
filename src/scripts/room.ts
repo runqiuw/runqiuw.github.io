@@ -16,7 +16,6 @@ import {
   Group,
   HemisphereLight,
   MathUtils,
-  Matrix4,
   type Material,
   Mesh,
   MeshBasicMaterial,
@@ -41,8 +40,7 @@ import {
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Reflector } from 'three/addons/objects/Reflector.js';
-import { LABELS, LAMP_AIM, LIGHTS, MIRRORS, PLACEMENTS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
@@ -144,7 +142,6 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       metalness: 0,
     });
     if (role === 'glass') Object.assign(m, { transparent: true, opacity: 0.4, depthWrite: false });
-    m.userData.role = role;
     if (role === 'screen' && !color) m.color.set(INK);
     if (role === 'glow') {
       m.emissive.set('#ffd98a');
@@ -240,64 +237,6 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   }
   scene.updateMatrixWorld(true);
 
-  // Mirrors: replace the `glass` part with a Reflector (the scene re-rendered from the mirrored
-  // camera). It only costs a render while the mirror is on screen; it hides with its wall.
-  for (const id of MIRRORS) {
-    const g = placed[id];
-    if (!g) continue;
-    const glass: Mesh[] = [];
-    g.traverse((o) => o instanceof Mesh && (o.material as MeshStandardMaterial).userData.role === 'glass' && glass.push(o));
-    const pts: Vector3[] = [];
-    for (const m of glass) {
-      const pos = m.geometry.getAttribute('position');
-      for (let i = 0; i < pos.count; i++) pts.push(new Vector3().fromBufferAttribute(pos, i).applyMatrix4(m.matrixWorld));
-    }
-    if (!pts.length) continue;
-    // Plane axes: width along the asset's x; "up" is the glass's long direction across that (the
-    // mirror leans); the normal faces the asset's front.
-    const q = g.getWorldQuaternion(new Quaternion());
-    const across = new Vector3(1, 0, 0).applyQuaternion(q);
-    const front = new Vector3(0, 0, 1).applyQuaternion(q);
-    const c = pts.reduce((a, p) => a.add(p), new Vector3()).divideScalar(pts.length);
-    const span = (dir: Vector3) => pts.reduce(([lo, hi], p) => { const d = v3.subVectors(p, c).dot(dir); return [Math.min(lo, d), Math.max(hi, d)]; }, [Infinity, -Infinity]);
-    const v3 = new Vector3();
-    let up = new Vector3(0, 1, 0);
-    let best = 0;
-    for (let a = -0.4; a <= 0.4; a += 0.02) {
-      const cand = new Vector3(0, 1, 0).applyAxisAngle(across, a);
-      const [lo, hi] = span(cand);
-      if (hi - lo > best) [best, up] = [hi - lo, cand];
-    }
-    const normal = new Vector3().crossVectors(across, up).normalize();
-    if (normal.dot(front) < 0) normal.negate();
-    const [w0, w1] = span(across), [h0, h1] = span(up);
-    const center = c.clone().addScaledVector(across, (w0 + w1) / 2).addScaledVector(up, (h0 + h1) / 2);
-    const front0 = Math.max(...pts.map((p) => v3.subVectors(p, c).dot(normal)));
-    const mirror = new Reflector(new PlaneGeometry((w1 - w0) * 0.98, (h1 - h0) * 0.98), {
-      textureWidth: 512,
-      textureHeight: 1024,
-      color: 0xc9cde0,
-      clipBias: 0.003,
-    });
-    mirror.position.copy(center).addScaledVector(normal, front0 + 0.002);
-    mirror.quaternion.setFromRotationMatrix(new Matrix4().makeBasis(across.clone().crossVectors(up, normal).normalize(), up, normal));
-    for (const m of glass) m.visible = false;
-    g.attach(mirror);
-    // The dollhouse view hides the walls facing the camera, but the mirror looks the other way:
-    // show every wall (and what hangs on them) while it renders its reflection…
-    const reflect = mirror.onBeforeRender.bind(mirror);
-    mirror.onBeforeRender = (...args: Parameters<typeof reflect>) => {
-      const hidden = [...wallSets.flatMap((w) => w.objs), ...posts.map((p) => p.m), ...onWall.map((w) => w.o)].filter((o) => !o.visible);
-      hidden.forEach((o) => (o.visible = true));
-      // …and leave the mirror's own frame out of its reflection (it sits right behind the glass).
-      const own = g.children.filter((o) => o !== mirror && o.visible);
-      own.forEach((o) => (o.visible = false));
-      reflect(...args);
-      hidden.forEach((o) => (o.visible = false));
-      own.forEach((o) => (o.visible = true));
-    };
-  }
-
   const bounds = (ids: string[]) => ids.reduce((b, id) => b.union(new Box3().setFromObject(placed[id])), new Box3());
   const top = (b: Box3, dy = 0) => new Vector3((b.min.x + b.max.x) / 2, b.max.y + dy, (b.min.z + b.max.z) / 2);
 
@@ -342,7 +281,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       p.c = opts.reduceMotion ? p.t : p.c + (p.t - p.c) * 0.18;
       p.o.position.copy(p.base.p).addScaledVector(p.d.p, p.c);
       p.o.rotation.x = p.base.r + p.d.r * p.c;
-      p.o.scale.setScalar(p.base.s + p.d.s * p.c);
+      if (p.d.s) p.o.scale.setScalar(p.base.s + p.d.s * p.c);
       moving = true;
     }
     return moving;
@@ -650,6 +589,13 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   labels.className = 'room-pins';
   labels.hidden = true;
   labels.innerHTML = LABELS.map(([k, t]) => `<button type="button" class="room-pin" data-go="${k}">${t}</button>`).join('');
+  labels.addEventListener('pointerover', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
+    if (b) hover(anchorObj[b.dataset.go!]);
+  });
+  labels.addEventListener('pointerout', (e) => {
+    if ((e.target as HTMLElement).closest('[data-go]')) hover();
+  });
   labels.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
     if (b) opts.onNavigate(b.dataset.go!);
@@ -767,6 +713,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Closing: back to the shot of `section` (the one picked in the room) or of the current section.
   const exitFull = (ms = 0, section?: string, aspect = cam.aspect, clock?: Clock) => {
     full = false;
+    hover();
     if (controls.enabled) camT.copy(controls.target); // otherwise the opening tween was still running
     controls.enabled = false;
     labels.hidden = true;
@@ -795,12 +742,46 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const sectionOf = (o: Object3D | null) => {
     for (; o; o = o.parent) if (o.userData.section) return o.userData.section as string;
   };
-  const pick = (e: PointerEvent) => {
+  const hitAt = (e: PointerEvent) => {
     const r = canvas.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, cam);
-    const hit = ray.intersectObjects(scene.children, true).find((h) => shown(h.object));
-    return hit ? sectionOf(hit.object) : undefined;
+    return ray.intersectObjects(scene.children, true).find((h) => shown(h.object))?.object;
+  };
+  const pick = (e: PointerEvent) => sectionOf(hitAt(e) ?? null);
+
+  // Hover bounce: interactive objects (placements with a section) spring up a little under the
+  // pointer, with a bit of overshoot, and spring back when it leaves.
+  const placedSet = new Set(Object.values(placed));
+  const interactiveOf = (o: Object3D | null) => {
+    for (; o; o = o.parent) if (placedSet.has(o) && o.userData.section) return o;
+  };
+  type Spring = { o: Object3D; base: number; s: number; v: number; t: number };
+  const springs = new Map<Object3D, Spring>();
+  let hovered: Object3D | undefined;
+  const hover = (o?: Object3D) => {
+    if (o === hovered) return;
+    if (hovered) springs.get(hovered)!.t = 1;
+    hovered = o;
+    if (!o) return;
+    const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };
+    sp.t = 1.06;
+    if (opts.reduceMotion) sp.s = sp.t;
+    springs.set(o, sp);
+    dirty = true;
+  };
+  const stepSprings = (dt: number) => {
+    let moving = false;
+    for (const sp of springs.values()) {
+      if (Math.abs(sp.t - sp.s) < 1e-4 && Math.abs(sp.v) < 1e-3) continue;
+      // Stiff, lightly damped spring: quick, with a small overshoot (the "Q-bounce").
+      const a = 520 * (sp.t - sp.s) - 18 * sp.v;
+      sp.v += a * dt;
+      sp.s += sp.v * dt;
+      sp.o.scale.setScalar(sp.base * sp.s);
+      moving = true;
+    }
+    return moving;
   };
   let down: [number, number] | null = null;
   canvas.addEventListener('pointerdown', (e) => (down = [e.clientX, e.clientY]));
@@ -812,8 +793,12 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (k) opts.onNavigate(k);
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (full && !down) canvas.style.cursor = pick(e) ? 'pointer' : 'grab';
+    if (!full || down) return;
+    const o = interactiveOf(hitAt(e) ?? null);
+    hover(o);
+    canvas.style.cursor = o ? 'pointer' : 'grab';
   });
+  canvas.addEventListener('pointerleave', () => hover());
 
   // Resizing clears the canvas, and the ResizeObserver runs after this frame's draw, so redraw
   // right away; otherwise the room would vanish while the frame morphs in and out of full screen.
@@ -865,6 +850,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       });
     }
   };
+  let lastNow = 0;
   const loop = (now: number) => {
     requestAnimationFrame(loop);
     if (!visible || document.hidden) return;
@@ -897,6 +883,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     }
     if (full && !tween && controls.update()) dirty = true;
     if (stepPops()) dirty = true;
+    if (stepSprings(Math.min(0.033, (now - (lastNow || now)) / 1000))) dirty = true;
+    lastNow = now;
     if (videos.some((vid) => !vid.paused)) dirty = true;
     if (warmup > 0) {
       warmup--;
