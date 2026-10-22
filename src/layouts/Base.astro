@@ -1,0 +1,101 @@
+---
+import '@fontsource-variable/fredoka';
+import '@fontsource-variable/nunito';
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { profile } from '../data/profile';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Section links point at "#id" on the home page and "/#id" elsewhere. */
+  home?: boolean;
+}
+const { title, description = profile.description, home = false } = Astro.props;
+const pageTitle = title ? `${title} · ${profile.name}` : profile.name;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL('/og.png', Astro.site);
+// Structured data for search engines (home page only): who this is, where, and the profile links.
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  url: Astro.site?.toString(),
+  image: new URL('/og.png', Astro.site).toString(),
+  email: `mailto:${profile.email}`,
+  jobTitle: 'Ph.D. student, Computer Sciences',
+  affiliation: { '@type': 'CollegeOrUniversity', name: 'University of Wisconsin–Madison', url: 'https://www.wisc.edu/' },
+  alumniOf: [
+    { '@type': 'CollegeOrUniversity', name: 'University of Michigan' },
+    { '@type': 'CollegeOrUniversity', name: 'Shanghai Jiao Tong University' },
+  ],
+  address: { '@type': 'PostalAddress', addressLocality: 'Madison', addressRegion: 'WI', addressCountry: 'US' },
+  sameAs: [profile.links.scholar, profile.links.github, profile.links.orcid, profile.links.itch],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/assets/img/profile/icon.jpg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="author" content={profile.name} />
+    <meta property="og:type" content={home ? 'profile' : 'website'} />
+    <meta property="og:site_name" content={profile.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Clay-style 3D model of Runqiu's room" />
+    <meta property="og:locale" content="en_US" />
+    {home && <meta property="profile:first_name" content={profile.firstName} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    {home && <script is:inline type="application/ld+json" set:html={JSON.stringify(person)} />}
+    <meta name="theme-color" content="#eef0fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1128" media="(prefers-color-scheme: dark)" />
+    <script is:inline>
+      // Apply the saved or system theme before first paint.
+      (() => {
+        let t = null;
+        try { t = localStorage.getItem('theme'); } catch {}
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <Nav home={home} />
+    <slot />
+    {/* The home page puts the footer at the end of its right-hand column instead, so the room panel isn't pushed up. */}
+    {!home && <Footer />}
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: 12px;
+    top: -60px;
+    z-index: 100;
+    background: var(--surface);
+    padding: 8px 14px;
+    border-radius: 999px;
+    box-shadow: var(--clay);
+    font-weight: 700;
+  }
+  .skip:focus {
+    top: 12px;
+  }
+</style>

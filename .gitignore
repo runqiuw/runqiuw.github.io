@@ -1,14 +1,15 @@
-_site
-.bundle
-.sass-cache
-.jekyll-cache
-.jekyll-metadata
-.DS_store
-.ruby-version
-.tweet-cache
-.overleaf-cv-project
-Gemfile.lock
-assets/libs/
+# build output
+dist/
+.astro/
+
+# dependencies
 node_modules/
-vendor
+
+# local
+.DS_Store
+.env
+.overleaf-cv-project
 .idea
+.vscode
+# local path to the Blender asset library (see bin/room-assets)
+bin/.room-assets-path

@@ -1,0 +1,14 @@
+# Things pinned to the wall. type: photo | post | toy | place.
+# `soon: true` renders a sticky note instead of a card (remove before launch if still empty).
+- id: notes
+  order: 1
+  type: post
+  title: Notes
+  caption: First post in draft.
+  soon: true
+- id: travel-map
+  order: 2
+  type: place
+  title: Travel map
+  caption: Places I've been.
+  soon: true

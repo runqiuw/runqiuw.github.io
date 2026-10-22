@@ -1,0 +1,250 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import { profile } from '../data/profile';
+
+// Newest first; a year without a month sorts as mid-year.
+const key = (d: string) => (d.length === 4 ? `${d}-06.5` : d);
+// News is hidden for now (not much to say yet). Flip to true to show it.
+const SHOW_NEWS = false;
+const news = (await getCollection('news')).sort((a, b) => key(b.data.date).localeCompare(key(a.data.date)));
+const fmt = (d: string) => {
+  const [y, m] = d.split('-');
+  return m ? `${new Date(Number(y), Number(m) - 1).toLocaleString('en', { month: 'short' })} ${y}` : y;
+};
+---
+
+<section class="intro" id="top" data-section="top">
+  <div class="head">
+    <div class="photo" tabindex="0" aria-label="Photo of Runqiu; hover or focus for another one">
+      <Image src={profile.photos.main} alt="Runqiu Wang standing next to an Android statue" widths={[160, 320]} sizes="160px" loading="eager" />
+      <Image class="alt" src={profile.photos.fun} alt="Runqiu Wang wearing swim goggles" widths={[160, 320]} sizes="160px" />
+    </div>
+    <div>
+      <p class="kicker">{profile.role}</p>
+      <h1>
+        <span>Hi, I’m <span class="name">{profile.firstName}</span>.</span>
+        <button class="say" type="button" id="say" title="Play an AI-generated voice saying my name">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>
+          <span>“{profile.pronunciation}”</span><small>AI voice</small>
+        </button>
+      </h1>
+      <audio id="say-audio" src={profile.pronunciationAudio} preload="none"></audio>
+    </div>
+  </div>
+
+  <div class="bio">
+    <p>I’m <strong>{profile.name}</strong>, a first-year Ph.D. student in <strong>Computer Sciences</strong> at the <a href="https://www.cs.wisc.edu/">University of Wisconsin–Madison</a>. I received a B.S.E. in <strong>Computer Science</strong> from the <a href="https://cse.engin.umich.edu/">University of Michigan</a> and a B.S. in <strong>Mechanical Engineering</strong> from <a href="https://gc.sjtu.edu.cn/">Shanghai Jiao Tong University</a>. Previously, I worked in the <a href="https://ambient-intelligence-lab-umich-eecs.github.io/ami_lab_website/">AMI Lab</a> led by <a href="https://samsonsjarkal.github.io/KeSun/">Prof. Ke Sun</a> on sensing systems and applied machine learning.</p>
+    <p>I have been working on applied machine learning and computer vision for ubiquitous and ambient sensing that tightly couple the physical and digital worlds.</p>
+  </div>
+
+  <button class="room-cta" type="button" id="room-cta">
+    <span class="cube" aria-hidden="true"></span>
+    <span><b>Explore my room in 3D →</b><small>Everything on this page also lives in there.</small></span>
+  </button>
+
+  <div class="links">
+    <a class="pill primary" href={profile.links.cv}>CV (PDF)</a>
+    <a class="pill" href={profile.links.scholar}>Google Scholar</a>
+    <a class="pill" href={profile.links.github}>GitHub</a>
+    <a class="pill" href={profile.links.orcid}>ORCID</a>
+    <button class="pill" type="button" id="copy-mail" data-mail={profile.email}>{profile.email}</button>
+  </div>
+
+
+  {
+    SHOW_NEWS && (
+      <>
+        <h2 class="news-h">News</h2>
+        <ul class="news">
+          {news.map((n) => <li><span>{fmt(n.data.date)}</span><div>{n.data.text}</div></li>)}
+        </ul>
+      </>
+    )
+  }
+</section>
+
+<script>
+  const audio = document.getElementById('say-audio') as HTMLAudioElement;
+  document.getElementById('say')!.addEventListener('click', () => {
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  });
+  document.getElementById('room-cta')!.addEventListener('click', () => window.dispatchEvent(new Event('roomopen')));
+  const mail = document.getElementById('copy-mail') as HTMLButtonElement;
+  mail.addEventListener('click', async () => {
+    const addr = mail.dataset.mail!;
+    try {
+      await navigator.clipboard.writeText(addr);
+      mail.textContent = 'Copied!';
+      setTimeout(() => (mail.textContent = addr), 1400);
+    } catch {
+      location.href = `mailto:${addr}`;
+    }
+  });
+</script>
+
+<style>
+  .intro {
+    padding-block: 36px 40px;
+  }
+  .head {
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .photo {
+    position: relative;
+    flex: none;
+    width: 128px;
+    aspect-ratio: 3 / 4;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--clay);
+    outline-offset: 4px;
+  }
+  .photo :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 62% 30%;
+    transition: opacity 0.35s ease;
+  }
+  .photo :global(.alt) {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    object-position: 50% 35%;
+  }
+  .photo:hover :global(.alt),
+  .photo:focus-visible :global(.alt) {
+    opacity: 1;
+  }
+  h1 {
+    font-size: var(--step-4);
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+  }
+  .name {
+    color: var(--blue);
+  }
+  /* One pill for the play icon, the pronunciation and the "AI voice" note, so they read as one thing. */
+  .say {
+    border: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 13px 7px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--clay);
+    font: 600 14px var(--font-body);
+    white-space: nowrap;
+    transition: translate 0.35s var(--spring);
+  }
+  .say svg {
+    color: var(--blue);
+  }
+  .say small {
+    font: 700 11px var(--font-body);
+    color: var(--mute);
+    background: var(--bg);
+    border-radius: 999px;
+    padding: 2px 7px;
+  }
+  .say:hover {
+    translate: 0 -3px;
+  }
+  .bio p {
+    font-size: var(--step-1);
+    line-height: 1.65;
+    margin: 0 0 14px;
+  }
+  .bio a {
+    color: var(--link);
+    font-weight: 700;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0 26px;
+  }
+  /* Mobile entry to the full-screen room; only when WebGL is available (html.has-room). */
+  .room-cta {
+    display: none;
+    width: 100%;
+    margin: 18px 0 4px;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: var(--radius-m);
+    background: var(--surface);
+    box-shadow: var(--clay);
+    text-align: left;
+    cursor: pointer;
+    align-items: center;
+    gap: 14px;
+  }
+  .room-cta b {
+    display: block;
+    font: 600 16px var(--font-display);
+  }
+  .room-cta small {
+    color: var(--mute);
+    font-size: 13px;
+  }
+  .cube {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--mint));
+    box-shadow: var(--clay);
+  }
+  @media (max-width: 900px) {
+    :global(html.has-room) .room-cta {
+      display: flex;
+    }
+  }
+  .news-h {
+    font-size: var(--step-2);
+    margin-bottom: 12px;
+  }
+  .news {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .news li {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 12px;
+    line-height: 1.5;
+  }
+  .news span {
+    font: 600 var(--step--1) var(--font-display);
+    color: var(--mute);
+    padding-top: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 520px) {
+    .head {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .news li {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+  }
+</style>

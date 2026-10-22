@@ -1,0 +1,430 @@
+---
+// Left-hand room panel. Shows a still render first; on desktop it swaps in the live 3D room once
+// the page is idle. "Enter my room" (or the mobile button in the intro, via `roomopen`) opens a
+// full-screen orbit view; labels and objects navigate back to page sections.
+import { Image } from 'astro:assets';
+import day from '../assets/img/room/poster-day.webp';
+import night from '../assets/img/room/poster-night.webp';
+---
+
+<aside class="room" id="room-panel" aria-label="Runqiu's room">
+  <div class="frame">
+    <Image class="poster day" src={day} alt="Clay-style model of Runqiu’s room: bed, desk with two monitors, a pinboard, a game corner with a TV and a bookshelf." widths={[450, 900]} sizes="45vw" loading="eager" draggable="false" />
+    <Image class="poster night" src={night} alt="" widths={[450, 900]} sizes="45vw" loading="eager" draggable="false" />
+    <button class="enter" type="button" id="room-enter" hidden>Enter my room ⤢</button>
+    <ul class="help" hidden aria-label="How to use the room">
+      <li title="Drag to look around">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8" /><path d="M21 3v5h-5" /></svg>
+        <span aria-hidden="true">Drag</span><span class="sr">Drag to look around.</span>
+      </li>
+      <li title="Scroll or pinch to zoom">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20.5 20.5-4.5-4.5M11 8v6M8 11h6" /></svg>
+        <span aria-hidden="true">Zoom</span><span class="sr">Scroll or pinch to zoom.</span>
+      </li>
+      <li title="Tap a label or an object to jump to that part of the page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 9 5 12 1.8-5.2L21 14Z" /><path d="M7.2 2.2 8 5.1M5.1 8l-2.9-.8M14 4.1 12 6M6 12l-1.9 2" /></svg>
+        <span aria-hidden="true">Tap</span><span class="sr">Tap a label or an object to jump to that part of the page.</span>
+      </li>
+    </ul>
+    <button class="exit" type="button" id="room-exit" hidden>Back to page ✕</button>
+    <p class="loading" hidden>Building the room…</p>
+  </div>
+</aside>
+
+<script>
+  type Room = Awaited<ReturnType<typeof import('../scripts/room').mountRoom>>;
+
+  const aside = document.getElementById('room-panel')!;
+  const frame = aside.querySelector<HTMLElement>('.frame')!;
+  const enterBtn = document.getElementById('room-enter')!;
+  const exitBtn = document.getElementById('room-exit')!;
+  const help = frame.querySelector<HTMLElement>('.help')!;
+  const loading = frame.querySelector<HTMLElement>('.loading')!;
+  const wide = matchMedia('(min-width: 901px)');
+  const webgl = (() => {
+    try {
+      return !!document.createElement('canvas').getContext('webgl2');
+    } catch {
+      return false;
+    }
+  })();
+
+  let room: Promise<Room> | null = null;
+  let isFull = false;
+
+  // Opening and closing morph the frame between its place on the page and the whole window, while
+  // the camera moves on the same curve and for the same time, so both read as one quick motion.
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'; // the same ease-out as the camera (room.ts `easeOut`)
+  const OPEN_MS = 560;
+  const CLOSE_MS = 460;
+  let morphing: Animation | null = null;
+  const box = (r: DOMRect) => ({ top: `${r.top}px`, left: `${r.left}px`, width: `${r.width}px`, height: `${r.height}px` });
+  // The full-screen room keeps the top bar (theme switch, section links), so it fills the window below it.
+  const navH = () => document.querySelector('.nav')?.getBoundingClientRect().height ?? 0;
+  const viewport = () => new DOMRect(0, navH(), document.documentElement.clientWidth, document.documentElement.clientHeight - navH());
+  const shrunk = (r: DOMRect, k: number) => new DOMRect(r.x + (r.width * k) / 2, r.y + (r.height * k) / 2, r.width * (1 - k), r.height * (1 - k));
+  // Where the room lives on the page: the panel on desktop, the "Explore my room" card on mobile
+  // (when it's on screen). Without one, the room grows from / fades into the middle.
+  const cta = document.getElementById('room-cta');
+  const home = () => {
+    if (wide.matches) {
+      const a = aside.getBoundingClientRect(), st = getComputedStyle(aside);
+      const [t, r, b, l] = [st.paddingTop, st.paddingRight, st.paddingBottom, st.paddingLeft].map(parseFloat);
+      return { rect: new DOMRect(a.left + l, a.top + t, a.width - l - r, a.height - t - b), radius: panelRadius };
+    }
+    const r = cta?.getBoundingClientRect();
+    return r && r.width && r.bottom > 0 && r.top < innerHeight ? { rect: r, radius: getComputedStyle(cta!).borderRadius } : null;
+  };
+  const panelRadius = getComputedStyle(frame).borderRadius;
+  const morph = (from: DOMRect, to: DOMRect, ms: number, r: [string, string], o: [number, number]) => {
+    // Interrupted (closed while still opening, or the other way round): start from where the frame is now.
+    if (morphing?.playState === 'running') {
+      const st = getComputedStyle(frame);
+      [from, r[0], o[0]] = [frame.getBoundingClientRect(), st.borderTopLeftRadius, parseFloat(st.opacity)];
+    }
+    morphing?.cancel();
+    morphing = frame.animate(
+      [
+        { ...box(from), borderRadius: r[0], opacity: o[0] },
+        { ...box(to), borderRadius: r[1], opacity: o[1] },
+      ],
+      { duration: reduce ? 0 : ms, easing: EASE, fill: 'forwards' },
+    );
+    return morphing.finished.then(
+      () => true,
+      () => false, // cancelled by a newer morph
+    );
+  };
+  // The camera follows the morph's own eased progress, so the room and the frame move together
+  // even if the animation starts a frame late.
+  const clockOf = (a: Animation) => ({
+    progress: () => (a.playState === 'finished' ? 1 : (a.effect?.getComputedTiming().progress ?? 0)),
+    done: () => a.playState === 'finished' || a.playState === 'idle',
+  });
+
+  const load = () => {
+    room ??= import('../scripts/room')
+      .then(({ mountRoom }) =>
+        mountRoom(frame, {
+          section: document.documentElement.dataset.section ?? 'top',
+          theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+          reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+          onNavigate: (section) => close(section),
+        }),
+      )
+      .then((r) => {
+        frame.classList.add('live');
+        return r;
+      });
+    room.catch((err) => {
+      console.warn('Room failed to load; keeping the still image.', err);
+      enterBtn.hidden = true;
+      loading.textContent = 'The 3D room couldn’t load. Everything is on the page.';
+    });
+    return room;
+  };
+
+  async function open() {
+    if (isFull || !webgl) return;
+    const from = home();
+    isFull = true;
+    aside.classList.add('full');
+    document.body.style.overflow = 'hidden';
+    enterBtn.hidden = true;
+    exitBtn.hidden = false;
+    help.hidden = false;
+    const live = frame.classList.contains('live');
+    if (!live) loading.hidden = false;
+    // The page scroll stays put underneath; stop the browser from "restoring" it when we pop
+    // the #room entry, which would cancel the jump to the chosen section.
+    history.scrollRestoration = 'manual';
+    history.pushState({ room: true }, '', '#room');
+    const to = viewport();
+    const opened = morph(from?.rect ?? shrunk(to, 0.2), to, OPEN_MS, [from?.radius ?? '28px', '0px'], [from ? 1 : 0, 1]);
+    if (live) (await room)!.enterFull(OPEN_MS, to.width / to.height, clockOf(morphing!));
+    else {
+      const r = await load();
+      loading.hidden = true;
+      // First open on mobile: the room arrives after the frame has grown; let it settle in.
+      if (isFull) r.enterFull(OPEN_MS, to.width / to.height);
+    }
+    if ((await opened) && isFull) morphing?.cancel(); // hand the full-window layout back to CSS
+    if (isFull) exitBtn.focus({ preventScroll: true });
+  }
+
+  async function close(section?: string, fromHistory = false) {
+    if (!isFull) return;
+    isFull = false;
+    exitBtn.hidden = true;
+    help.hidden = true;
+    loading.hidden = true;
+    // Start shrinking right away. On mobile a jump to a section scrolls the card off screen, so
+    // fade out in the middle instead.
+    const target = section && section !== 'top' && !wide.matches ? null : home();
+    const to = target?.rect ?? shrunk(viewport(), 0.2);
+    const closing = morph(viewport(), to, CLOSE_MS, ['0px', target?.radius ?? '28px'], [1, target ? 1 : 0]);
+    if (frame.classList.contains('live')) (await room)?.exitFull(CLOSE_MS, section, to.width / to.height, clockOf(morphing!));
+    if (!fromHistory && history.state?.room) {
+      // Leave the #room history entry first, so its scroll restore can't undo the jump below.
+      const popped = new Promise((r) => addEventListener('popstate', r, { once: true }));
+      history.back();
+      await popped;
+    }
+    // Jump the page under the room (it still covers most of the window at this point).
+    if (section) document.getElementById(section)?.scrollIntoView({ behavior: 'instant' });
+    const closed = await closing;
+    if (!closed || isFull) return; // reopened meanwhile
+    aside.classList.remove('full');
+    morphing?.cancel();
+    document.body.style.overflow = '';
+    enterBtn.hidden = !wide.matches;
+    setTimeout(() => (history.scrollRestoration = 'auto'), 1500);
+  }
+
+  if (webgl) {
+    // Desktop: live room in the panel once the page is idle. Also start if a narrow window widens.
+    let started = false;
+    const start = () => {
+      if (started || !wide.matches) return;
+      started = true;
+      enterBtn.hidden = false;
+      const run = () => load();
+      'requestIdleCallback' in window ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 300);
+    };
+    start();
+    wide.addEventListener('change', start);
+
+    enterBtn.addEventListener('click', open);
+    frame.addEventListener('click', (e) => {
+      if (!isFull && wide.matches && !(e.target as HTMLElement).closest('button')) open();
+    });
+    exitBtn.addEventListener('click', () => close());
+    addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+    addEventListener('popstate', () => close(undefined, true));
+    addEventListener('roomopen', open);
+    document.documentElement.classList.add('has-room');
+  }
+</script>
+
+<style>
+  .room {
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    height: calc(100dvh - var(--nav-h));
+    padding: 14px 0 14px 14px;
+  }
+  /* Full-screen room: only the frame leaves the page (fixed to the window); the panel keeps its
+     place, so the page doesn't reflow underneath. On mobile the panel is normally hidden. */
+  .room.full {
+    z-index: 100;
+  }
+  .room.full .frame {
+    position: fixed;
+    inset: var(--nav-h) 0 0 0;
+    width: auto;
+    height: auto;
+    cursor: auto;
+  }
+  @media (max-width: 900px) {
+    .room.full {
+      display: block !important;
+      position: fixed;
+      inset: 0;
+      height: auto;
+      padding: 0;
+      pointer-events: none;
+    }
+    .room.full .frame {
+      pointer-events: auto;
+    }
+  }
+  .frame {
+    position: relative;
+    cursor: zoom-in;
+    height: 100%;
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    background: radial-gradient(110% 80% at 60% 20%, var(--bg-2), var(--bg));
+    box-shadow: var(--clay);
+    display: grid;
+    place-items: center;
+  }
+  .full .frame {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .full .exit,
+  .full .help,
+  .frame :global(.room-pins:not([hidden])) {
+    animation: room-ui-in 0.28s 0.3s ease-out both;
+  }
+  @keyframes room-ui-in {
+    from {
+      opacity: 0;
+      translate: 0 -6px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .full .exit,
+    .full .help,
+    .frame :global(.room-pins:not([hidden])) {
+      animation: none;
+    }
+  }
+  .poster {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.6s ease;
+    /* Opacity < 1 lifts the hidden poster above the canvas; keep it from catching drags. */
+    pointer-events: none;
+    user-select: none;
+  }
+  .night {
+    opacity: 0;
+  }
+  :global(:root[data-theme='dark']) .night {
+    opacity: 1;
+  }
+  :global(:root[data-theme='dark']) .day {
+    opacity: 0;
+  }
+  .frame :global(.room-canvas) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    z-index: 1;
+    cursor: zoom-in;
+    touch-action: none;
+  }
+  .frame.live :global(.room-canvas) {
+    opacity: 1;
+  }
+  .frame.live .poster {
+    opacity: 0 !important;
+  }
+  .enter,
+  .exit,
+  .help,
+  .loading {
+    position: absolute;
+    z-index: 3;
+    margin: 0;
+  }
+  .enter {
+    right: 14px;
+    bottom: 14px;
+    border: 0;
+    cursor: pointer;
+    background: var(--blue);
+    color: var(--on-blue);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font: 600 14px var(--font-display);
+    box-shadow: var(--clay);
+    transition: translate 0.35s var(--spring);
+  }
+  .enter:hover {
+    translate: 0 -3px;
+  }
+  .exit {
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    border: 0;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 9px 16px;
+    font: 600 14px var(--font-display);
+    box-shadow: var(--clay);
+  }
+  /* Controls hint: three icon chips instead of a paragraph (full text in the tooltip / for screen readers). */
+  .help {
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: 14px;
+    display: flex;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+  }
+  .help[hidden] {
+    display: none;
+  }
+  .help li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 7px 12px 7px 9px;
+    box-shadow: var(--clay);
+    font: 600 13px var(--font-display);
+    color: var(--ink);
+  }
+  .help svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: var(--blue);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .loading {
+    font: 600 15px var(--font-display);
+    color: var(--mute);
+    background: var(--surface);
+    padding: 8px 16px;
+    border-radius: 999px;
+    box-shadow: var(--clay);
+  }
+  .frame :global(.room-pins) {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .frame :global(.room-pin) {
+    position: absolute;
+    /* Faded out until shown (see showLabel/hideLabel in room.ts). */
+    opacity: 0;
+    pointer-events: none;
+    translate: -50% -100%;
+    border: 0;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font: 600 13.5px var(--font-display);
+    box-shadow: 0 10px 22px -10px var(--shade), var(--clay);
+    white-space: nowrap;
+    transition:
+      scale 0.3s var(--spring),
+      opacity 0.35s ease;
+  }
+  .frame :global(.room-pin.on) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .frame :global(.room-pin:hover) {
+    scale: 1.08;
+  }
+</style>

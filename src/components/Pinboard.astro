@@ -1,0 +1,109 @@
+---
+import { Image, getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import { getCollection } from 'astro:content';
+
+const items = (await getCollection('playground')).sort((a, b) => a.data.order - b.data.order);
+const tilts = ['-2.5deg', '1.8deg', '-1deg', '2.2deg', '-1.6deg', '1.2deg'];
+// Each item is also a card on the room's pinboard (read by src/scripts/room.ts).
+const cardImg = async (img?: ImageMetadata) => (img ? (await getImage({ src: img, width: 256, format: 'webp' })).src : undefined);
+const cards = await Promise.all(items.map((it) => cardImg(it.data.image)));
+---
+
+<div class="board">
+  {
+    items.map((it, i) => {
+      const style = `rotate:${tilts[i % tilts.length]}`;
+      const inner = it.data.soon ? (
+        <>
+          <span class="note-type">{it.data.type}</span>
+          <b>{it.data.title}</b>
+          <small>{it.data.caption} Coming soon.</small>
+        </>
+      ) : (
+        <>
+          {it.data.image && <Image src={it.data.image} alt="" widths={[240, 480]} sizes="240px" />}
+          <b>{it.data.title}</b>
+          {it.data.caption && <small>{it.data.caption}</small>}
+        </>
+      );
+      const cls = it.data.soon ? 'pin note' : 'pin polaroid';
+      const data = {
+        'data-item': it.id,
+        'data-screen-title': it.data.title,
+        'data-screen-caption': it.data.caption,
+        'data-screen-type': it.data.type,
+        'data-screen-img': cards[i],
+      };
+      return it.data.href ? (
+        <a class={cls} style={style} href={it.data.href} {...data}>{inner}</a>
+      ) : (
+        <div class={cls} style={style} {...data}>{inner}</div>
+      );
+    })
+  }
+</div>
+
+<style>
+  .board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 18px;
+    padding: 20px;
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--yellow) 24%, var(--surface));
+    box-shadow: var(--clay);
+  }
+  .pin {
+    text-decoration: none;
+    display: block;
+    transition: rotate 0.4s var(--spring), translate 0.4s var(--spring);
+  }
+  .pin:hover {
+    rotate: 0deg !important;
+    translate: 0 -5px;
+  }
+  .polaroid {
+    background: #fffdf8;
+    color: #1d2148;
+    padding: 7px 7px 10px;
+    border-radius: 4px;
+    box-shadow: 0 10px 18px -10px rgb(0 0 0 / 0.4);
+  }
+  .polaroid :global(img) {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 2px;
+  }
+  .pin b {
+    display: block;
+    font: 600 14px var(--font-display);
+    margin-top: 7px;
+  }
+  .pin small {
+    color: #5c628c;
+    font-size: 12.5px;
+  }
+  .note {
+    background: #fff1a8;
+    color: #1d2148;
+    padding: 14px;
+    border-radius: 3px;
+    box-shadow: 0 10px 18px -10px rgb(0 0 0 / 0.4);
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .note:nth-child(even) {
+    background: #c9efe1;
+  }
+  .note-type {
+    font: 600 11px var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+    margin-bottom: auto;
+  }
+</style>

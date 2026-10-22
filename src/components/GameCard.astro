@@ -1,0 +1,67 @@
+---
+import { Image, getImage } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  game: CollectionEntry<'games'>;
+}
+const g = Astro.props.game.data;
+// What the room's TV shows while this game is in view (read by src/scripts/room.ts).
+const screen = await getImage({ src: g.cover, width: 640, format: 'webp' });
+---
+
+<article
+  class="game card"
+  data-item={Astro.props.game.id}
+  data-screen-title={g.title}
+  data-screen-img={screen.src}
+  data-screen-video={g.clip}
+>
+  <a href={g.play} aria-label={`Play ${g.title} on itch.io`}>
+    <Image src={g.cover} alt="" widths={[320, 640]} sizes="(max-width: 900px) 100vw, 300px" />
+  </a>
+  <div class="body">
+    <h3>{g.title}</h3>
+    <p>{g.summary}</p>
+    {g.authors && <p class="small">With {g.authors.filter((a) => a !== 'Runqiu Wang').join(' and ')}</p>}
+    <div class="actions">
+      <a class="pill primary" href={g.play}>Play on itch.io ↗</a>
+      {g.trailer && <a class="pill" href={g.trailer}>Trailer ↗</a>}
+    </div>
+  </div>
+</article>
+
+<style>
+  .game {
+    padding: 10px;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+  }
+  .game :global(img) {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: 15px;
+  }
+  .body {
+    padding: 0 6px 6px;
+  }
+  h3 {
+    font-size: 17px;
+  }
+  p {
+    margin: 6px 0 8px;
+    font-size: 14px;
+    color: var(--mute);
+    line-height: 1.5;
+  }
+  .small {
+    font-size: 13px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>

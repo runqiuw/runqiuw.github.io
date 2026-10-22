@@ -1,0 +1,108 @@
+---
+import { getCollection, render } from 'astro:content';
+import { Image } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects', (p) => !p.data.external);
+  return projects.map((project) => ({ params: { slug: project.id }, props: { project } }));
+}
+
+const { project } = Astro.props;
+const p = project.data;
+const { Content } = await render(project);
+---
+
+<Base title={p.title} description={p.summary}>
+  <main id="main" class="page">
+    <a class="back" href="/#projects">← All projects</a>
+    <header>
+      <p class="kicker">{p.course ?? (p.category === 'fun' ? 'Side project' : 'Project')}</p>
+      <h1>{p.title}</h1>
+      <p class="summary">{p.summary}</p>
+      <div class="meta">
+        <span>{p.timeline}</span>
+        {p.tags.map((t) => <span class="tag">{t}</span>)}
+        {p.links?.github && <a class="pill" href={p.links.github}>GitHub ↗</a>}
+        {p.links?.website && <a class="pill" href={p.links.website}>Website ↗</a>}
+      </div>
+    </header>
+    <Image class="cover" src={p.cover} alt="" widths={[640, 1280]} sizes="(max-width: 760px) 100vw, 720px" loading="eager" />
+    <article class="prose"><Content /></article>
+  </main>
+</Base>
+
+<style>
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+  .back {
+    font: 600 14px var(--font-display);
+    color: var(--link);
+    text-decoration: none;
+  }
+  header {
+    margin: 18px 0 22px;
+  }
+  h1 {
+    font-size: var(--step-4);
+    margin: 6px 0 10px;
+  }
+  .summary {
+    font-size: var(--step-1);
+    color: var(--mute);
+    margin: 0 0 14px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    font: 600 13px var(--font-display);
+    color: var(--mute);
+  }
+  .tag {
+    background: color-mix(in srgb, var(--mint) 18%, transparent);
+    color: var(--ink);
+    padding: 2px 10px;
+    border-radius: 999px;
+  }
+  .cover {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    border-radius: var(--radius-l);
+    box-shadow: var(--clay);
+    margin-bottom: 28px;
+  }
+  .prose :global(h2) {
+    font-size: var(--step-2);
+    margin: 30px 0 10px;
+  }
+  .prose :global(p),
+  .prose :global(li) {
+    line-height: 1.7;
+  }
+  .prose :global(img),
+  .prose :global(video) {
+    border-radius: var(--radius-m);
+    box-shadow: var(--clay);
+    margin: 18px auto;
+    max-height: 560px;
+    width: auto;
+  }
+  .prose :global(video) {
+    width: 100%;
+  }
+  .prose :global(em) {
+    color: var(--mute);
+  }
+  .prose :global(code) {
+    background: var(--surface);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 0.92em;
+  }
+</style>
