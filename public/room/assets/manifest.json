@@ -424,6 +424,24 @@
       "bytes": 6224,
       "description": "Round rug, 120 cm, 1.2 cm thick: cream with a darker ring near the edge."
     },
+    "screenbar": {
+      "file": "screenbar.glb",
+      "catalog": "Room/Desk props",
+      "mount": "monitor",
+      "size": [
+        0.45,
+        0.106,
+        0.03
+      ],
+      "elevation": 0,
+      "roles": [
+        "glow",
+        "metal"
+      ],
+      "triangles": 560,
+      "bytes": 8172,
+      "description": "Monitor light bar: 45 cm bar in front of the screen, `glow` strip underneath (lights the desk at night). Origin sits on the middle of the monitor's top edge."
+    },
     "shelf": {
       "file": "shelf.glb",
       "catalog": "Sections/Projects",

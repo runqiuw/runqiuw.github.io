@@ -29,7 +29,7 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
       </Section>
       {
         show.playground && (
-          <Section id="playground" title="Playground" lede="Things I like, pinned to the wall above my desk.">
+          <Section id="playground" title="Playground">
             <Pinboard />
           </Section>
         )

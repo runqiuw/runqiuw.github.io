@@ -9,11 +9,13 @@
 // breathing ambilight and the ticking clock redraw at ~30 fps while they're on).
 import {
   AdditiveBlending,
+  Box2,
   Box3,
   BoxGeometry,
   CanvasTexture,
   Color,
   DirectionalLight,
+  DoubleSide,
   ExtrudeGeometry,
   FrontSide,
   Group,
@@ -56,8 +58,8 @@ type Manifest = {
 const ASSETS = '/room/assets/';
 const INK = '#14183a';
 const LEVELS = {
-  light: { hemi: 1.9, sun: 2.4, screen: 0, tv: 0, emis: 0.12, night: 0 },
-  dark: { hemi: 0.62, sun: 0.4, screen: 1.6, tv: 1.8, emis: 1.2, night: 1 },
+  light: { hemi: 2.3, sun: 2.4, screen: 0, tv: 0, emis: 0.12, night: 0 },
+  dark: { hemi: 0.62, sun: 0.4, screen: 3.2, tv: 1.8, emis: 1.2, night: 1 },
 };
 /** Lights you can click on and off in the full-screen room, and each one's level when on. They all
  * come on with the dark theme and go off with the light one; a click flips one until the next switch. */
@@ -107,6 +109,17 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   let active = opts.section in SHOTS ? opts.section : 'top';
   let item = document.documentElement.dataset.item ?? '';
 
+  // Walls that face the camera (and what hangs on them) aren't hidden: they swap to this material,
+  // which draws nothing but still casts shadows, so they keep blocking light. The ceiling wears it
+  // for good. Daylight and moonlight then only come in through the windows.
+  const ghostMat = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+  ghostMat.shadowSide = DoubleSide;
+  const ghost = (o: Object3D, on: boolean) =>
+    o.traverse((c) => {
+      if (!(c instanceof Mesh) || !!c.userData.ghost === on) return;
+      if (on) [c.userData.ghost, c.material] = [c.material, ghostMat];
+      else [c.material, c.userData.ghost] = [c.userData.ghost, undefined];
+    });
   const hemi = new HemisphereLight(0xffffff, 0xd2ccff, LEVELS.light.hemi);
   const sun = new DirectionalLight(0xffffff, LEVELS.light.sun);
   sun.target.position.copy(center);
@@ -116,14 +129,23 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   sun.shadow.normalBias = 0.02;
   Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 20 });
   // Night lights are spots, so lamp shades and screens light a cone instead of the whole room.
-  const spot = (color: number, angle: number, dist: number) => {
+  // `shadow` makes furniture block them (the bed for the bedside lamp, the desk for the floor lamp).
+  const spot = (color: number, angle: number, dist: number, shadow = false) => {
     const l = new SpotLight(color, 0, dist, angle, 0.7, 1.5);
+    if (shadow) {
+      l.castShadow = true;
+      l.shadow.mapSize.set(512, 512);
+      l.shadow.bias = -0.002;
+      l.shadow.normalBias = 0.02;
+      l.shadow.camera.near = 0.05;
+    }
     scene.add(l, l.target);
     return l;
   };
-  const lampL = spot(0xffc06a, 0.9, 5);
-  const bedL = spot(0xffa860, 0.95, 3);
-  const screenL = spot(0xb8d4ff, 1.0, 1.6);
+  const lampL = spot(0xffc06a, 0.9, 5, true);
+  const bedL = spot(0xffa860, 0.95, 3, true);
+  // One per monitor light bar (LIGHTS.screen).
+  const screenLs = LIGHTS.screen.map(() => spot(0xfff1dc, 0.65, 1.6, true));
   const tvL = spot(0x8fa0ff, 0.95, 2.6);
   // The ambilight's wash on the wall and stand behind the TV.
   const ambL = new PointLight(0xffffff, 0, 1.6, 1.5);
@@ -223,10 +245,12 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const holes = (w.openings ?? []).slice().sort((a, b) => a.span[0] - b.span[0]);
     const pieces: [number, number, number, number][] = [];
     let u = u0;
+    // The pieces under and over an opening reach 1 cm into their neighbours: shadows leak through
+    // seams where boxes only touch (thin lines of sun on the floor).
     for (const o of holes) {
       if (o.span[0] > u) pieces.push([u, o.span[0], 0, H]);
-      if (o.z[0] > 0) pieces.push([o.span[0], o.span[1], 0, o.z[0]]);
-      if (o.z[1] < H) pieces.push([o.span[0], o.span[1], o.z[1], H]);
+      if (o.z[0] > 0) pieces.push([o.span[0] - 0.01, o.span[1] + 0.01, 0, o.z[0]]);
+      if (o.z[1] < H) pieces.push([o.span[0] - 0.01, o.span[1] + 0.01, o.z[1], H]);
       u = o.span[1];
     }
     if (u < u1) pieces.push([u, u1, 0, H]);
@@ -235,7 +259,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       const len = b - a, mid = (a + b) / 2, off = line - (alongX ? n.y : n.x) * (T / 2);
       const m = new Mesh(alongX ? new BoxGeometry(len, z1 - z0, T) : new BoxGeometry(T, z1 - z0, len), mat);
       m.position.copy(alongX ? P(mid, off, (z0 + z1) / 2) : P(off, mid, (z0 + z1) / 2));
-      m.receiveShadow = true;
+      m.castShadow = m.receiveShadow = true;
       scene.add(m);
       return m;
     });
@@ -249,9 +273,25 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const out = inward[w.side].clone().add(inward[SHELL.walls[j].side]).multiplyScalar(-T / 2);
     const m = new Mesh(new BoxGeometry(T, H, T), (wallSets[i].objs[0] as Mesh).material);
     m.position.copy(P(w.to[0] + out.x, w.to[1] + out.y, H / 2));
+    m.castShadow = true;
     scene.add(m);
     posts.push({ a: i, b: j, m });
+    // The post only touches its walls, and sun leaks through those seams; a slightly bigger
+    // shadow-only column seals them.
+    const seal = new Mesh(new BoxGeometry(T + 0.04, H, T + 0.04), ghostMat);
+    seal.position.copy(m.position);
+    seal.castShadow = true;
+    seal.raycast = () => {};
+    scene.add(seal);
   });
+  // A ceiling that only casts shadows (the dollhouse view never shows it). It sinks 10 cm into the
+  // wall tops: where boxes only touch, light leaks through the seam.
+  const ceilBox = SHELL.outline.reduce((b, [x, y]) => b.expandByPoint(new Vector2(x, y)), new Box2()).expandByScalar(T);
+  const ceiling = new Mesh(new BoxGeometry(ceilBox.max.x - ceilBox.min.x, 0.15, ceilBox.max.y - ceilBox.min.y), ghostMat);
+  ceiling.position.copy(P((ceilBox.min.x + ceilBox.max.x) / 2, (ceilBox.min.y + ceilBox.max.y) / 2, H - 0.025));
+  ceiling.castShadow = true;
+  ceiling.raycast = () => {};
+  scene.add(ceiling);
 
   // --- furniture
   const placed: Record<string, Object3D> = {};
@@ -278,6 +318,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     placed[p.id] = g;
   }
   scene.updateMatrixWorld(true);
+  for (const p of PLACEMENTS) if (p.on && placed[p.id] && placed[p.on]) placed[p.on].attach(placed[p.id]);
 
   // Sky outside the windows: a day and a night painting on planes behind each window, cross-faded
   // with the lights. They hang on the window, so they hide with its wall.
@@ -355,7 +396,23 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const cloth = win?.getObjectByName('blind_cloth');
     if (!win || !cloth) continue;
     const bar = win.getObjectByName('blind_bar') ?? undefined;
+    // The cloth stops short of the frame (sides and bottom), so a closed blind leaks thin lines of
+    // sun. A shadow-only panel a little bigger than the cloth rolls with it and seals the window.
     const b = new Box3().setFromObject(cloth);
+    const lb = new Box3();
+    cloth.children.forEach((c) => {
+      if (!(c instanceof Mesh)) return;
+      c.geometry.computeBoundingBox();
+      lb.union(c.geometry.boundingBox!.clone().applyMatrix4(c.matrix));
+    });
+    if (!lb.isEmpty()) {
+      const size = lb.getSize(new Vector3()).add(new Vector3(0.08, 0.1, 0.08));
+      const seal = new Mesh(new BoxGeometry(size.x, size.y, size.z), ghostMat);
+      seal.position.copy(lb.getCenter(new Vector3())).add(new Vector3(0, -0.05, 0));
+      seal.castShadow = true;
+      seal.raycast = () => {};
+      cloth.add(seal);
+    }
     blinds.push({ win, cloth, bar, len: (b.max.y - b.min.y) / win.scale.y, barY: bar?.position.y ?? 0, k: 1, t: 1 });
   }
   const blindOf = (o: Object3D | null) => {
@@ -395,14 +452,14 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   };
   aimLamp(lampL, LIGHTS.lamp);
   aimLamp(bedL, LIGHTS.bedside);
-  // Screens wash the desk (and the floor in front of the TV) from the screen itself, angled down.
+  LIGHTS.screen.forEach((id, i) => aimLamp(screenLs[i], id));
+  // The TV washes the floor in front of it from the screen itself, angled down.
   const aimScreen = (l: SpotLight, ids: string[]) => {
     const b = bounds(ids), at = b.getCenter(new Vector3());
     const front = new Vector3(0, 0, 1).applyQuaternion(placed[ids[0]].quaternion);
     l.position.copy(at).addScaledVector(front, 0.08);
     l.target.position.copy(at).addScaledVector(front, 1).add(new Vector3(0, -0.9, 0));
   };
-  aimScreen(screenL, LIGHTS.screen);
   aimScreen(tvL, [LIGHTS.tv]);
 
   // --- small animations: objects that pop out when their page item is in view
@@ -1144,7 +1201,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     fading = true;
     hemi.color.set(t === 'dark' ? 0x7d84ff : 0xffffff);
     sun.color.set(t === 'dark' ? 0x9fb2ff : 0xffffff);
-    sun.position.copy(t === 'dark' ? center.clone().add(new Vector3(-6, 3.65, 1)) : center.clone().add(new Vector3(3.5, 6.15, 5.5)));
+    // Both come in through the west windows (the only way in); the sun a little higher than the moon.
+    sun.position.copy(center.clone().add(t === 'dark' ? new Vector3(-6, 3.65, 1) : new Vector3(-5.5, 4.2, 2)));
     if (opts.reduceMotion) {
       cur = { ...target };
       fading = false;
@@ -1222,7 +1280,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Click an object in full mode → navigate to its section.
   const ray = new Raycaster(), ndc = new Vector2();
   const shown = (o: Object3D | null) => {
-    for (; o; o = o.parent) if (!o.visible) return false;
+    for (; o; o = o.parent) if (!o.visible || o.userData.ghost) return false;
     return true;
   };
   const hitAt = (e: PointerEvent) => {
@@ -1234,7 +1292,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
 
   // Hover bounce: interactive objects (placements with a section) spring up a little under the
   // pointer, with a bit of overshoot, and spring back when it leaves.
-  const placedSet = new Set(Object.values(placed));
+  // Riders (a light bar on its monitor) count as part of what they ride on.
+  const placedSet = new Set(PLACEMENTS.filter((p) => !p.on && placed[p.id]).map((p) => placed[p.id]));
   // Only the objects that bounce are clickable; big furniture (desk, TV stand, rug, door) is scenery.
   const interactiveOf = (o: Object3D | null) => {
     for (; o; o = o.parent) if (placedSet.has(o)) return o.userData.section && o.userData.bounce ? o : undefined;
@@ -1377,7 +1436,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     hemi.intensity = cur.hemi;
     sun.intensity = cur.sun;
     lampL.intensity = cur.lamp;
-    screenL.intensity = cur.screen;
+    screenLs.forEach((l) => (l.intensity = cur.screen));
     bedL.intensity = cur.bed;
     tvL.intensity = cur.tv;
     for (const m of glows) m.emissiveIntensity = cur.emis * 1.2;
@@ -1394,9 +1453,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     v.copy(cam.position).sub(full ? controls.target : camT);
     vp.set(v.x, -v.z);
     const wallOn = wallSets.map((w) => vp.dot(w.n) > -0.4 && (!w.also || vp.dot(w.also) > -0.4));
-    wallSets.forEach((w, i) => w.objs.forEach((o) => (o.visible = wallOn[i])));
-    posts.forEach((p) => (p.m.visible = wallOn[p.a] && wallOn[p.b]));
-    onWall.forEach((w) => (w.o.visible = vp.dot(w.n) > -0.4));
+    wallSets.forEach((w, i) => w.objs.forEach((o) => ghost(o, !wallOn[i])));
+    posts.forEach((p) => ghost(p.m, !(wallOn[p.a] && wallOn[p.b])));
+    onWall.forEach((w) => ghost(w.o, vp.dot(w.n) <= -0.4));
     renderer.render(scene, cam);
     if (full) {
       const w = canvas.clientWidth, h = canvas.clientHeight;

@@ -24,6 +24,8 @@ export interface Placement {
   section?: string;
   /** `false`: big furniture that neither bounces on hover nor takes a click (it's scenery). */
   bounce?: boolean;
+  /** Rides on another placement (moves when it bounces), e.g. a light bar on its monitor. */
+  on?: string;
   /** Set for things in or against a wall (doors, windows): they hide with that wall in the dollhouse view. */
   wall?: Wall['side'];
   /** `false` turns the baked ambient occlusion off (the blinds sit in a niche and bake too dark). */
@@ -95,11 +97,14 @@ export const PLACEMENTS: Placement[] = [
   { id: 'desk', bounce: false, asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
   { id: 'monitorL', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
+  // Light bars on the monitors' top edges (panel 54.3 cm up, its middle 8.7 cm behind the stand).
+  { id: 'barL', asset: 'screenbar', at: [1.18, 3.528], z: 1.2826, on: 'monitorL' },
+  { id: 'barR', asset: 'screenbar', at: [1.82, 3.528], z: 1.2826, on: 'monitorR' },
   { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
   // Nixie clock (Madison time): the monitors leave no gap between them, so it stands right of the keyboard.
   { id: 'clock', asset: 'nixie', at: [1.98, 3.22], z: 0.74 },
-  { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: BLUE }, section: 'playground' },
+  { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: '#c4925e' }, section: 'playground' },
   { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
   { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
@@ -145,9 +150,10 @@ export const LABELS: [section: string, title: string, anchor: string][] = [
   ['playground', 'Playground', 'pinboard'],
 ];
 
-/** Night lights sit at these placements (the lamp heads and the screens); the TV also has an
- * ambilight behind it. The lamps, the ambilight and the clock switch on and off with a click. */
-export const LIGHTS = { lamp: 'lamp', bedside: 'bedLamp', screen: ['monitorL', 'monitorR'], tv: 'tv', ambilight: 'tv', clock: 'clock' };
+/** Night lights sit at these placements (the lamp heads, the monitor light bars, the TV); the TV
+ * also has an ambilight behind it. The lamps, the ambilight and the clock switch on and off with a
+ * click; the light bars just follow the theme. */
+export const LIGHTS = { lamp: 'lamp', bedside: 'bedLamp', screen: ['barL', 'barR'], tv: 'tv', ambilight: 'tv', clock: 'clock' };
 
 /** Things that move on their own: the plant's leaves sway when the view turns. */
 export const DECOR = { plant: 'plant' };
@@ -161,6 +167,8 @@ export const DECOR = { plant: 'plant' };
 export const LAMP_AIM: Record<string, [x: number, y: number, z: number]> = {
   lamp: [0, -0.914, -0.406],
   desklamp: [0.8, 0, -0.6],
+  // The light bar's strip lights the desk in front of the monitor.
+  screenbar: [0, -0.32, -0.95],
 };
 
 /** Windows get a sky outside (day/night) and a blind you can click to roll up or down. */

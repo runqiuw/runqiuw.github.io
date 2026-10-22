@@ -10,7 +10,6 @@ if (!show.playground) return Astro.redirect('/');
 <Base title="Playground" description="Things Runqiu likes: photos, notes, and other bits pinned to the wall.">
   <main id="main" class="page">
     <h1>Playground</h1>
-    <p class="muted">Things I like, pinned to the wall above my desk.</p>
     <Pinboard />
   </main>
 </Base>
@@ -23,9 +22,6 @@ if (!show.playground) return Astro.redirect('/');
   }
   h1 {
     font-size: var(--step-4);
-    margin: 6px 0 8px;
-  }
-  p.muted {
-    margin: 0 0 22px;
+    margin: 6px 0 22px;
   }
 </style>
