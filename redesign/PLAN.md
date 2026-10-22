@@ -19,7 +19,6 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 - Blog / notes (no content yet)
 - News section: code stays, `SHOW_NEWS` off in `Intro.astro` until there's a lot of news
 - Contact section (`show.contact`) and Say hi: a character in the room with the contact shot aimed at it
-- Drag pinned notes on the pinboard (needs zooming in on the board first)
 - Course calendar page (old `assets/html/schedule.html`), if needed again
 - Visitor presence ideas (Spencer Chang's spencer.place); more room detail as new sections appear
 

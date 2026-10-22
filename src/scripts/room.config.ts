@@ -133,6 +133,9 @@ export const SHOTS: Record<string, Shot> = {
   projects: { frame: ['shelf'], dir: [1, -0.45, 0.75], pad: 1.1 },
   games: { frame: ['tv', 'tvstand', 'rug'], dir: [0.3, -1, 0.7], pad: 1.05 },
   playground: { frame: ['pinboard'], dir: [0.12, -1, 0.08], pad: 1.2 },
+  // Not a page section: the close-up the full-screen room flies to when the pinboard is clicked,
+  // where the cards can be dragged around.
+  board: { frame: ['pinboard'], dir: [0, -1, 0.04], pad: 0.95 },
   // No shot for `contact` for now: turning to the door at the end of the page was too big a jump,
   // so the camera stays on the previous section.
 };
