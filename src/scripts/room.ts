@@ -49,9 +49,10 @@ import {
   WebGLRenderer,
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { createToyWorld, Toy, ToyShape } from './room-physics';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CLOSEUPS, DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { CLOSEUPS, DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
@@ -314,6 +315,14 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     g.position.copy(P(p.at[0], p.at[1], p.z ?? 0));
     g.rotation.y = MathUtils.degToRad(p.yaw ?? 0);
     if (p.scale) g.scale.setScalar(p.scale);
+    // Lying on its back (logo face up): tipped over, then turned by `yaw`, its middle at `at` and
+    // its underside at `z`.
+    if (p.lie) {
+      g.rotation.set(-Math.PI / 2, MathUtils.degToRad(p.yaw ?? 0), 0, 'YXZ');
+      g.updateMatrixWorld(true);
+      const b = new Box3().setFromObject(g), c = b.getCenter(new Vector3()), want = P(p.at[0], p.at[1], p.z ?? 0);
+      g.position.add(new Vector3(want.x - c.x, want.y - b.min.y, want.z - c.z));
+    }
     g.traverse((o) => {
       if (!(o instanceof Mesh)) return;
       const role = (o.material as Material).name as Role;
@@ -849,6 +858,25 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     return false;
   };
 
+  // --- prints: a picture on an asset's `print` planes (glTF UVs, not flipped); transparent outside it.
+  for (const [id, src] of Object.entries(PRINTS)) {
+    const planes: Mesh[] = [];
+    placed[id]?.traverse((o) => o instanceof Mesh && (o.material as Material).userData.role === 'print' && planes.push(o));
+    if (!planes.length) continue;
+    const { c, x, tex } = canvasTex(512, 512, false);
+    const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.9 });
+    for (const m of planes) {
+      m.material = mat;
+      m.castShadow = false;
+    }
+    loadImg(src).then((img) => {
+      x.clearRect(0, 0, c.width, c.height);
+      x.drawImage(img, 0, 0, c.width, c.height);
+      tex.needsUpdate = true;
+      dirty = true;
+    }, () => {});
+  }
+
   // --- screens: the `screen` / `cover` planes of the assets (glTF UVs, so textures are not flipped)
   const videos: HTMLVideoElement[] = [];
   // `glowing` screens are unlit (they show their picture as is and reflect nothing); printed
@@ -1261,6 +1289,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // grows at the same time); orbiting and labels start once it has arrived.
   const enterFull = (ms = 0, aspect = cam.aspect, clock?: Clock) => {
     full = true;
+    loadPhysics();
     // The bounding-sphere fit is too cautious on tall portrait screens; tighten it there.
     const q = place({ ...shots.top, r: shots.top.r * (aspect < 0.8 ? 0.78 : 1) }, aspect);
     controls.maxDistance = Math.max(16, q.p.distanceTo(q.t) * 1.3);
@@ -1428,6 +1457,156 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     canvas.style.cursor = o || blindOf(hit) || switchOf(hit) ? 'pointer' : chairTop && isIn(hit, chairTop) ? 'ew-resize' : 'grab';
   });
   canvas.addEventListener('pointerleave', () => hover());
+
+  // --- toys on the bed: the pillow and the school plushes (DECOR.toys). In the room they can be
+  // picked up, carried over the bed and thrown; cannon-es (room-physics.ts, loaded the first time the
+  // room opens) lets them tumble and knock into each other. Thrown, they stay on the bed (it has
+  // invisible walls); carried past its edge, the toy is set down there. A landing squashes the toy
+  // and makes the mattress dip. Colliders come from the manifest (Blender axes x, y, z → x, z, −y).
+  const bedObj = placed[DECOR.bed] ?? null;
+  const mattressObj = bedObj?.getObjectByName('mattress') ?? null;
+  type Collider = number[][];
+  const assetInfo = (id: string) =>
+    manifest.assets[PLACEMENTS.find((p) => p.id === id)!.asset] as {
+      size: number[]; collider?: Collider; collider_spheres?: Collider; pillow_size?: number[]; pillow_pivot?: number[];
+      pillow_collider_spheres?: Collider; mattress_top?: number; mattress_area?: number[][];
+    };
+  // Spheres if the asset has them (they hug the outline and let a plush topple), else boxes, else
+  // one box the size of the asset. `at` is the toy's pivot in the same (Blender) coordinates.
+  const shapesOf = (info: { spheres?: Collider; boxes?: Collider }, size: number[], at = [0, 0, 0]): ToyShape[] =>
+    info.spheres?.length
+      ? info.spheres.map(([cx, cy, cz, r]) => ({ c: [cx - at[0], cz - at[2], -(cy - at[1])], r }))
+      : info.boxes?.length
+        ? info.boxes.map(([cx, cy, cz, sx, sy, sz]) => ({ c: [cx - at[0], cz - at[2], -(cy - at[1])], s: [sx, sz, sy] }))
+        : [{ c: [0, size[2] / 2, 0], s: [size[0], size[2], size[1]] }];
+  const toys: Toy[] = [];
+  if (bedObj) {
+    const pillowObj = bedObj.getObjectByName('pillow');
+    // The pillow leaves the bed's hierarchy for the scene, so physics can move it in world space.
+    if (pillowObj) {
+      scene.attach(pillowObj);
+      const b = assetInfo(DECOR.bed);
+      toys.push({ obj: pillowObj, shapes: shapesOf({ spheres: b.pillow_collider_spheres }, b.pillow_size ?? [0.6, 0.52, 0.12], b.pillow_pivot), mass: 0.5 });
+    }
+    for (const id of DECOR.toys) {
+      const a = placed[id] && assetInfo(id);
+      if (a) toys.push({ obj: placed[id], shapes: shapesOf({ spheres: a.collider_spheres, boxes: a.collider }, a.size), mass: 0.3 });
+    }
+  }
+  const bedTop = bedObj ? assetInfo(DECOR.bed).mattress_top ?? 0.63 : 0;
+  const [[ax0, ay0], [ax1, ay1]] = bedObj ? assetInfo(DECOR.bed).mattress_area ?? [[-0.465, -0.931], [0.465, 0.914]] : [[0, 0], [0, 0]];
+  const bedArea = { x0: ax0, x1: ax1, z0: -ay1, z1: -ay0 };
+  const TOY_LIFT = 0.28;
+  const dip = { s: 0, v: 0 };
+  const squash = toys.map(() => ({ s: 0, v: 0 }));
+  const toyScale = toys.map((t) => t.obj.scale.clone());
+  let phys: ReturnType<typeof createToyWorld> | null = null;
+  let physLoading = false;
+  const loadPhysics = () => {
+    if (phys || physLoading || !bedObj || !toys.length) return;
+    physLoading = true;
+    import('./room-physics')
+      .then(({ createToyWorld }) => {
+        bedObj.updateMatrixWorld(true);
+        phys = createToyWorld(
+          { matrix: bedObj.matrixWorld.clone(), quaternion: bedObj.getWorldQuaternion(new Quaternion()), top: bedTop, area: bedArea },
+          toys,
+          (i, speed, onMattress) => {
+            if (opts.reduceMotion) return;
+            squash[i].v += Math.min(speed, 4) * 1.4;
+            if (onMattress) dip.v += Math.min(speed, 4) * 0.25;
+            dirty = true;
+          },
+        );
+      })
+      .catch((err) => console.warn('Toy physics failed to load; the toys stay put.', err));
+  };
+  const toyAt = (hit: Object3D | null) => toys.findIndex((t) => isIn(hit, t.obj));
+  const topPlane = new Plane(), topHit = new Vector3();
+  // Where the pointer ray (set by `hitAt`) meets the mattress top (world), or null.
+  const onTop = () => {
+    const h = bedObj!.localToWorld(new Vector3(0, bedTop, 0)).y;
+    topPlane.set(new Vector3(0, 1, 0), -h);
+    return ray.ray.intersectPlane(topPlane, topHit);
+  };
+  // Whether a world point is over the mattress (with a little slack past its edge).
+  const overBed = (p: Vector3) => {
+    const l = bedObj!.worldToLocal(p.clone()), m = 0.1;
+    return l.x >= bedArea.x0 - m && l.x <= bedArea.x1 + m && l.z >= bedArea.z0 - m && l.z <= bedArea.z1 + m;
+  };
+  let toyGrab: { id: number; off: Vector3; y: number } | null = null;
+  canvas.addEventListener(
+    'pointerdown',
+    (e) => {
+      if (!phys || !full || focused || flying) return;
+      const i = toyAt(hitAt(e) ?? null);
+      if (i < 0 || !onTop()) return;
+      e.stopImmediatePropagation();
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {}
+      const p = toys[i].obj.position;
+      toyGrab = { id: e.pointerId, off: new Vector3(p.x - topHit.x, 0, p.z - topHit.z), y: topHit.y + TOY_LIFT };
+      phys.grab(i, new Vector3(p.x, toyGrab.y, p.z));
+      canvas.style.cursor = 'grabbing';
+      dirty = true;
+    },
+    { capture: true },
+  );
+  canvas.addEventListener(
+    'pointermove',
+    (e) => {
+      if (!toyGrab || e.pointerId !== toyGrab.id) return;
+      e.stopImmediatePropagation();
+      hitAt(e);
+      if (!onTop()) return;
+      // Carried past the edge: set it down at the nearest edge.
+      if (!overBed(topHit)) {
+        phys!.setDown(topHit);
+        toyGrab = null;
+        canvas.style.cursor = 'grab';
+        return;
+      }
+      phys!.carry(topHit.add(toyGrab.off).setY(toyGrab.y));
+      dirty = true;
+    },
+    { capture: true },
+  );
+  const endToyGrab = (e: PointerEvent) => {
+    if (!toyGrab || e.pointerId !== toyGrab.id) return;
+    e.stopImmediatePropagation();
+    toyGrab = null;
+    phys!.release();
+    canvas.style.cursor = 'grab';
+    dirty = true;
+  };
+  canvas.addEventListener('pointerup', endToyGrab, { capture: true });
+  canvas.addEventListener('pointercancel', endToyGrab, { capture: true });
+
+  // A spring that returns to 0; `k` stiffness, `c` damping.
+  const stepSpring = (sp: { s: number; v: number }, dt: number, k: number, c: number) => {
+    if (Math.abs(sp.s) < 1e-4 && Math.abs(sp.v) < 1e-3) return (sp.s = sp.v = 0), false;
+    sp.v += (-k * sp.s - c * sp.v) * dt;
+    sp.s += sp.v * dt;
+    return true;
+  };
+  const stepToys = (dt: number) => {
+    if (!toys.length || !dt) return false;
+    let moving = !!phys?.step(dt);
+    squash.forEach((sq, i) => {
+      if (!stepSpring(sq, dt, 260, 14)) return;
+      sq.s = MathUtils.clamp(sq.s, -0.25, 0.35);
+      const b = toyScale[i];
+      toys[i].obj.scale.set(b.x * (1 + sq.s * 0.35), b.y * (1 - sq.s), b.z * (1 + sq.s * 0.35));
+      moving = true;
+    });
+    if (stepSpring(dip, dt, 180, 9)) {
+      dip.s = MathUtils.clamp(dip.s, -0.04, 0.08);
+      if (mattressObj) mattressObj.scale.y = 1 - dip.s;
+      moving = true;
+    }
+    return moving;
+  };
 
   // Picking a section in the full-screen room: fly to its shot first, then hand over to the page
   // (which shrinks the room back into the panel and scrolls there).
@@ -1733,6 +1912,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const dt = Math.min(0.033, (now - (lastNow || now)) / 1000);
     if (stepSprings(dt)) dirty = true;
     if (stepChair(dt)) dirty = true;
+    if (stepToys(dt)) dirty = true;
     if (stepSway(dt)) dirty = true;
     if (stepCards(dt)) dirty = true;
     lastNow = now;

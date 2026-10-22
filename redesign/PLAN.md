@@ -9,11 +9,11 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 
 ### 2. Deferred
 - Project models for the shelf (deferred 2026-10-21). Toy-sized figurines that fit a 30 cm tier; the item in view lights up. Rover, robotic arm, vehicle from CAD (STEP/STL → decimate → clay roles; fallback: model from photos); IMU = phone + watch + earbuds; SketchGenie = AR headset; Telegram Chatbot = robot head / speech bubble
-- Bed pillows (deferred 2026-10-22): three pillows printed with the school logos (SJTU-UM Joint Institute, UMich, UW-Madison). Mascot plush toys were tried as concept renders and dropped: not feasible within the asset budget
 - Travel map: a map poster on the wall → `/travel` (no content yet)
 - Blog / notes (no content yet)
 - Say hi character: a character (design TBD) standing in the room, e.g. by the door, with the contact camera shot aimed at it. When it exists: add the `contact` shot in `SHOTS`, a `Say hi` label anchored on the character, make the character clickable (it bounces like the other interactive objects), and turn `show.contact` on. Until then the Say hi section is hidden and the door is scenery
-- Visitor presence ideas (Spencer Chang's spencer.place); more room detail as new sections appear
+- Visitor map (deferred 2026-10-22): a Playground card with a world map of recent visitors, like many academic GitHub Pages sites. Preferred: a hosted service that runs the backend, pasted in as a `<script>` snippet: **MapMyVisitors** (mapmyvisitors.com; clicking the small map opens a public stats page with a bigger map and recent visitors) or **ClustrMaps** (clustrmaps.com). Caveats: their map style, not the clay look; visitors' IPs go to the third party and the recent-visitor list (city, browser, time) is public; the room's pinboard most likely can't draw their cross-origin image (canvas taint), so it would show a plain "Visitor map" note. Fallbacks if more control is wanted later: GoatCounter (no cookies, country/region only) + a daily GitHub Action that pulls the last 30 days and redraws the dots with the distance card's MapLibre map (check its API exports regions first); or a self-run Cloudflare Worker (city-level, real-time, most work). Live "who else is here now" presence (Spencer Chang's spencer.place) was set aside: with low traffic it nearly always shows only the visitor. To do it: sign up and add runqiuw.github.io (me), then send the snippet
+- More room detail as new sections appear
 
 ### Not doing
 - News section (2026-10-22): the code stays in `Intro.astro` with `SHOW_NEWS` off, but no plan to turn it on
@@ -56,9 +56,9 @@ Clips: any resolution; trim to ≤ ~1 MB muted mp4 under `public/assets/video/`.
 
 ### Performance budget
 - Text first: static HTML, LCP never waits for 3D. three.js loads on idle on desktop, on demand on mobile.
-- No physics or post-processing. Real-time light (hemisphere + one shadowed sun/moon + night lamps); per-asset baked AO only. Render on demand; stop when off-screen or the tab is hidden.
+- No post-processing. Physics only for the toys on the bed (the pillow and the UMich M / UW W / SJTU gear plushes: pick up, throw, knock into each other): cannon-es in its own chunk (~24 KB gzip), loaded when the full-screen room first opens, bodies sleep when settled. Real-time light (hemisphere + one shadowed sun/moon + night lamps); per-asset baked AO only. Render on demand; stop when off-screen or the tab is hidden.
 - Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a shadow-only ceiling and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22).
-- All 3D assets ≤ ~3 MB (now 0.77 MB, meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
+- All 3D assets ≤ ~3 MB (now 1.39 MB, meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
 - Lighthouse home page: Performance ≥ 90 desktop / ≥ 80 mobile, Accessibility ≥ 95.
 
 ## 3D assets

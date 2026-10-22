@@ -6,7 +6,7 @@
 // Assets come from public/room/assets/<asset>.glb (exported by bin/room-assets).
 
 export type Plan = [x: number, y: number];
-export type Role = 'frame' | 'fabric' | 'wood' | 'metal' | 'screen' | 'glass' | 'glow' | 'accent' | 'leaf' | 'digit';
+export type Role = 'frame' | 'fabric' | 'wood' | 'metal' | 'screen' | 'glass' | 'glow' | 'accent' | 'leaf' | 'digit' | 'print';
 
 export interface Placement {
   /** Unique name, used by shots, lights and screens. */
@@ -30,6 +30,8 @@ export interface Placement {
   wall?: Wall['side'];
   /** `false` turns the baked ambient occlusion off (the blinds sit in a niche and bake too dark). */
   ao?: boolean;
+  /** Lie it on its back (logo face up) instead of standing it up; `at` is then its middle. */
+  lie?: boolean;
 }
 
 export interface Wall {
@@ -119,7 +121,12 @@ export const PLACEMENTS: Placement[] = [
   { id: 'windowA', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
   { id: 'windowB', asset: 'window', at: [-0.064, 2.385], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
-  { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72' } },
+  // Bedding: a blue-grey fitted sheet and pillow (fabric).
+  { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72', fabric: '#9aa5c8' } },
+  // School plushes lying on the bed below the pillow, tops toward the head (toys: physics in the room).
+  { id: 'plushUmich', asset: 'plush_umich', at: [0.86, 0.3], z: 0.63, yaw: 98, lie: true },
+  { id: 'plushUw', asset: 'plush_uw', at: [0.9, 0.8], z: 0.63, yaw: 84, lie: true },
+  { id: 'plushSjtu', asset: 'plush_sjtu', at: [1.3, 0.55], z: 0.63, yaw: 95, lie: true },
   { id: 'nightstand', asset: 'nightstand', at: [0.188, 1.315], yaw: 90, colors: { frame: '#1fbf93', wood: '#1fbf93' } },
   // Floor plant against the left wall between the two windows; its leaves sway when the view turns.
   { id: 'plant', asset: 'plant', at: [0.3, 1.81], yaw: 90 },
@@ -170,8 +177,12 @@ export const LABELS: [section: string, title: string, anchor: string][] = [
  * click; the light bars just follow the theme. */
 export const LIGHTS = { lamp: 'lamp', bedside: 'bedLamp', screen: ['barL', 'barR'], tv: 'tv', ambilight: 'tv', clock: 'clock' };
 
-/** Things that move on their own: the plant's leaves sway when the view turns. */
-export const DECOR = { plant: 'plant' };
+/** Things that move: the plant's leaves sway when the view turns; the bed's pillow and the plushes
+ * on it (`toys`) can be picked up and thrown, and knock into each other. */
+export const DECOR = { plant: 'plant', bed: 'bed', toys: ['plushUmich', 'plushUw', 'plushSjtu'] };
+
+/** Pictures printed on an asset's `print` planes (the SJTU plush carries the emblem's inner field). */
+export const PRINTS: Record<string, string> = { plushSjtu: '/room/prints/sjtu.webp' };
 
 /**
  * Which way each lamp asset's head shines, in the asset's own Blender axes (x right, y back, z up;
