@@ -57,7 +57,7 @@ Clips: any resolution; trim to ≤ ~1 MB muted mp4 under `public/assets/video/`.
 ### Performance budget
 - Text first: static HTML, LCP never waits for 3D. three.js loads on idle on desktop, on demand on mobile.
 - No post-processing. Physics only for the toys on the bed (the pillow and the UMich M / UW W / SJTU gear plushes: pick up, throw, knock into each other): cannon-es in its own chunk (~24 KB gzip), loaded when the full-screen room first opens, bodies sleep when settled. Real-time light (hemisphere + one shadowed sun/moon + night lamps); per-asset baked AO only. Render on demand; stop when off-screen or the tab is hidden.
-- Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a shadow-only ceiling and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22).
+- Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a shadow-only ceiling and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22). The shelf has a warm LED strip under each tier with project frames (no shadows); on at night like the light bars.
 - All 3D assets ≤ ~3 MB (now 1.39 MB, meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
 - Lighthouse home page: Performance ≥ 90 desktop / ≥ 80 mobile, Accessibility ≥ 95.
 

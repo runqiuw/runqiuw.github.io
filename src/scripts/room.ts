@@ -59,14 +59,14 @@ import { CLOSEUPS, DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, WINDOWS,
 
 type Shot = { t: Vector3; dir: Vector3; r: number };
 type Manifest = {
-  assets: Record<string, { size: number[]; mount?: string; tiers?: number[]; screen?: { aspect: number }; cover?: { aspect: number } }>;
+  assets: Record<string, { size: number[]; mount?: string; tiers?: number[]; tier_clear?: number; screen?: { aspect: number }; cover?: { aspect: number } }>;
 };
 
 const ASSETS = '/room/assets/';
 const INK = '#14183a';
 const LEVELS = {
-  light: { hemi: 0.65, env: 0.6, sun: 2.6, screen: 0, tv: 0, emis: 0.12, night: 0 },
-  dark: { hemi: 0.5, env: 1, sun: 0.4, screen: 3.2, tv: 1.8, emis: 1.2, night: 1 },
+  light: { hemi: 0.65, env: 0.6, sun: 2.6, screen: 0, tv: 0, shelf: 0, emis: 0.12, night: 0 },
+  dark: { hemi: 0.5, env: 1, sun: 0.4, screen: 3.2, tv: 1.8, shelf: 1.4, emis: 1.2, night: 1 },
 };
 /** Lights you can click on and off in the full-screen room, and each one's level when on. They all
  * come on with the dark theme and go off with the light one; a click flips one until the next switch. */
@@ -1088,6 +1088,21 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       });
     return { id: el.dataset.item, pop: poppable(f, { p: new Vector3(0, 0.02, 0.07), r: 0.2, s: 0.1 }) };
   });
+  // Display lights: an LED strip under the front edge of the board above each tier with frames,
+  // shining down and back onto them. Like the monitor light bars they follow the theme (on at night).
+  const shelfAsset = manifest.assets[PLACEMENTS.find((p) => p.id === SCREENS.shelf)!.asset];
+  const clear = shelfAsset.tier_clear ?? 0.33, depth = shelfAsset.size[1];
+  const shelfGlow = new MeshStandardMaterial({ color: new Color('#fff4e0'), emissive: new Color('#ffd9a0'), emissiveIntensity: 0 });
+  const shelfLs = tiers.map((tier) => {
+    const strip = new Mesh(new BoxGeometry(shelfW - 0.04, 0.006, 0.012), shelfGlow);
+    strip.position.set(0, tier + clear - 0.004, depth / 2 - 0.035);
+    strip.raycast = () => {};
+    const l = new SpotLight(0xffe2b8, 0, 0.6, 0.85, 1, 1.5);
+    l.position.copy(strip.position);
+    l.target.position.set(0, tier, -depth / 2);
+    shelf.add(strip, l, l.target);
+    return l;
+  });
 
   // Pinboard cards: a sticky note (or a photo) per playground item, pinned on the `board` plane.
   const boardGroup = placed[SCREENS.pinboard];
@@ -1906,6 +1921,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     sun.intensity = cur.sun;
     lampL.intensity = cur.lamp;
     screenLs.forEach((l) => (l.intensity = cur.screen));
+    shelfLs.forEach((l) => (l.intensity = cur.shelf));
+    shelfGlow.emissiveIntensity = cur.shelf * 1.2;
     bedL.intensity = cur.bed;
     tvL.intensity = cur.tv;
     for (const m of glows) m.emissiveIntensity = cur.emis * 1.2;
