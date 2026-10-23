@@ -216,8 +216,10 @@ import night from '../assets/img/room/poster-night.webp';
     if (push) history.pushState({ room: 2, closeup: id }, '', `#room/${id}`);
     exitBtn.hidden = true;
     help.hidden = true;
+    // A close-up without a page section (the hoops bin) has no "on the page" button.
     const section = CLOSEUPS[id].section;
-    toPage.textContent = `${document.querySelector(`#${section} h2`)?.textContent?.trim() || 'This'} on the page →`;
+    toPage.hidden = !section;
+    if (section) toPage.textContent = `${document.querySelector(`#${section} h2`)?.textContent?.trim() || 'This'} on the page →`;
     await (await room)!.focus(id);
     if (closeup !== id) return;
     closeBar.hidden = false;
@@ -270,9 +272,9 @@ import night from '../assets/img/room/poster-night.webp';
     closeBar.addEventListener('click', async (e) => {
       const b = (e.target as HTMLElement).closest<HTMLElement>('[data-closeup]')?.dataset.closeup;
       if (b === 'back') back();
-      else if (b === 'page' && closeup) {
+      else if (b === 'page' && CLOSEUPS[closeup]?.section) {
         closeBar.hidden = true;
-        (await room)!.visit(CLOSEUPS[closeup].section);
+        (await room)!.visit(CLOSEUPS[closeup].section!);
       }
     });
     addEventListener('keydown', (e) => {
@@ -512,9 +514,35 @@ import night from '../assets/img/room/poster-night.webp';
   .closeup:not([hidden]) {
     animation: room-ui-in 0.28s ease-out both;
   }
-  .closeup .room-pin {
+  /* The hoops game (room-hoops.ts) adds its projectile buttons to this bar, so match them globally. */
+  .closeup :global(.room-pin) {
     position: static;
     translate: none;
+  }
+  .closeup :global(.room-pin[hidden]) {
+    display: none;
+  }
+  .closeup :global(.room-pin[aria-pressed='true']) {
+    background: var(--blue);
+    color: var(--on-blue);
+  }
+  /* The hoops score (made / attempts), top right where the "Back to page" button is in the room. */
+  .frame :global(.hoops-score) {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    z-index: 3;
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font: 600 14px var(--font-display);
+    box-shadow: var(--clay);
+    pointer-events: none;
+  }
+  .frame :global(.hoops-score[hidden]) {
+    display: none;
   }
   @media (prefers-reduced-motion: reduce) {
     .closeup:not([hidden]) {

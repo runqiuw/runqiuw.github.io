@@ -4,6 +4,41 @@
   "front": "-Y",
   "up": "+Z (glTF +Y)",
   "assets": {
+    "ball_bouncy": {
+      "file": "ball_bouncy.glb",
+      "catalog": "Room/Toys",
+      "mount": "floor",
+      "size": [
+        0.065,
+        0.065,
+        0.065
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame"
+      ],
+      "triangles": 440,
+      "bytes": 7376,
+      "description": "Bouncy rubber ball (Ø 6.5 cm) with a tilted stripe; origin at its centre."
+    },
+    "ball_paper": {
+      "file": "ball_paper.glb",
+      "catalog": "Room/Toys",
+      "mount": "floor",
+      "size": [
+        0.0713,
+        0.0746,
+        0.0722
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric"
+      ],
+      "triangles": 320,
+      "bytes": 10840,
+      "description": "Crumpled paper ball (Ø ~7 cm); origin at its centre."
+    },
     "beanbag": {
       "file": "beanbag.glb",
       "catalog": "Sections/Games",
@@ -283,6 +318,30 @@
         0
       ]
     },
+    "bottle": {
+      "file": "bottle.glb",
+      "catalog": "Room/Toys",
+      "mount": "floor",
+      "size": [
+        0.0658,
+        0.0658,
+        0.21
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "fabric",
+        "glass"
+      ],
+      "triangles": 600,
+      "bytes": 10168,
+      "description": "Empty 0.5 L plastic bottle; origin at the centre of the body cylinder, cap up (+z).",
+      "body_cylinder": {
+        "radius": 0.0325,
+        "z_min": -0.075,
+        "z_max": 0.075
+      }
+    },
     "cart": {
       "file": "cart.glb",
       "catalog": "Room/Furniture",
@@ -445,6 +504,28 @@
       "triangles": 1692,
       "bytes": 36772,
       "description": "Glass shelf at the bed end (size estimated from photos)."
+    },
+    "hoopbin": {
+      "file": "hoopbin.glb",
+      "catalog": "Room/Toys",
+      "mount": "floor",
+      "size": [
+        0.275,
+        0.275,
+        0.2991
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame"
+      ],
+      "triangles": 528,
+      "bytes": 8788,
+      "description": "Round office bin for the trash-can basketball game: tapered, open top, rolled rim.",
+      "opening": {
+        "r_inner": 0.1235,
+        "rim_z": 0.3
+      }
     },
     "keyboard": {
       "file": "keyboard.glb",
