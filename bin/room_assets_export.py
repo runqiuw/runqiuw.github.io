@@ -72,7 +72,7 @@ def export(coll):
         if key in ("catalog", "mount", "elevation", "note") or key in entry:
             continue
         value = coll[key]
-        entry[key] = json.loads(value) if isinstance(value, str) and value[:1] in "[{" else value
+        entry[key] = json.loads(value) if isinstance(value, str) and value.startswith(("[", "{")) else value
     for o, (loc, n) in saved.items():
         o.location = loc
     for o, (loc, n) in saved.items():

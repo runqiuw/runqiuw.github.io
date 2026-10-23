@@ -11,6 +11,11 @@ npm run build    # static site in dist/
 npm run check    # type-check .astro / .ts files
 ```
 
+After building, start `npm run preview` and run `npm run check:room` to check panel video playback,
+idle WebGL rendering and the three hoops projectiles in headless Chrome with SwiftShader.
+Set `URL` for a different preview port and `CHROME` for a different Chrome executable;
+`VIDEO_FALLBACK=1` also checks the 30 fps path used without video-frame callbacks.
+
 ## Where things live
 
 | What | Where |
@@ -24,6 +29,9 @@ npm run check    # type-check .astro / .ts files
 | Images (optimized at build) | `src/assets/img/` |
 | Files served as-is (CV PDF, audio, video, GIFs) | `public/assets/` |
 | Redesign plan and notes | `redesign/` |
+| Room layout, shots, lights, close-ups | `src/scripts/room.config.ts` |
+| Room rendering and video playback | `src/scripts/room.ts` |
+| Bed toys / hoops physics | `src/scripts/room-physics.ts`, `src/scripts/room-hoops.ts` |
 
 ## CV
 

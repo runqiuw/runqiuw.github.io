@@ -53,11 +53,12 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { createToyWorld, Toy, ToyShape } from './room-physics';
+import type { createHoops } from './room-hoops';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CLOSEUPS, DECOR, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { CLOSEUPS, DECOR, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
-type Shot = { t: Vector3; dir: Vector3; r: number };
+type Shot = { t: Vector3; dir: Vector3; r: number; far?: number };
 type Manifest = {
   assets: Record<string, { size: number[]; mount?: string; tiers?: number[]; tier_clear?: number; screen?: { aspect: number }; cover?: { aspect: number } }>;
 };
@@ -247,6 +248,17 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     matCache.set(key, m);
     return m;
   };
+  // Every part of an asset gets the material of its role, in `colors` where it gives one. `lamp` is
+  // the placement id of a lamp: its glow switches on its own, and its head casts no shadow.
+  const dress = (g: Object3D, colors?: Partial<Record<Role, string>>, ao = true, lamp = '') =>
+    g.traverse((o) => {
+      if (!(o instanceof Mesh)) return;
+      const role = (o.material as Material).name as Role;
+      o.material = material(role, colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, ao && o.geometry.hasAttribute('_ao'), role === 'glow' ? lamp : '');
+      // A lamp's own head would shade its light with a hard edge right beside it (the pinboard).
+      o.castShadow = role !== 'glass' && !lamp;
+      o.receiveShadow = true;
+    });
 
   // --- room shell: floor slab and walls with window/door openings, built from the measured outline
   const T = SHELL.thickness, H = SHELL.height;
@@ -352,16 +364,10 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       const b = new Box3().setFromObject(g), c = b.getCenter(new Vector3()), want = P(p.at[0], p.at[1], p.z ?? 0);
       g.position.add(new Vector3(want.x - c.x, want.y - b.min.y, want.z - c.z));
     }
-    g.traverse((o) => {
-      if (!(o instanceof Mesh)) return;
-      const role = (o.material as Material).name as Role;
-      o.material = material(role, p.colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, p.ao !== false && o.geometry.hasAttribute('_ao'), role === 'glow' && lampIds.has(p.id) ? p.id : '');
-      // A lamp's own head would shade its light with a hard edge right beside it (the pinboard).
-      o.castShadow = role !== 'glass' && !lampIds.has(p.id);
-      o.receiveShadow = true;
-    });
-    // A section hidden on the page (e.g. Playground) leaves its object as plain decoration.
-    g.userData.section = p.section && document.getElementById(p.section) ? p.section : undefined;
+    dress(g, p.colors, p.ao !== false, lampIds.has(p.id) ? p.id : '');
+    // A section hidden on the page (e.g. Playground) leaves its object as plain decoration. An object
+    // whose close-up has no section (the hoops bin) goes by the close-up id: still clickable, labeled.
+    g.userData.section = p.section && document.getElementById(p.section) ? p.section : Object.keys(CLOSEUPS).find((k) => CLOSEUPS[k].object === p.id && !CLOSEUPS[k].section);
     g.userData.bounce = p.bounce !== false;
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
@@ -949,7 +955,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   }
 
   // --- screens: the `screen` / `cover` planes of the assets (glTF UVs, so textures are not flipped)
-  const videos: HTMLVideoElement[] = [];
+  const videos = new Set<HTMLVideoElement>();
+  const videoPlayback: (() => void)[] = [];
+  let videosPlaying = false;
   // `glowing` screens are unlit (they show their picture as is and reflect nothing); printed
   // surfaces like game covers take the room light.
   const makeScreen = (id: string, node: string, aspect: number, width = 640, glowing = true) => {
@@ -959,14 +967,29 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     mesh.material = mat;
     let video: HTMLVideoElement | null = null;
     let vtex: VideoTexture | null = null;
+    let videoFallback = () => {};
     let req = 0;
     const useCanvas = () => {
       video?.pause();
+      if (video) videos.delete(video);
       if (mat.map !== tex) {
         mat.map = tex;
         mat.needsUpdate = true;
       }
     };
+    const syncPlayback = () => {
+      if (!video || mat.map !== vtex) return;
+      if (!videosPlaying) return video.pause();
+      const current = video, r = req;
+      current.play().catch((err) => {
+        // Pausing during a view change can abort a pending play(). An older request must not
+        // replace the new item (or its paused video) with a fallback.
+        if (err.name === 'AbortError' || !videosPlaying || current !== video || r !== req || mat.map !== vtex) return;
+        useCanvas();
+        videoFallback();
+      });
+    };
+    videoPlayback.push(syncPlayback);
     return {
       mesh,
       draw(fn: (x: CanvasRenderingContext2D, w: number, h: number) => void) {
@@ -987,20 +1010,29 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
         req++;
         if (!video || video.dataset.src !== src) {
           video?.pause();
+          if (video) videos.delete(video);
           vtex?.dispose();
           video = Object.assign(document.createElement('video'), { src, muted: true, loop: true, playsInline: true });
           video.dataset.src = src;
-          videos.push(video);
           vtex = new VideoTexture(video);
           vtex.colorSpace = SRGBColorSpace;
           vtex.flipY = false;
+          if (typeof video.requestVideoFrameCallback === 'function') {
+            const current = video;
+            const nextFrame = () => {
+              if (current !== video) return;
+              if (videosPlaying && mat.map === vtex && !current.paused) dirty = true;
+              current.requestVideoFrameCallback(nextFrame);
+            };
+            current.requestVideoFrameCallback(nextFrame);
+          }
         }
+        if (video) videos.add(video);
         mat.map = vtex;
         mat.needsUpdate = true;
-        video.play().catch(() => {
-          useCanvas();
-          fallback();
-        });
+        videoFallback = fallback;
+        syncPlayback();
+        dirty = true;
       },
     };
   };
@@ -1310,12 +1342,12 @@ uniform float uStripEnd;
 
   // --- camera shots from the config
   const shot = (d: ShotDef): Shot => {
-    if (d.center) return { t: P(...d.center), dir: PD(d.dir), r: d.r ?? 3 };
+    if (d.center) return { t: P(...d.center), dir: PD(d.dir), r: d.r ?? 3, far: d.far };
     const b = bounds(d.frame ?? []);
     const t = b.getCenter(new Vector3());
     t.y += d.lift ?? 0;
     const s = b.getSize(new Vector3());
-    return { t, dir: PD(d.dir), r: Math.max(s.x, s.y, s.z) * 0.5 * (d.pad ?? 1.35) + 0.15 };
+    return { t, dir: PD(d.dir), r: Math.max(s.x, s.y, s.z) * 0.5 * (d.pad ?? 1.35) + 0.15, far: d.far };
   };
   const shots = Object.fromEntries(Object.entries(SHOTS).map(([k, d]) => [k, shot(d)])) as Record<string, Shot>;
   const closeShots = Object.fromEntries(Object.entries(CLOSEUPS).map(([k, c]) => [k, shot(c.shot)])) as Record<string, Shot>;
@@ -1323,7 +1355,7 @@ uniform float uStripEnd;
   const labels = document.createElement('div');
   labels.className = 'room-pins';
   labels.hidden = true;
-  const shownLabels = LABELS.filter(([k]) => document.getElementById(k));
+  const shownLabels = LABELS.filter(([k]) => document.getElementById(k) || (CLOSEUPS[k] && placed[CLOSEUPS[k].object]));
   labels.innerHTML = shownLabels.map(([k, t]) => `<button type="button" class="room-pin" data-go="${k}">${t}</button>`).join('');
   labels.addEventListener('pointerover', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
@@ -1371,7 +1403,7 @@ uniform float uStripEnd;
   // canvas will have at the end of the morph.
   const place = (s: Shot, aspect = cam.aspect) => {
     const v = MathUtils.degToRad(cam.fov) / 2, h = Math.atan(Math.tan(v) * aspect);
-    return { t: s.t.clone(), p: s.t.clone().addScaledVector(s.dir, s.r / Math.sin(Math.min(v, h))) };
+    return { t: s.t.clone(), p: s.t.clone().addScaledVector(s.dir, Math.min(s.far ?? Infinity, s.r / Math.sin(Math.min(v, h)))) };
   };
   const jump = (s: Shot) => {
     const q = place(s);
@@ -1774,6 +1806,81 @@ uniform float uStripEnd;
     return moving;
   };
 
+  // --- trash-can basketball (the `hoops` close-up): a bin past the foot of the bed and a backboard
+  // taped on the wall above it. The game (room-hoops.ts: projectiles, aiming, physics, score) loads
+  // the first time the close-up opens.
+  const binObj = placed[HOOPS.bin] ?? null;
+  if (binObj) {
+    const b = new Box3().setFromObject(binObj), W = 0.84, Hb = 0.54;
+    const { c, x, tex } = canvasTex(512, (512 * Hb) / W);
+    const k = c.width / W, tw = 0.024 * k;
+    // A strip of tape from (x0, y0) to (x1, y1) in meters on the board, its ends running a little
+    // past the corners and laid slightly crooked, like by hand.
+    let seed = 5;
+    const strip = (x0: number, y0: number, x1: number, y1: number) => {
+      seed = (seed * 9301 + 49297) % 233280;
+      const a = Math.atan2(y1 - y0, x1 - x0) + (seed / 233280 - 0.5) * 0.012, len = Math.hypot(x1 - x0, y1 - y0) * k + tw * 1.4;
+      x.save();
+      x.translate(((x0 + x1) / 2) * k, c.height - ((y0 + y1) / 2) * k);
+      x.rotate(-a);
+      x.fillRect(-len / 2, -tw / 2, len, tw);
+      x.restore();
+    };
+    x.fillStyle = '#1d1e2b';
+    const m = 0.03, sq = [W / 3, 0.23], sy = 0.07;
+    strip(m, m, W - m, m);
+    strip(m, Hb - m, W - m, Hb - m);
+    strip(m, m, m, Hb - m);
+    strip(W - m, m, W - m, Hb - m);
+    // The small square over the rim.
+    const sx = (W - sq[0]) / 2;
+    strip(sx, sy, sx + sq[0], sy);
+    strip(sx, sy + sq[1], sx + sq[0], sy + sq[1]);
+    strip(sx, sy, sx, sy + sq[1]);
+    strip(sx + sq[0], sy, sx + sq[0], sy + sq[1]);
+    const tape = new Mesh(
+      new PlaneGeometry(W, Hb),
+      new MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.45, polygonOffset: true, polygonOffsetFactor: -2 }),
+    );
+    // On the front wall's face (plan y = 0), facing into the room, its bottom just above the rim.
+    tape.position.set((b.min.x + b.max.x) / 2, b.max.y + 0.05 + Hb / 2, -0.002);
+    tape.rotation.y = Math.PI;
+    tape.receiveShadow = true;
+    tape.raycast = () => {};
+    scene.add(tape);
+    onWall.push({ n: inward.S, o: tape });
+  }
+  let hoops: ReturnType<typeof createHoops> | null = null;
+  let hoopsLoading = false;
+  const enterHoops = () => {
+    if (hoops) return hoops.enter();
+    if (hoopsLoading || !binObj) return;
+    hoopsLoading = true;
+    const ys = SHELL.outline.map(([, y]) => y), xs = SHELL.outline.map(([x]) => x);
+    const bedBox = bedObj ? new Box3().setFromObject(bedObj) : null;
+    if (bedBox) bedBox.max.y = bedObj!.localToWorld(new Vector3(0, bedTop, 0)).y;
+    import('./room-hoops')
+      .then(({ createHoops }) => {
+        hoops = createHoops({
+          scene, canvas, frame,
+          bar: frame.querySelector<HTMLElement>('.closeup') ?? frame,
+          bin: new Box3().setFromObject(binObj),
+          binR: (manifest.assets[PLACEMENTS.find((p) => p.id === HOOPS.bin)!.asset] as { opening?: { r_inner: number } }).opening?.r_inner,
+          from: P(...HOOPS.from),
+          // The room's walls (world x and z) and the furniture a throw can hit.
+          room: { x0: Math.min(...xs), x1: Math.max(...xs), z0: -Math.max(...ys), z1: -Math.min(...ys) },
+          boxes: bedBox ? [bedBox] : [],
+          load: (name) => loader.loadAsync(`${ASSETS}${name}.glb`).then((g) => g.scene, () => null),
+          dress,
+          reduceMotion: opts.reduceMotion,
+          redraw: () => (dirty = true),
+        });
+        if (focused === 'hoops') hoops.enter();
+      })
+      .catch((err) => console.warn('Hoops failed to load.', err))
+      .finally(() => (hoopsLoading = false));
+  };
+
   // Picking a section in the full-screen room: fly to its shot first, then hand over to the page
   // (which shrinks the room back into the panel and scrolls there).
   let flying = false;
@@ -1804,7 +1911,10 @@ uniform float uStripEnd;
   // and off. Orbit, labels and hover are off while one is open.
   let focused: string | null = null;
   let beforeFocus = { t: new Vector3(), p: new Vector3() };
-  const closeupHooks: Record<string, { leave?: () => void }> = { board: { leave: () => closeBoard() } };
+  const closeupHooks: Record<string, { enter?: () => void; leave?: () => void }> = {
+    board: { leave: () => closeBoard() },
+    hoops: { enter: () => enterHoops(), leave: () => hoops?.leave() },
+  };
   const flyTo = (q: { t: Vector3; p: Vector3 }, id: string) =>
     new Promise<void>((done) => {
       if (opts.reduceMotion) {
@@ -1834,6 +1944,7 @@ uniform float uStripEnd;
     hover();
     canvas.style.cursor = '';
     await flyTo(place(closeShots[id]), `closeup:${id}`);
+    if (focused === id) closeupHooks[id]?.enter?.();
     dirty = true;
   };
   const unfocus = async () => {
@@ -1945,7 +2056,7 @@ uniform float uStripEnd;
       const { i } = drag;
       drop();
       // A click (no drag) on a card goes to that card on the page.
-      if (still) visit(CLOSEUPS.board.section, cards[i].id);
+      if (still) visit(CLOSEUPS.board.section!, cards[i].id);
       return;
     }
     // A click beside the board goes back to the room.
@@ -1996,7 +2107,20 @@ uniform float uStripEnd;
   resize();
 
   let visible = true;
-  new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(frame);
+  // The page panel plays clips; the free room and its close-ups keep the last video frame.
+  // Pause decoding as well as redraws, and resume only the current screen content on return.
+  const syncVideos = () => {
+    const playing = !full && visible && !document.hidden;
+    if (playing === videosPlaying) return;
+    videosPlaying = playing;
+    videoPlayback.forEach((sync) => sync());
+  };
+  new IntersectionObserver(([e]) => {
+    visible = e.isIntersecting;
+    syncVideos();
+  }).observe(frame);
+  document.addEventListener('visibilitychange', syncVideos);
+  syncVideos();
   const v = new Vector3(), vp = new Vector2();
   // Keep drawing for ~2 s after mount: frames drawn while the canvas is still fading in from
   // opacity 0 may never be presented, which would leave the panel blank until the next move.
@@ -2042,9 +2166,10 @@ uniform float uStripEnd;
       });
     }
   };
-  let lastNow = 0, lastAmbient = 0;
+  let lastNow = 0, lastAmbient = 0, lastVideo = 0;
   const loop = (now: number) => {
     requestAnimationFrame(loop);
+    syncVideos();
     if (!visible || document.hidden) return;
     if (tween) {
       const c = tween.clock;
@@ -2084,6 +2209,7 @@ uniform float uStripEnd;
     if (stepToys(dt)) dirty = true;
     if (stepSway(dt)) dirty = true;
     if (stepCards(dt)) dirty = true;
+    if (hoops?.step(dt)) dirty = true;
     lastNow = now;
     // The ambilight breathes and the clock ticks: redraw at ~30 fps while they're on.
     if ((cur.amb > 0.002 && !opts.reduceMotion) || cur.clock > 0.02) {
@@ -2092,7 +2218,12 @@ uniform float uStripEnd;
         dirty = true;
       }
     }
-    if (videos.some((vid) => !vid.paused)) dirty = true;
+    // Modern browsers mark dirty only when a new video frame arrives. Older ones get a 30 fps
+    // fallback, never a redraw on every display refresh merely because a clip is playing.
+    if (videosPlaying && now - lastVideo >= 1000 / 30) {
+      lastVideo = now;
+      if ([...videos].some((vid) => !vid.paused && typeof vid.requestVideoFrameCallback !== 'function')) dirty = true;
+    }
     if (warmup > 0) {
       warmup--;
       dirty = true;

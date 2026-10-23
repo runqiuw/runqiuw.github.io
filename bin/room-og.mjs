@@ -52,5 +52,7 @@ try {
   ws.close();
 } finally {
   chrome.kill();
-  rmSync(profile, { recursive: true, force: true });
+  // Chrome may still be flushing its profile after SIGTERM. Wait before removing the directory.
+  if (chrome.pid && chrome.exitCode === null && chrome.signalCode === null) await new Promise((resolve) => chrome.once('exit', resolve));
+  rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }

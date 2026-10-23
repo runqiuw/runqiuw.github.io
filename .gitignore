@@ -13,3 +13,12 @@ node_modules/
 .vscode
 # local path to the Blender asset library (see bin/room-assets)
 bin/.room-assets-path
+
+# local agent worktrees and legacy Jekyll dependencies/output
+.claude/
+.bundle/
+.tweet-cache/
+.jekyll-cache/
+_site/
+vendor/
+logs/

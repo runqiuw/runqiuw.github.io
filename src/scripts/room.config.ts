@@ -56,6 +56,9 @@ export interface Shot {
   pad?: number;
   /** Raise (or lower) the look-at point, in meters. */
   lift?: number;
+  /** Cap on the camera's distance, for shots inside the room: on a tall portrait screen the fit
+   * would otherwise back the camera through the furniture behind it. */
+  far?: number;
 }
 
 export const SHELL = {
@@ -134,8 +137,12 @@ export const PLACEMENTS: Placement[] = [
   { id: 'plant', asset: 'plant', at: [0.3, 1.81], yaw: 90 },
   { id: 'bedLamp', asset: 'desklamp', at: [0.2, 1.315], z: 0.7188, yaw: -70, colors: { frame: '#ffc93c', metal: '#ffc93c' } },
 
-  // Open floor and the door side: cart by the entry door (clear of its swing).
-  { id: 'cart', asset: 'cart', at: [2.9, 0.35] },
+  // Door side: the cart against the east wall between the entry door's swing (y ≤ 1.0) and the
+  // closet front, out of the way of the hoops lane.
+  { id: 'cart', asset: 'cart', at: [3.93, 1.4], yaw: -90 },
+  // Trash-can basketball: a bin against the front wall past the foot of the bed, a backboard taped
+  // on the wall above it (drawn in room.ts). Clicking it opens the `hoops` close-up.
+  { id: 'bin', asset: 'hoopbin', at: [2.4, 0.24], colors: { frame: '#ff8a3d', accent: '#fff4e6' } },
   { id: 'door', bounce: false, asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
   { id: 'closetDoor', asset: 'door', at: [3.43, 2.485], yaw: -90, wall: 'E' },
 ];
@@ -155,23 +162,33 @@ export const SHOTS: Record<string, Shot> = {
  * Close-ups: the third level of views (page → room → close-up). In the full-screen room, clicking
  * `object` (or its label) flies to `shot`; "Back" returns to the room and "See on page" goes to
  * `section`. Each one has its own URL (`#room/<id>`). Objects without a close-up still go straight
- * to their section. A close-up's own interaction (dragging cards on the board) lives in room.ts.
+ * to their section. A close-up's own interaction (dragging cards on the board) lives in room.ts;
+ * the hoops game lives in room-hoops.ts, loaded the first time its close-up opens.
  */
 export interface CloseUp {
   object: string;
-  section: string;
+  /** Its page section; without one (the hoops bin) there is no "on the page" button. */
+  section?: string;
   shot: Shot;
 }
 export const CLOSEUPS: Record<string, CloseUp> = {
   board: { object: 'pinboard', section: 'playground', shot: { frame: ['pinboard'], dir: [0, -1, 0.04], pad: 0.95 } },
+  // Low, behind the throwing spot and a little to its side (so the arc of a throw reads), looking at
+  // the bin and the taped backboard on the front wall.
+  hoops: { object: 'bin', shot: { center: [2.42, 0.7, 0.58], r: 0.62, dir: [0.25, 1, 0.36], far: 2.4 } },
 };
 
-/** Labels in the full-screen room: [section, section title, placement the label sits on]. */
+/** Trash-can basketball (`hoops` close-up): the bin, and where a throw leaves the hand (plan x, y, height). */
+export const HOOPS = { bin: 'bin', from: [2.47, 1.5, 0.62] as [x: number, y: number, z: number] };
+
+/** Labels in the full-screen room: [section, title, placement the label sits on]. A close-up without
+ * a page section is labeled by its close-up id instead. */
 export const LABELS: [section: string, title: string, anchor: string][] = [
   ['research', 'Research', 'monitorR'],
   ['projects', 'Projects', 'shelf'],
   ['games', 'Games', 'tv'],
   ['playground', 'Playground', 'pinboard'],
+  ['hoops', 'Hoops', 'bin'],
 ];
 
 /** Night lights sit at these placements (the lamp heads, the monitor light bars, the TV); the TV

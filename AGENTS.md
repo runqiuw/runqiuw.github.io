@@ -1,0 +1,83 @@
+# 项目记忆：runqiuw.github.io
+
+最近核查：2026-10-22。依据当前源码、`redesign/PLAN.md`、Git 历史和本地验证。开始任务时先检查 `git status` 和最新代码，不把日期快照当作永久现状。
+
+## 工作约定
+
+- 问题涉及用户的科研或生活资料时，先用 Notion 读 https://app.notion.com/p/3f99ba3b598181dd951dc1aa302c8be0 并按其流程处理。纯仓库实现与构建问题以代码为依据。
+- 修改或提议功能前先读 `redesign/PLAN.md`，它记录当前设计决定、待办、延期和不做的项目。`redesign/CONTENT.md` 是 2026-10-07 的迁移盘点，其中旧路径和未来时态不代表当前实现。
+- 保留用户已有的未提交修改；未被要求时不提交、不推送、不部署。此仓库公开，记忆和文档中不要写私人原型链接、机器上的资源库绝对路径或配置值。
+- 计划保持简短：已完成的待办从 `PLAN.md` 移除，不堆积打勾的历史。
+
+## 当前技术栈与发布
+
+- 这是 **Astro 静态站点**，不是 Jekyll。Astro 重构于 2026-10-21 合入 `main`（`d2dafd6`）；旧 al-folio 站点保存在 `al-folio-final` 标签。
+- `package.json`：Astro 7、TypeScript 6、Three.js、cannon-es、MapLibre GL；字体 Fredoka + Nunito；`package-lock.json` 锁定依赖。
+- `npm run dev`：开发服务器，默认 :4321；`npm run build`：输出 `dist/`；`npm run preview`：预览已经构建的 `dist/`。若 :4321 上是 preview，改源码后要先重新 build。
+- `.github/workflows/deploy.yml` 在推送 `main` 或手动触发时构建并部署 GitHub Pages，地址仍为 `https://runqiuw.github.io`。
+- `astro.config.mjs` 管理站点地址、sitemap 和旧 URL 重定向；保留旧站链接兼容性。
+- `bin/deploy`、`bin/cibuild`、`bin/entry_point.sh` 仍是旧 Jekyll 脚本，不能作为当前构建或发布入口。本地 `_site/`、`vendor/`、`.bundle/`、`.tweet-cache/` 是旧环境残留，不是当前源码，也不要未经要求删除。
+
+## 页面与内容入口
+
+| 内容或职责 | 入口 |
+| --- | --- |
+| 首页、区块与条目的观察器 | `src/pages/index.astro` |
+| 身份、教育、链接、区块开关 | `src/data/profile.ts` |
+| 介绍正文、发音和 news 开关 | `src/components/Intro.astro` |
+| 论文 | `src/content/papers.bib` → `src/lib/bib.ts` → `src/content.config.ts` → `src/components/Papers.astro` |
+| 项目 | `src/content/projects/*.md`；`external` 表示卡片外链、不生成详情页 |
+| 游戏 | `src/content/games.yaml`；`clip` 是房间电视播放的演示视频 |
+| Playground | `src/content/playground.yaml`、`src/components/Pinboard.astro` |
+| 内容 schema | `src/content.config.ts` |
+| 主题、SEO、全局样式 | `src/layouts/Base.astro`、`src/components/Nav.astro`、`src/styles/global.css` |
+| 构建优化的图片 | `src/assets/img/` |
+| 原样提供的 PDF、视频、音频、GIF | `public/assets/` |
+
+- 论文的 `teaser` 用于房间左显示器的演示，`screen` 可指定不同于页面 `preview` 的显示器图片；右显示器显示标题与会议信息。
+- CV 只提供 PDF：`public/assets/pdf/cv.pdf`；`/cv` 重定向到它。`bin/sync-cv` 从 Overleaf 编译下载后会**自动 commit 和 push**，`--no-push` 仍会 commit；不要把它当作只读检查命令运行。项目配置来自忽略的 `.overleaf-cv-project`。
+- 当前 `show.playground = true`、`show.contact = false`，`SHOW_NEWS = false`。Playground 已恢复，不能沿用“尚未上线”的旧记忆；`/playground` 也有独立页面。
+
+## 设计与房间交互
+
+- 页面独立、完整地呈现学术信息；房间展示当前条目的实物、演示或卡片。名字、研究、论文、CV、联系方式不需要进入房间就能读到。不要在侧边房间重复页面说明或加字幕。
+- 桌面（≥901px）：左侧固定房间占 42%，右侧页面滚动；移动端以页面为主，通过卡片按需打开全屏房间。
+- 滚动决定区块与相机镜头，视口中间的条目决定屏幕或物件内容；hover/focus 临时切换条目，不能移动相机。
+- 三层视图：页面 → `#room` 全屏房间 → `#room/board` 或 `#room/hoops` 特写。Esc、返回按钮和浏览器返回逐层退出。`RoomPanel.astro` 管理视图、history 和展开收起动画；`room.ts` 管理相机与场景交互；新增特写由 `room.config.ts` 的 `CLOSEUPS` 配置。`section` 可选，没有页面区块的 hoops 不显示“on the page”按钮。
+- board 特写可拖动卡片；点击卡片退出房间并定位到页面对应卡片。页面与房间通过 `sectionchange`、`itemchange`、`themechange`、`roomlevel`、`pinchange` 等事件同步。
+- Research 对应桌面双显示器；Projects 对应书架上的项目封面相框；Games 对应电视、游戏盒；Playground 对应软木板。门当前只是场景，不代表已启用的 Say hi。
+- 已实现：可开合百叶窗、可切换灯具/电视氛围光/辉光管时钟、旋转椅子、植物摆动；床上枕头和三所学校的玩偶可拖拽、投掷、碰撞。另有垃圾桶投篮特写，支持纸团、瓶子、弹力球，拖回蓄力、抛物线预览和进球计数；投掷物落稳后停止重绘。
+- 日夜跟随页面主题开关，不跟随 Madison 当地时间。时钟显示 Madison 时间。
+
+## 3D 管线与性能
+
+- **Blender 构建资源，Three.js 组装场景。** `src/scripts/room.config.ts` 管房间轮廓、摆放、颜色角色、镜头、标签、灯光和贴图；`src/scripts/room.ts` 管渲染与交互；`src/scripts/room-physics.ts` 管床上玩具物理，`src/scripts/room-hoops.ts` 管投篮，均使用 cannon-es 并按需加载。
+- 房间约 4.13 × 3.70 × 2.70 m，配置采用平面坐标：x 向右、y 沿平面向上、z 为高度；不要直接套用 Three.js 轴。Blender 模型正面朝 −Y，1 单位 = 1 m，原点通常是底面中心（挂墙物为背面底部中心）。
+- 资源库在仓库外的 `room_assets.blend`，位置由 `ROOM_ASSETS` 或忽略的 `bin/.room-assets-path` 提供。每个资源一个 `asset_<name>` collection，不直接改测量原始模型。
+- `bin/room-assets [--watch]` 导出并 meshopt 压缩到 `public/room/assets/*.glb`，同时写 `manifest.json`。模型通过材质角色、`Color` 顶点色和 manifest 元数据驱动；屏幕/封面/板面需要 0–1 UV 平面。
+- 布局或光照改动后：先 build，在 :4321 提供预览，再运行 `bin/room-posters`，最后重新 build。脚本生成日夜 poster，且会调用 `node bin/room-og.mjs` 更新 `public/og.png`。OG 单独重绘也可调用该 Node 脚本。
+- 展开收起使用 Web Animations；验证动画需实时浏览器/CDP，不能只靠 Chrome `--virtual-time-budget`。
+- 当前布局为 PLAN 中的 Layout B，使用 `bed_single`；旧镜子、Layout A 和双人床不能当成当前布局。
+- 静态 HTML 优先，桌面空闲时加载 Three.js，移动端进入房间才加载；无 WebGL 保留 poster。尊重 reduced-motion，不让学术页面依赖动画。
+- 渲染按需进行，画面不可见或标签页隐藏时停止绘制；氛围光与时钟开启时会周期重绘。床上玩具物理首次进入全屏才加载，投篮首次进入 hoops 才加载，物体静止后休眠。
+- 论文/游戏视频只在页面侧栏播放，进入全屏及任何特写暂停，回到页面恢复；不可见或隐藏标签页也暂停。视频帧回调触发重绘，不支持回调时降为约 30 fps，不能再用“有视频未暂停就每帧 dirty”的逻辑。暂停造成的 `play()` AbortError 和过期请求不能覆盖当前画面。
+- 光照：Neutral tone mapping、房间配色的环境反射、按角色的表面质感、资源 baked AO；隐藏的墙仍遮光，天花板只投影，日/月光从窗户进入。床上可移动玩具不保留固定接触阴影；软木板用绘制的柔和墙面阴影。
+- 书架每层暖色灯带用 shader 线光实现，随深色主题开启；不要改回聚光灯光斑或无必要增加 RectAreaLight 体积。显示器灯条也随主题，不提供独立开关。
+- PLAN 的目标预算：GLB 总计约 ≤3 MB，房间 JS ≤200 KB gzip；不加后处理。Lighthouse 目标桌面 ≥90、移动 ≥80、可访问性 ≥95，目标不等于已测结果。
+
+## 地图与尚未开展的功能
+
+- 已有距离卡：MapLibre + OpenFreeMap，浏览器请求 GeoJS 做城市级 IP 定位，失败退回时区，再失败保留默认文案。地图在卡片接近视口或全屏房间打开时加载，静态截图同步到房间软木板。`src/scripts/distance-map.ts` 负责地图。
+- 距离卡不是访客统计或在线用户系统。访客地图服务仍延期，不能声称已接入。
+- 后续工作以 PLAN 为准：更多 Playground 素材、书架项目模型、旅行地图、博客、Say hi 角色和访客地图均未完成或延期。
+- 明确不做：news 区块、旧课程日历、论文桌面道具、按当地时间切房间日夜、镜子热点和单独 About & CV 区块。不要把已放弃的想法重新列为待办。
+
+## 检查与近期维护
+
+- PC Era 主机及节点分组贴图与投篮功能共同保留在当前场景中。检查和提交资源时同步核对 GLB、manifest、贴图及源码，不能只提交 manifest。导出器支持 JSON 数组/对象元数据，也须保留空字符串。
+- 2026-10-22：manifest 的 35 项资源文件均存在，总计 1,581,792 bytes，大小记录匹配。房间 JS gzip 低于 200 KB；物理库可能被构建器拆为共享 chunk，地图还有独立 worker，不要只按一个入口估算总下载。
+- 类型检查用 `npm run check` 或 `npx astro check`。`tsconfig.json` 已限于 `.astro/types.d.ts`、`src/**/*`、`astro.config.mjs`，不再扫描旧 Jekyll 依赖或本地 worktree；旧缓存、依赖、日志、`.claude/` 由 `.gitignore` 忽略，保留在磁盘。
+- 浏览器回归：先 `npm run build`，启动 Astro preview，再运行 `URL=http://127.0.0.1:<端口> npm run check:room`；`CHROME` 可指定 Chrome，`VIDEO_FALLBACK=1` 验证无视频帧回调路径。脚本使用独立临时浏览器配置，不修改日常浏览器。
+- `bin/check-room.mjs` 在 SwiftShader 下计数房间 canvas 的 WebGL clear：视频在页面播放并在退出房间后恢复，全屏/board/hoops 稳定后接近零绘制，三种投掷物投出会重绘、落稳后停止。测量前须等待相机、物理及初始 120 帧预热结束；一次 render 可能有多个 clear。
+- 2026-10-22 验证：`npx astro check` 的 25 个文件为 0 errors、0 warnings、0 hints；正常视频帧回调与 30 fps 兼容路径均通过浏览器回归。白天模式下，全屏、board、hoops 空闲时均为 0 clear / 2 s；三种投掷物落稳后也是 0 / 2 s。夜间时钟和氛围灯仍可正常驱动重绘。
+- Lighthouse 指标仍是目标，未完成实测；Vite 的大 chunk 提示不能当作类型错误，也不能忽略总加载体积。
