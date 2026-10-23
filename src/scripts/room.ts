@@ -924,22 +924,28 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   };
 
   // --- prints: a picture on an asset's `print` planes (glTF UVs, not flipped); transparent outside it.
-  for (const [id, src] of Object.entries(PRINTS)) {
-    const planes: Mesh[] = [];
-    placed[id]?.traverse((o) => o instanceof Mesh && (o.material as Material).userData.role === 'print' && planes.push(o));
-    if (!planes.length) continue;
-    const { c, x, tex } = canvasTex(512, 512, false);
-    const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.9 });
-    for (const m of planes) {
-      m.material = mat;
-      m.castShadow = false;
+  // One picture for all of an asset's prints, or one per plane, keyed by the start of its node name.
+  for (const [id, spec] of Object.entries(PRINTS)) {
+    const groups = new Map<string, Mesh[]>();
+    placed[id]?.traverse((o) => {
+      if (!(o instanceof Mesh) || (o.material as Material).userData.role !== 'print') return;
+      const src = typeof spec === 'string' ? spec : Object.entries(spec).find(([k]) => o.name.startsWith(k))?.[1];
+      if (src) groups.set(src, [...(groups.get(src) ?? []), o]);
+    });
+    for (const [src, planes] of groups) {
+      const { c, x, tex } = canvasTex(512, 512, false);
+      const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.9 });
+      for (const m of planes) {
+        m.material = mat;
+        m.castShadow = false;
+      }
+      loadImg(src).then((img) => {
+        Object.assign(c, { width: img.naturalWidth, height: img.naturalHeight });
+        x.drawImage(img, 0, 0);
+        tex.needsUpdate = true;
+        dirty = true;
+      }, () => {});
     }
-    loadImg(src).then((img) => {
-      x.clearRect(0, 0, c.width, c.height);
-      x.drawImage(img, 0, 0, c.width, c.height);
-      tex.needsUpdate = true;
-      dirty = true;
-    }, () => {});
   }
 
   // --- screens: the `screen` / `cover` planes of the assets (glTF UVs, so textures are not flipped)
