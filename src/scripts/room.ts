@@ -66,7 +66,7 @@ const ASSETS = '/room/assets/';
 const INK = '#14183a';
 const LEVELS = {
   light: { hemi: 0.65, env: 0.6, sun: 2.6, screen: 0, tv: 0, shelf: 0, emis: 0.12, night: 0 },
-  dark: { hemi: 0.5, env: 1, sun: 0.4, screen: 3.2, tv: 1.8, shelf: 1.4, emis: 1.2, night: 1 },
+  dark: { hemi: 0.5, env: 1, sun: 0.4, screen: 3.2, tv: 1.8, shelf: 1.8, emis: 1.2, night: 1 },
 };
 /** Lights you can click on and off in the full-screen room, and each one's level when on. They all
  * come on with the dark theme and go off with the light one; a click flips one until the next switch. */
@@ -250,6 +250,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
 
   // --- room shell: floor slab and walls with window/door openings, built from the measured outline
   const T = SHELL.thickness, H = SHELL.height;
+  // The shelf's display lights also reach the wall behind it (see stripLit).
+  const wallMats: MeshStandardMaterial[] = [];
   const floorMat = new MeshStandardMaterial({ color: new Color(SHELL.floor), roughness: 0.6 });
   const floor = new Mesh(
     new ExtrudeGeometry(new Shape(SHELL.outline.map(([x, y]) => new Vector2(x, y))), { depth: 0.08, bevelEnabled: false }),
@@ -293,6 +295,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     }
     if (u < u1) pieces.push([u, u1, 0, H]);
     const mat = new MeshStandardMaterial({ color: new Color(w.side === 'W' ? SHELL.wallW : SHELL.wall), roughness: 0.9 });
+    wallMats.push(mat);
     const objs = pieces.map(([a, b, z0, z1]) => {
       const len = b - a, mid = (a + b) / 2, off = line - (alongX ? n.y : n.x) * (T / 2);
       const m = new Mesh(alongX ? new BoxGeometry(len, z1 - z0, T) : new BoxGeometry(T, z1 - z0, len), mat);
@@ -1088,20 +1091,99 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       });
     return { id: el.dataset.item, pop: poppable(f, { p: new Vector3(0, 0.02, 0.07), r: 0.2, s: 0.1 }) };
   });
-  // Display lights: an LED strip under the front edge of the board above each tier with frames,
-  // shining down and back onto them. Like the monitor light bars they follow the theme (on at night).
+  // Display lights: an LED strip under the front edge of every board, lighting the tier below it.
+  // A strip is a line of light, so instead of a spot (a round pool) each one is a line light added in
+  // the shader of the shelf's own materials: even along its length, fading with distance, shining
+  // down and back, and only inside its own tier (the boards would block it). Three's RectAreaLight
+  // would do this too, but its lookup tables cost ~110 KB. Like the monitor light bars, the strips
+  // follow the theme (on at night).
   const shelfAsset = manifest.assets[PLACEMENTS.find((p) => p.id === SCREENS.shelf)!.asset];
   const clear = shelfAsset.tier_clear ?? 0.33, depth = shelfAsset.size[1];
+  const allTiers = (shelfAsset.tiers ?? []).slice().sort((a, b) => a - b);
   const shelfGlow = new MeshStandardMaterial({ color: new Color('#fff4e0'), emissive: new Color('#ffd9a0'), emissiveIntensity: 0 });
-  const shelfLs = tiers.map((tier) => {
-    const strip = new Mesh(new BoxGeometry(shelfW - 0.04, 0.006, 0.012), shelfGlow);
-    strip.position.set(0, tier + clear - 0.004, depth / 2 - 0.035);
+  const stripLight = { value: 0 };
+  const stripA: Vector3[] = [], stripB: Vector3[] = [], stripY: Vector2[] = [];
+  shelf.updateWorldMatrix(true, true);
+  for (const tier of allTiers) {
+    const y = tier + clear - 0.004, z = depth / 2 - 0.035, half = (shelfW - 0.04) / 2;
+    const strip = new Mesh(new BoxGeometry(half * 2, 0.006, 0.012), shelfGlow);
+    strip.position.set(0, y, z);
     strip.raycast = () => {};
-    const l = new SpotLight(0xffe2b8, 0, 0.6, 0.85, 1, 1.5);
-    l.position.copy(strip.position);
-    l.target.position.set(0, tier, -depth / 2);
-    shelf.add(strip, l, l.target);
-    return l;
+    shelf.add(strip);
+    stripA.push(shelf.localToWorld(new Vector3(-half, y, z)));
+    stripB.push(shelf.localToWorld(new Vector3(half, y, z)));
+    stripY.push(new Vector2(shelf.localToWorld(new Vector3(0, tier, 0)).y - 0.01, shelf.localToWorld(new Vector3(0, y, 0)).y + 0.01));
+  }
+  // The direction the strips shine: down and towards the back panel.
+  const stripDir = new Vector3(0, -1, -0.8).normalize().transformDirection(shelf.matrixWorld);
+  const N_STRIPS = stripA.length;
+  // How far past each end of a strip (as a fraction of its length) the side panels' inner faces are.
+  const stripEnd = ((shelfAsset.size[0] / 2 - 0.02 - (shelfW - 0.04) / 2) / (shelfW - 0.04)) + 0.005;
+  const stripLit = (m: MeshStandardMaterial) => {
+    const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey();
+    m.onBeforeCompile = (sh, r) => {
+      prev.call(m, sh, r);
+      Object.assign(sh.uniforms, {
+        uStripLight: stripLight,
+        uStripA: { value: stripA },
+        uStripB: { value: stripB },
+        uStripY: { value: stripY },
+        uStripDir: { value: stripDir },
+        uStripEnd: { value: stripEnd },
+      });
+      sh.vertexShader = 'varying vec3 vStripW;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vStripW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader =
+        `varying vec3 vStripW;
+uniform float uStripLight;
+uniform vec3 uStripA[${N_STRIPS}];
+uniform vec3 uStripB[${N_STRIPS}];
+uniform vec2 uStripY[${N_STRIPS}];
+uniform vec3 uStripDir;
+uniform float uStripEnd;
+` +
+        sh.fragmentShader.replace(
+          '#include <lights_fragment_end>',
+          `#include <lights_fragment_end>
+  if (uStripLight > 0.0) {
+    vec3 nW = inverseTransformDirection(normal, viewMatrix);
+    float sum = 0.0;
+    for (int i = 0; i < ${N_STRIPS}; i++) {
+      if (vStripW.y < uStripY[i].x || vStripW.y > uStripY[i].y) continue;
+      vec3 ab = uStripB[i] - uStripA[i];
+      // Along the strip: nothing past the side panels' inner faces, so the walls beside the shelf stay dark.
+      float t = dot(vStripW - uStripA[i], ab) / dot(ab, ab);
+      if (t < -uStripEnd || t > 1.0 + uStripEnd) continue;
+      vec3 q = uStripA[i] + ab * clamp(t, 0.0, 1.0);
+      vec3 d = q - vStripW;
+      float r = length(d);
+      vec3 l = d / max(r, 1e-4);
+      sum += max(dot(nW, l), 0.0) * max(dot(-l, uStripDir), 0.0) / (1.0 + r * r / 0.05);
+    }
+    reflectedLight.directDiffuse += vec3(1.0, 0.86, 0.66) * diffuseColor.rgb * sum * uStripLight;
+  }`,
+        );
+    };
+    m.customProgramCacheKey = () => `${prevKey}|strip`;
+    return m;
+  };
+  // The shelf's meshes (and the frames on it) get their own copies of the patched materials.
+  const stripMats = new Map<MeshStandardMaterial, MeshStandardMaterial>();
+  const withStrip = (m: MeshStandardMaterial) => {
+    if (!stripMats.has(m)) {
+      const c = m.clone();
+      if (m.customProgramCacheKey() === 'baked-ao') withAO(c);
+      stripMats.set(m, stripLit(c));
+    }
+    return stripMats.get(m)!;
+  };
+  wallMats.forEach(stripLit);
+  shelf.traverse((o) => {
+    if (!(o instanceof Mesh) || o.material === shelfGlow) return;
+    o.material = Array.isArray(o.material)
+      ? o.material.map((m) => (m instanceof MeshStandardMaterial ? withStrip(m) : m))
+      : o.material instanceof MeshStandardMaterial
+        ? withStrip(o.material)
+        : o.material;
   });
 
   // Pinboard cards: a sticky note (or a photo) per playground item, pinned on the `board` plane.
@@ -1921,7 +2003,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     sun.intensity = cur.sun;
     lampL.intensity = cur.lamp;
     screenLs.forEach((l) => (l.intensity = cur.screen));
-    shelfLs.forEach((l) => (l.intensity = cur.shelf));
+    stripLight.value = cur.shelf;
     shelfGlow.emissiveIntensity = cur.shelf * 1.2;
     bedL.intensity = cur.bed;
     tvL.intensity = cur.tv;
