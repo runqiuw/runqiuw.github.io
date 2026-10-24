@@ -1561,6 +1561,24 @@
       "description": "Left-wall window with blind; placed twice. Bottom = sill.",
       "blind_cloth_length": 1.738,
       "blind_bar_height": 0.012
+    },
+    "court": {
+      "file": "court.glb",
+      "catalog": "Room/Furniture",
+      "mount": "floor",
+      "size": [
+        1.4,
+        1.68,
+        0.014
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric"
+      ],
+      "triangles": 620,
+      "bytes": 9932,
+      "description": "Compact seafoam basketball rug with cream court lines, free-throw lane and 1.32 m three-point arc. 140 x 168 cm, clear of the bed and cart.",
+      "three_radius": 1.32
     }
   }
 }

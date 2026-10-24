@@ -64,6 +64,7 @@ type Manifest = {
 };
 
 const ASSETS = '/room/assets/';
+const ROOM_FOV = 30;
 const INK = '#14183a';
 const LEVELS = {
   light: { hemi: 0.65, env: 0.6, sun: 2.6, screen: 0, tv: 0, shelf: 0, emis: 0.12, night: 0 },
@@ -111,7 +112,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   canvas.setAttribute('aria-hidden', 'true');
   frame.prepend(canvas);
 
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, stencil: true });
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
@@ -120,7 +121,12 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   renderer.setPixelRatio(Math.min(1.75, devicePixelRatio || 1));
 
   const scene = new Scene();
-  const cam = new PerspectiveCamera(30, 1, 0.05, 80);
+  const cam = new PerspectiveCamera(ROOM_FOV, 1, 0.05, 80);
+  const setFov = (fov: number) => {
+    if (cam.fov === fov) return;
+    cam.fov = fov;
+    cam.updateProjectionMatrix();
+  };
   const center = P(2.05, 1.85, 0.85);
 
   let dirty = true;
@@ -605,7 +611,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     for (const p of PLACEMENTS) {
       const mount = manifest.assets[p.asset]?.mount;
       // Not the toys on the bed: they get thrown around, and a painted patch would stay behind.
-      if ((mount !== 'floor' && mount !== 'desk') || p.asset === 'rug' || DECOR.toys.includes(p.id) || !placed[p.id]) continue;
+      if ((mount !== 'floor' && mount !== 'desk') || ['rug', 'court'].includes(p.asset) || DECOR.toys.includes(p.id) || !placed[p.id]) continue;
       const g = placed[p.id], base = new Box3().setFromObject(g).min.y, foot = new Box3();
       g.traverse((o) => {
         if (!(o instanceof Mesh)) return;
@@ -699,6 +705,15 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const stepSway = (dt: number) => {
     if (!plantAt || opts.reduceMotion) return false;
     const az = Math.atan2(cam.position.x - plantAt.x, cam.position.z - plantAt.z);
+    // The court camera faces away from the plant. Random shot changes must not keep drawing
+    // an off-camera spring (especially slowly under software rendering).
+    if (focused === 'hoops') {
+      sway.az = az;
+      sway.s.set(0, 0);
+      sway.v.set(0, 0);
+      swayU.value.set(0, 0);
+      return false;
+    }
     let d = Number.isNaN(sway.az) ? 0 : az - sway.az;
     d = Math.atan2(Math.sin(d), Math.cos(d));
     sway.az = az;
@@ -1394,21 +1409,25 @@ uniform float uStripEnd;
     done?: () => void;
     /** Follow another animation's eased progress instead of the clock (see `Clock`). */
     clock?: Clock;
+    fromFov: number;
+    toFov: number;
   };
   let tween: Tween | null = null;
-  const tweenTo = (q: { t: Vector3; p: Vector3 }, ms: number, ease: (x: number) => number, id: string, done?: () => void, clock?: Clock) => {
-    tween = { t0: performance.now(), ms, fromT: camT.clone(), fromP: cam.position.clone(), toT: q.t, toP: q.p, ease, id, done, clock };
+  const tweenTo = (q: { t: Vector3; p: Vector3; fov?: number }, ms: number, ease: (x: number) => number, id: string, done?: () => void, clock?: Clock) => {
+    tween = { t0: performance.now(), ms, fromT: camT.clone(), fromP: cam.position.clone(), toT: q.t, toP: q.p, ease, id, done, clock,
+      fromFov: cam.fov, toFov: q.fov ?? ROOM_FOV };
   };
   // Framing depends on the aspect; opening and closing the full-screen room pass the aspect the
   // canvas will have at the end of the morph.
   const place = (s: Shot, aspect = cam.aspect) => {
-    const v = MathUtils.degToRad(cam.fov) / 2, h = Math.atan(Math.tan(v) * aspect);
+    const v = MathUtils.degToRad(ROOM_FOV) / 2, h = Math.atan(Math.tan(v) * aspect);
     return { t: s.t.clone(), p: s.t.clone().addScaledVector(s.dir, Math.min(s.far ?? Infinity, s.r / Math.sin(Math.min(v, h)))) };
   };
   const jump = (s: Shot) => {
     const q = place(s);
     camT.copy(q.t);
     cam.position.copy(q.p);
+    setFov(ROOM_FOV);
     cam.lookAt(camT);
     dirty = true;
   };
@@ -1506,6 +1525,7 @@ uniform float uStripEnd;
     if (ms && !opts.reduceMotion) tweenTo(q, ms, easeOut, 'full', arrive, clock);
     else {
       tween = null;
+      setFov(ROOM_FOV);
       cam.position.copy(q.p);
       camT.copy(q.t);
       cam.lookAt(camT);
@@ -1535,6 +1555,7 @@ uniform float uStripEnd;
     if (ms && !opts.reduceMotion) tweenTo(q, ms, easeOut, active, undefined, clock);
     else {
       tween = null;
+      setFov(ROOM_FOV);
       cam.position.copy(q.p);
       camT.copy(q.t);
       cam.lookAt(camT);
@@ -1810,6 +1831,7 @@ uniform float uStripEnd;
   // taped on the wall above it. The game (room-hoops.ts: projectiles, aiming, physics, score) loads
   // the first time the close-up opens.
   const binObj = placed[HOOPS.bin] ?? null;
+  let backboardBox: Box3 | undefined;
   if (binObj) {
     const b = new Box3().setFromObject(binObj), W = 0.84, Hb = 0.54;
     const { c, x, tex } = canvasTex(512, (512 * Hb) / W);
@@ -1827,7 +1849,7 @@ uniform float uStripEnd;
       x.restore();
     };
     x.fillStyle = '#1d1e2b';
-    const m = 0.03, sq = [W / 3, 0.23], sy = 0.07;
+    const m = 0.03, sq = [0.34, 0.24], sy = 0.07;
     strip(m, m, W - m, m);
     strip(m, Hb - m, W - m, Hb - m);
     strip(m, m, m, Hb - m);
@@ -1840,17 +1862,23 @@ uniform float uStripEnd;
     strip(sx + sq[0], sy, sx + sq[0], sy + sq[1]);
     const tape = new Mesh(
       new PlaneGeometry(W, Hb),
-      new MeshStandardMaterial({ map: tex, transparent: true, depthWrite: false, roughness: 0.45, polygonOffset: true, polygonOffsetFactor: -2 }),
+      // Solid tape with cut-out empty pixels belongs in the opaque pass. Alpha blending rendered
+      // these lines after the held outline and let the background draw across its silhouette.
+      new MeshStandardMaterial({ map: tex, alphaTest: 0.5, alphaToCoverage: true, roughness: 0.45, polygonOffset: true, polygonOffsetFactor: -2 }),
     );
-    // On the front wall's face (plan y = 0), facing into the room, its bottom just above the rim.
-    tape.position.set((b.min.x + b.max.x) / 2, b.max.y + 0.05 + Hb / 2, -0.002);
+    // Like a backboard: the LOWER EDGE of its target rectangle meets the rim's top plane.
+    // The old whole-board-above-rim placement left the target floating ~12 cm too high.
+    tape.position.set((b.min.x + b.max.x) / 2, b.max.y + tw / k / 2 + Hb / 2 - sy, -0.002);
     tape.rotation.y = Math.PI;
     tape.receiveShadow = true;
     tape.raycast = () => {};
     scene.add(tape);
+    tape.updateMatrixWorld(true);
+    backboardBox = new Box3().setFromObject(tape);
     onWall.push({ n: inward.S, o: tape });
   }
   let hoops: ReturnType<typeof createHoops> | null = null;
+  let hoopsPose: (() => { p: Vector3; t: Vector3; fov: number }) | null = null;
   let hoopsLoading = false;
   const enterHoops = () => {
     if (hoops) return hoops.enter();
@@ -1859,17 +1887,31 @@ uniform float uStripEnd;
     const ys = SHELL.outline.map(([, y]) => y), xs = SHELL.outline.map(([x]) => x);
     const bedBox = bedObj ? new Box3().setFromObject(bedObj) : null;
     if (bedBox) bedBox.max.y = bedObj!.localToWorld(new Vector3(0, bedTop, 0)).y;
+    const courtBox = placed.court ? new Box3().setFromObject(placed.court) : null;
+    const furnitureBoxes = HOOPS.obstacles.flatMap((id) => placed[id] ? [new Box3().setFromObject(placed[id])] : []);
     import('./room-hoops')
-      .then(({ createHoops }) => {
+      .then(({ createHoops, hoopsView }) => {
         hoops = createHoops({
           scene, canvas, frame,
           bar: frame.querySelector<HTMLElement>('.closeup') ?? frame,
           bin: new Box3().setFromObject(binObj),
           binR: (manifest.assets[PLACEMENTS.find((p) => p.id === HOOPS.bin)!.asset] as { opening?: { r_inner: number } }).opening?.r_inner,
-          from: P(...HOOPS.from),
+          backboard: backboardBox,
+          view: (from, target, spot) => {
+            if (focused !== 'hoops') return;
+            hoopsPose = () => hoopsView(from, target, cam.aspect, spot.eye, furnitureBoxes);
+            const { p, t, fov } = hoopsPose();
+            if (opts.reduceMotion) {
+              setFov(fov);
+              cam.position.copy(p);
+              camT.copy(t);
+              cam.lookAt(t);
+              dirty = true;
+            } else tweenTo({ p, t, fov }, HOOPS.cameraMs, easeInOut, 'hoops-round');
+          },
           // The room's walls (world x and z) and the furniture a throw can hit.
-          room: { x0: Math.min(...xs), x1: Math.max(...xs), z0: -Math.max(...ys), z1: -Math.min(...ys) },
-          boxes: bedBox ? [bedBox] : [],
+          room: { x0: Math.min(...xs), x1: Math.max(...xs), z0: -Math.max(...ys), z1: -Math.min(...ys), height: SHELL.height },
+          boxes: [bedBox, courtBox, ...furnitureBoxes].filter((box): box is Box3 => !!box),
           load: (name) => loader.loadAsync(`${ASSETS}${name}.glb`).then((g) => g.scene, () => null),
           dress,
           reduceMotion: opts.reduceMotion,
@@ -1919,6 +1961,7 @@ uniform float uStripEnd;
     new Promise<void>((done) => {
       if (opts.reduceMotion) {
         tween = null;
+        setFov(ROOM_FOV);
         cam.position.copy(q.p);
         camT.copy(q.t);
         cam.lookAt(camT);
@@ -2097,7 +2140,17 @@ uniform float uStripEnd;
     const w = frame.clientWidth, h = frame.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
+    hoops?.resize(w, h);
     cam.aspect = w / h;
+    if (!tween) {
+      if (focused === 'hoops' && hoopsPose) {
+        const { p, t, fov } = hoopsPose();
+        setFov(fov);
+        cam.position.copy(p);
+        camT.copy(t);
+        cam.lookAt(t);
+      } else setFov(ROOM_FOV);
+    }
     cam.updateProjectionMatrix();
     if (!full && !tween) jump(shots[active]);
     if (ready) draw();
@@ -2175,6 +2228,7 @@ uniform float uStripEnd;
       const c = tween.clock;
       const x = c ? (c.done() ? 1 : c.progress()) : Math.min(1, (now - tween.t0) / tween.ms);
       const e = c ? x : tween.ease(x);
+      setFov(MathUtils.lerp(tween.fromFov, tween.toFov, e));
       camT.lerpVectors(tween.fromT, tween.toT, e);
       cam.position.lerpVectors(tween.fromP, tween.toP, e);
       cam.lookAt(camT);

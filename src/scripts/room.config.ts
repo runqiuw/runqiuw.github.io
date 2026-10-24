@@ -137,12 +137,12 @@ export const PLACEMENTS: Placement[] = [
   { id: 'plant', asset: 'plant', at: [0.3, 1.81], yaw: 90 },
   { id: 'bedLamp', asset: 'desklamp', at: [0.2, 1.315], z: 0.7188, yaw: -70, colors: { frame: '#ffc93c', metal: '#ffc93c' } },
 
-  // Door side: the cart against the east wall between the entry door's swing (y ≤ 1.0) and the
-  // closet front, out of the way of the hoops lane.
-  { id: 'cart', asset: 'cart', at: [3.93, 1.4], yaw: -90 },
+  // The cart asset stays in the library; its placement is hidden to clear the court.
   // Trash-can basketball: a bin against the front wall past the foot of the bed, a backboard taped
   // on the wall above it (drawn in room.ts). Clicking it opens the `hoops` close-up.
-  { id: 'bin', asset: 'hoopbin', at: [2.4, 0.24], colors: { frame: '#ff8a3d', accent: '#fff4e6' } },
+  { id: 'court', asset: 'court', at: [3, 0.85], bounce: false },
+  // ~1.25 cm behind the rim, too narrow for a projectile to fall between bin and wall.
+  { id: 'bin', asset: 'hoopbin', at: [3, 0.15], z: 0.014, colors: { frame: '#ff8a3d', accent: '#fff4e6' } },
   { id: 'door', bounce: false, asset: 'door', at: [4.1, 0.505], yaw: -90, wall: 'E', section: 'contact' },
   { id: 'closetDoor', asset: 'door', at: [3.43, 2.485], yaw: -90, wall: 'E' },
 ];
@@ -175,11 +175,48 @@ export const CLOSEUPS: Record<string, CloseUp> = {
   board: { object: 'pinboard', section: 'playground', shot: { frame: ['pinboard'], dir: [0, -1, 0.04], pad: 0.95 } },
   // Low, behind the throwing spot and a little to its side (so the arc of a throw reads), looking at
   // the bin and the taped backboard on the front wall.
-  hoops: { object: 'bin', shot: { center: [2.42, 0.7, 0.58], r: 0.62, dir: [0.25, 1, 0.36], far: 2.4 } },
+  hoops: { object: 'bin', shot: { center: [3, 0.86, 0.48], r: 0.68, dir: [0, 1, 0.38], far: 2.5 } },
 };
 
-/** Trash-can basketball (`hoops` close-up): the bin, and where a throw leaves the hand (plan x, y, height). */
-export const HOOPS = { bin: 'bin', from: [2.47, 1.5, 0.62] as [x: number, y: number, z: number] };
+/** Mini court distances are in meters, scaled for this room; the asset's arc uses the same radius. */
+export interface HoopsSpot {
+  id: string;
+  at: readonly [number, number, number];
+  eye?: number;
+  elevation?: number;
+}
+export const HOOPS = {
+  bin: 'bin', threeRadius: 1.32, resultMs: 1400, cameraMs: 650, pullSpan: 0.22,
+  obstacles: ['chair', 'desk', 'tvstand', 'tv', 'shelf', 'nightstand', 'plant'],
+  // Offsets from the rim in plan coordinates, plus release height. Cycle through a shuffled deck
+  // so baseline, close shots and the far side of the room all get played, without repeats.
+  spots: [
+    { id: 'inside', at: [0, 0.62, 0.66] },
+    { id: 'door-baseline', at: [0.55, 0.25, 0.66] },
+    { id: 'over-bed', at: [-1.5, 0.32, 1] },
+    { id: 'rug', at: [0, 1.85, 0.66] },
+    { id: 'elbow', at: [-0.75, 1.05, 0.7] },
+    { id: 'chair', at: [-0.85, 2.3, 0.9] },
+    { id: 'door-wing', at: [0.55, 0.75, 0.7] },
+    { id: 'bed-wing', at: [-1.65, 1.2, 0.95] },
+    { id: 'deep', at: [0.15, 2.5, 0.66] },
+    { id: 'short-corner', at: [0.28, 0.52, 0.66] },
+    { id: 'left-wing', at: [-0.9, 1.65, 0.8] },
+    { id: 'short-wing', at: [-0.52, 0.68, 0.75] },
+    { id: 'deep-desk', at: [-2, 2.7, 1.5], elevation: 40 },
+    { id: 'deep-shelf', at: [-2.3, 2.7, 1.2], elevation: 40 },
+    { id: 'deep-corner', at: [-1.95, 2.85, 1.35], elevation: 40 },
+    { id: 'deep-tv', at: [-0.2, 2.95, 1.3], elevation: 42 },
+    { id: 'bed-pillow', at: [-2.3, 0.28, 1.12] },
+    { id: 'bed-middle', at: [-1.9, 0.6, 1.12] },
+    { id: 'bed-foot', at: [-1.25, 0.65, 1.05] },
+    { id: 'bed-low', at: [-1.65, 0.45, 1.1], eye: 1.4 },
+    { id: 'floor-line', at: [-0.4, 1.1, 0.5], eye: 0.78 },
+    { id: 'door-low', at: [0.7, 0.6, 0.52], eye: 0.82 },
+    { id: 'rug-low', at: [0, 1.65, 0.6], eye: 1 },
+    { id: 'bank-level', at: [-0.25, 0.9, 0.46], eye: 0.68 },
+  ] satisfies HoopsSpot[],
+};
 
 /** Labels in the full-screen room: [section, title, placement the label sits on]. A close-up without
  * a page section is labeled by its close-up id instead. */

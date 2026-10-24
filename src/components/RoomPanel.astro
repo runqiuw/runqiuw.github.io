@@ -514,7 +514,7 @@ import night from '../assets/img/room/poster-night.webp';
   .closeup:not([hidden]) {
     animation: room-ui-in 0.28s ease-out both;
   }
-  /* The hoops game (room-hoops.ts) adds its projectile buttons to this bar, so match them globally. */
+  /* Close-up navigation and the automatic hoops turn indicator share this bar. */
   .closeup :global(.room-pin) {
     position: static;
     translate: none;
@@ -522,9 +522,20 @@ import night from '../assets/img/room/poster-night.webp';
   .closeup :global(.room-pin[hidden]) {
     display: none;
   }
-  .closeup :global(.room-pin[aria-pressed='true']) {
-    background: var(--blue);
-    color: var(--on-blue);
+  .closeup :global(.hoops-turn) {
+    margin: 0;
+    max-width: calc(100vw - 28px);
+    border-radius: 999px;
+    padding: 8px 14px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--clay);
+    font: 600 13.5px var(--font-display);
+    text-align: center;
+    pointer-events: none;
+  }
+  .closeup :global(.hoops-turn[hidden]) {
+    display: none;
   }
   /* The hoops score (made / attempts), top right where the "Back to page" button is in the room. */
   .frame :global(.hoops-score) {
@@ -542,6 +553,66 @@ import night from '../assets/img/room/poster-night.webp';
     pointer-events: none;
   }
   .frame :global(.hoops-score[hidden]) {
+    display: none;
+  }
+  .frame :global(.hoops-power) {
+    position: absolute;
+    top: calc(54px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    z-index: 3;
+    display: grid;
+    gap: 5px;
+    width: 112px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--clay);
+    font: 600 12px var(--font-display);
+    pointer-events: none;
+  }
+  .frame :global(.hoops-power[hidden]) {
+    display: none;
+  }
+  .frame :global(.hoops-power-track) {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--bg-2);
+  }
+  .frame :global(.hoops-power-fill) {
+    display: block;
+    height: 100%;
+    background: var(--blue);
+    transform-origin: left;
+  }
+  .frame :global(.hoops-basket) {
+    position: absolute;
+    left: 50%;
+    top: 24%;
+    z-index: 4;
+    margin: 0;
+    transform: translateX(-50%);
+    color: #087c63;
+    background: #e6fff4;
+    border: 3px solid #3bcfa6;
+    border-radius: 22px;
+    padding: 12px 24px;
+    box-shadow: 0 8px 0 #3bcfa6, 0 14px 24px #14183a24;
+    font: 650 clamp(24px, 4vw, 44px) var(--font-display);
+    white-space: normal;
+    max-width: calc(100% - 36px);
+    width: max-content;
+    text-align: center;
+    pointer-events: none;
+  }
+  .frame :global(.hoops-basket[data-points='3']) {
+    color: #7f2d68;
+    background: #fff1b8;
+    border-color: #ffb735;
+    box-shadow: 0 8px 0 #ff7798, 0 16px 28px #14183a30;
+  }
+  .frame :global(.hoops-basket[hidden]) {
     display: none;
   }
   @media (prefers-reduced-motion: reduce) {

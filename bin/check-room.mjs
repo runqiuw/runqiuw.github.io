@@ -2,7 +2,7 @@
 // First build and start astro preview; URL defaults to http://localhost:4321.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -39,6 +39,10 @@ try {
   socket.addEventListener('message', ({ data }) => {
     const message = JSON.parse(data);
     if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text);
+    if (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error') {
+      const text = message.params.args.map((a) => a.value ?? a.description ?? '').join(' ');
+      if (/WebGLProgram|Shader Error/i.test(text)) errors.push(text);
+    }
     pending.get(message.id)?.(message);
     pending.delete(message.id);
   });
@@ -171,21 +175,45 @@ try {
   await measure('Board close-up', true);
   await back();
   await closeup('hoops', 'hoops');
-  await until("[...document.querySelectorAll('.closeup button')].filter(b => !b.hidden).length === 4", 'hoops controls');
+  await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'automatic hoops turn');
+  assert.equal(await evaluate("[...document.querySelectorAll('.closeup button')].filter(b => !b.hidden).length"), 1, 'Manual projectile buttons remain');
   await measure('Hoops close-up before a throw', true);
   const projectiles = process.env.VIDEO_FALLBACK ? [] : ['Paper ball', 'Bottle', 'Bouncy ball'];
-  for (const label of projectiles) {
-    await evaluate(`document.querySelector('.closeup').querySelectorAll('button').forEach(b => { if (b.textContent === '${label}') b.click(); })`);
-    await sleep(300);
-    const rect = await evaluate("(() => { const r = document.querySelector('.room-canvas').getBoundingClientRect(); return { x: r.x + r.width * 0.5, y: r.y + r.height * 0.4 }; })()");
+  const distances = [];
+  for (const [i, label] of projectiles.entries()) {
+    await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'next automatic turn');
+    const turn = await evaluate("({ ...document.querySelector('.hoops-turn').dataset })");
+    assert.equal(turn.kind, ['paper', 'bottle', 'bouncy'][i]);
+    assert.equal(turn.points, Number(turn.distance) > 1.32 ? '3' : '2');
+    assert(Number(turn.distance) >= 0.58 && Number(turn.distance) <= 3.6);
+    distances.push(turn.distance);
+    if (process.env.ROOM_SCREENSHOTS) {
+      mkdirSync(process.env.ROOM_SCREENSHOTS, { recursive: true });
+      const shot = await send('Page.captureScreenshot', { format: 'png' });
+      writeFileSync(join(process.env.ROOM_SCREENSHOTS, `hoops-${turn.kind}-${turn.points}pt.png`), Buffer.from(shot.data, 'base64'));
+    }
+    const rect = await evaluate("(() => { const r = document.querySelector('.room-canvas').getBoundingClientRect(); return { x: r.x + r.width * 0.5, y: r.y + r.height * 0.62, span: Math.min(r.width,r.height) }; })()");
+    const pull = rect.span * 0.22 * 0.55;
     await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...rect, button: 'left', buttons: 1, clickCount: 1 });
-    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y + 150, button: 'left', buttons: 1 });
-    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y + 150, button: 'left', buttons: 0, clickCount: 1 });
+    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y + pull, button: 'left', buttons: 1 });
+    assert.equal(await evaluate("document.querySelector('.hoops-power').hidden"), false);
+    if (process.env.ROOM_SCREENSHOTS) {
+      await sleep(300);
+      const shot = await send('Page.captureScreenshot', { format: 'png' });
+      writeFileSync(join(process.env.ROOM_SCREENSHOTS, `guide-${turn.kind}.png`), Buffer.from(shot.data, 'base64'));
+    }
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y + pull, button: 'left', buttons: 0, clickCount: 1 });
+    assert.equal(await evaluate("document.querySelector('.hoops-power').hidden"), true);
+    assert.equal(await evaluate("document.querySelector('.hoops-turn').dataset.phase"), 'flight');
     await measure(`${label} in flight`);
+    await until("document.querySelector('.hoops-turn').dataset.phase === 'ready'", 'contact, result and next angle', 20000);
     await sleep(11000);
     await measure(`${label} settled`, true);
   }
-  if (projectiles.length) assert.match(await evaluate("document.querySelector('.hoops-score').textContent"), /^Made \d+ \/ 3$/);
+  if (projectiles.length) {
+    assert.equal(await evaluate("document.querySelector('.hoops-score').dataset.attempts"), '3');
+    assert.equal(new Set(distances).size, 3, 'Shot distances did not vary');
+  }
   await back();
   await exit();
   await clipAdvanced('Research panel resumed');

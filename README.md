@@ -15,6 +15,13 @@ After building, start `npm run preview` and run `npm run check:room` to check pa
 idle WebGL rendering and the three hoops projectiles in headless Chrome with SwiftShader.
 Set `URL` for a different preview port and `CHROME` for a different Chrome executable;
 `VIDEO_FALLBACK=1` also checks the 30 fps path used without video-frame callbacks.
+`npm run check:hoops` checks actual projectile physics, scoring, automatic rounds and idle behavior
+without a browser. Hoops rotates the three projectiles across 24 shuffled close, baseline, bed and distant throwing spots;
+the rug's arc separates two- and three-point shots.
+The neon-outlined release stays centered in the frame. A basket or non-backboard contact ends the shot;
+the result stays for 1.4 s before a 650 ms move to the next angle. Low and near-level views are included.
+Pull down to set power (22% of the canvas short side for full power) and left/right to steer. The fading arc uses the same physics as the throw,
+ending before the first impact rather than revealing the final landing point.
 
 ## Where things live
 
