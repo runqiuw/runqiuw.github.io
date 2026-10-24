@@ -84,7 +84,8 @@ try {
     };
     const clear = WebGL2RenderingContext.prototype.clear;
     WebGL2RenderingContext.prototype.clear = function(...args) {
-      if (this.canvas.classList.contains('room-canvas')) window.__roomCheck.clears++;
+      // Count frames, not shadow-map passes: only clears of the canvas itself (no framebuffer bound).
+      if (this.canvas.classList.contains('room-canvas') && !this.getParameter(this.FRAMEBUFFER_BINDING)) window.__roomCheck.clears++;
       return clear.apply(this, args);
     };
     ${process.env.VIDEO_FALLBACK ? "delete HTMLVideoElement.prototype.requestVideoFrameCallback; delete HTMLVideoElement.prototype.cancelVideoFrameCallback;" : ''}
@@ -98,20 +99,21 @@ try {
     await evaluate('window.__roomCheck.clears = 0');
     await sleep(2000);
     const clears = await evaluate('window.__roomCheck.clears');
-    console.log(`${label}: ${clears} room clears / 2 s`);
-    assert(idle ? clears <= 2 : clears > 0, `${label}: unexpected redraw count ${clears}`);
+    console.log(`${label}: ${clears} room frames / 2 s`);
+    // Idle still allows the nixie clock's once-a-second tick.
+    assert(idle ? clears <= 3 : clears > 0, `${label}: unexpected redraw count ${clears}`);
   };
   const paused = () => until('window.__roomCheck.videos.every(v => v.paused)', 'paused room videos');
   const playing = () => until('window.__roomCheck.videos.some(v => !v.paused && v.readyState >= 2)', 'playing panel video');
   const settle = async () => {
     // Software rendering may take much longer than two seconds to finish the room's initial
-    // 120-frame warmup. Wait for genuine idle, but fail if redraws never stop.
+    // 120-frame warmup. Wait for genuine idle (at most the clock's 1 Hz tick), but fail if redraws never stop.
     let quiet = 0;
     const deadline = Date.now() + 45000;
     while (Date.now() < deadline) {
       await evaluate('window.__roomCheck.clears = 0');
       await sleep(1000);
-      quiet = await evaluate('window.__roomCheck.clears') === 0 ? quiet + 1 : 0;
+      quiet = (await evaluate('window.__roomCheck.clears')) <= 1 ? quiet + 1 : 0;
       if (quiet === 2) return;
     }
     throw new Error('Room did not settle within 45 s');
@@ -162,6 +164,22 @@ try {
     await playing();
     await sleep(1500);
   };
+
+  // Reloading a room/close-up keeps the browser's old state, while the panel starts on the page.
+  // A fresh room visit must close to that page, never pop into and reopen the stale close-up.
+  for (const stale of [{ room: 1 }, { room: 2, closeup: 'hoops' }]) {
+    await evaluate(`window.__historyReloadPending = true; history.replaceState(${JSON.stringify(stale)}, '', '#room${stale.closeup ? '/hoops' : ''}'); location.reload()`);
+    await until("!window.__historyReloadPending && document.querySelector('.frame.live')", 'room after stale history reload', 60000);
+    await openRoom();
+    for (const section of ['research', 'projects', 'games']) {
+      await evaluate(`document.querySelector('[data-go="${section}"]').click()`);
+      await until("!document.querySelector('.room.full') && !history.state?.room", `${section} returns to page`);
+      await sleep(1500);
+      assert.equal(await evaluate("!!document.querySelector('.room.full') || location.hash.startsWith('#room')"), false, `${section} reopened stale room history`);
+      if (section !== 'games') await openRoom();
+    }
+  }
+  console.log('PASS: section picks after reloading stale room/hoops history');
 
   await pickClip('research');
   await clipAdvanced('Research panel');

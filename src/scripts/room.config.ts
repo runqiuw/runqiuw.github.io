@@ -107,8 +107,8 @@ export const PLACEMENTS: Placement[] = [
   { id: 'barR', asset: 'screenbar', at: [1.82, 3.528], z: 1.2826, on: 'monitorR' },
   { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
-  // Fractal Design Era ITX (cobalt, walnut top) on the desk's left end, front toward the room.
-  { id: 'pc', asset: 'pc_era', at: [0.745, 3.4], z: 0.74 },
+  // Fractal Design Era ITX on the desk's left end, front toward the room, rear ~3.8 cm off the wall.
+  { id: 'pc', asset: 'pc_era', at: [0.745, 3.5], z: 0.74 },
   // Nixie clock (Madison time): the monitors leave no gap between them, so it stands right of the keyboard.
   { id: 'clock', asset: 'nixie', at: [1.98, 3.22], z: 0.74 },
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: '#c4925e' }, section: 'playground' },

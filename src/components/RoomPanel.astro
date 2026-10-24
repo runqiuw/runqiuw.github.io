@@ -157,7 +157,13 @@ import night from '../assets/img/room/poster-night.webp';
     // The page scroll stays put underneath; stop the browser from "restoring" it when we pop
     // the #room entry, which would cancel the jump to the chosen section.
     history.scrollRestoration = 'manual';
-    if (push) history.pushState({ room: 1 }, '', '#room');
+    if (push) {
+      // A reload preserves history.state but starts this panel at page level. Replace that stale
+      // room entry with the page before opening a fresh stack, or closing can pop into an old
+      // close-up and onHistory will immediately reopen it (e.g. hoops after picking Research).
+      if (entry()?.room) history.replaceState(null, '', location.pathname + location.search);
+      history.pushState({ room: 1 }, '', '#room');
+    }
     const to = viewport();
     const opened = morph(from?.rect ?? shrunk(to, 0.2), to, OPEN_MS, [from?.radius ?? '28px', '0px'], [from ? 1 : 0, 1]);
     if (live) (await room)!.enterFull(OPEN_MS, to.width / to.height, clockOf(morphing!));

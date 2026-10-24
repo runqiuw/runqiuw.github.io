@@ -40,6 +40,7 @@ import {
   Raycaster,
   Scene,
   Shape,
+  ShapeGeometry,
   type Side,
   SphereGeometry,
   SpotLight,
@@ -134,8 +135,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   let item = document.documentElement.dataset.item ?? '';
 
   // Walls that face the camera (and what hangs on them) aren't hidden: they swap to this material,
-  // which draws nothing but still casts shadows, so they keep blocking light. The ceiling wears it
-  // for good. Daylight and moonlight then only come in through the windows.
+  // which draws nothing but still casts shadows, so they keep blocking light. The ceiling's
+  // sealing box also uses it. Daylight and moonlight then only come in through the windows.
   const ghostMat = new MeshBasicMaterial({ colorWrite: false, depthWrite: false });
   ghostMat.shadowSide = DoubleSide;
   const ghost = (o: Object3D, on: boolean) =>
@@ -343,7 +344,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     seal.raycast = () => {};
     scene.add(seal);
   });
-  // A ceiling that only casts shadows (the dollhouse view never shows it). It sinks 10 cm into the
+  // A ceiling seal that only casts shadows. It sinks 10 cm into the
   // wall tops: where boxes only touch, light leaks through the seam.
   const ceilBox = SHELL.outline.reduce((b, [x, y]) => b.expandByPoint(new Vector2(x, y)), new Box2()).expandByScalar(T);
   const ceiling = new Mesh(new BoxGeometry(ceilBox.max.x - ceilBox.min.x, 0.15, ceilBox.max.y - ceilBox.min.y), ghostMat);
@@ -351,6 +352,18 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   ceiling.castShadow = true;
   ceiling.raycast = () => {};
   scene.add(ceiling);
+  // The real underside is at the same height as the physics ceiling. Preserve the existing shadow
+  // seal for the room's lighting; this liner receives room/ambient light without
+  // receiving the seal's self-shadow, and only appears when the eye is inside the room.
+  const ceilingSurface = new Mesh(
+    new ShapeGeometry(new Shape(SHELL.outline.map(([x, y]) => new Vector2(x, y)))),
+    new MeshStandardMaterial({ color: new Color(SHELL.wall), roughness: 0.9, side: BackSide }),
+  );
+  ceilingSurface.rotation.x = -Math.PI / 2;
+  ceilingSurface.position.y = H;
+  ceilingSurface.visible = false;
+  ceilingSurface.raycast = () => {};
+  scene.add(ceilingSurface);
 
   // --- furniture
   const placed: Record<string, Object3D> = {};
@@ -449,7 +462,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     }
   }
 
-  // Blinds: in full-screen mode a click on a window rolls its blind up or down. The asset has the
+  // Blinds: up by day, down at night (they follow the theme switch); in full-screen mode a click on a
+  // window rolls its blind up or down until the next switch. The asset has the
   // cloth (`blind_cloth`, origin on the roller) and the bottom bar (`blind_bar`) as their own nodes;
   // the cloth scales toward the roller and the bar follows its bottom edge.
   type Blind = { win: Object3D; cloth: Object3D; bar?: Object3D; len: number; barY: number; k: number; t: number };
@@ -921,7 +935,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
             m.position.z = m.userData.z + depthOf(d);
           });
         }
-        const k = level * (opts.reduceMotion ? 1 : 0.96 + 0.04 * Math.sin(now * 0.031) * Math.sin(now * 0.017));
+        // The tubes flicker a little at night; by day they hold steady, so the room redraws only on each tick.
+        const k = level * (opts.reduceMotion || theme !== 'dark' ? 1 : 0.96 + 0.04 * Math.sin(now * 0.031) * Math.sin(now * 0.017));
         lits.forEach((m) => (m.material as MeshBasicMaterial).color.setScalar(k));
         bloomMat.opacity = 0.75 * k;
         glowU.value = k;
@@ -1459,7 +1474,9 @@ uniform float uStripEnd;
   })();
 
   let theme = opts.theme;
-  const sw = Object.fromEntries(Object.keys(SWITCH_ON).map((k) => [k, theme === 'dark'])) as Record<Switch, boolean>;
+  // Lights come on with the dark theme; the nixie clock is on in both (it's a clock, not a lamp).
+  const onFor = (k: Switch, t: 'light' | 'dark') => k === 'clock' || t === 'dark';
+  const sw = Object.fromEntries(Object.keys(SWITCH_ON).map((k) => [k, onFor(k as Switch, theme)])) as Record<Switch, boolean>;
   const levels = () => ({
     ...LEVELS[theme],
     ...(Object.fromEntries(Object.entries(SWITCH_ON).map(([k, v]) => [k, sw[k as Switch] ? v : 0])) as Record<Switch, number>),
@@ -1476,7 +1493,8 @@ uniform float uStripEnd;
   };
   const setTheme = (t: 'light' | 'dark') => {
     theme = t;
-    for (const k of Object.keys(sw) as Switch[]) sw[k] = t === 'dark';
+    for (const k of Object.keys(sw) as Switch[]) sw[k] = onFor(k, t);
+    for (const b of blinds) b.t = t === 'dark' ? 1 : 0.06;
     target = levels();
     fading = true;
     hemi.color.set(t === 'dark' ? 0x7d84ff : 0xffffff);
@@ -1492,6 +1510,12 @@ uniform float uStripEnd;
   };
   setTheme(opts.theme);
   cur = { ...target };
+  // The first theme sets the blinds where they are, without rolling them on load.
+  for (const b of blinds) {
+    b.k = b.t;
+    b.cloth.scale.y = b.k;
+    if (b.bar) b.bar.position.y = b.barY + (1 - b.k) * b.len;
+  }
 
   // --- full-screen orbit mode
   let full = false;
@@ -2178,6 +2202,16 @@ uniform float uStripEnd;
   // Keep drawing for ~2 s after mount: frames drawn while the canvas is still fading in from
   // opacity 0 may never be presented, which would leave the panel blank until the next move.
   let warmup = 120;
+  const cameraInsideRoom = () => {
+    if (!full || cam.position.y <= 0 || cam.position.y >= H) return false;
+    const x = cam.position.x, y = -cam.position.z, outline = SHELL.outline;
+    let inside = false;
+    for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+      const [xi, yi] = outline[i], [xj, yj] = outline[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  };
   // Draw one frame: lights, dollhouse walls, the scene, and the label positions.
   const draw = () => {
     dirty = false;
@@ -2200,13 +2234,16 @@ uniform float uStripEnd;
     ambL.intensity = cur.amb * b * 2.4;
     nixie?.update(cur.clock, performance.now());
     skyNight.opacity = cur.night;
-    // Hide whichever walls face the camera (dollhouse view).
+    // Cut away near walls only in the dollhouse view. From inside, even a side wall can be
+    // visible at the edge of a wide lens; hiding it exposes the page background as a dark band.
+    const interior = cameraInsideRoom();
+    ceilingSurface.visible = interior;
     v.copy(cam.position).sub(full && controls.enabled ? controls.target : camT);
     vp.set(v.x, -v.z);
-    const wallOn = wallSets.map((w) => vp.dot(w.n) > -0.4 && (!w.also || vp.dot(w.also) > -0.4));
+    const wallOn = wallSets.map((w) => interior || (vp.dot(w.n) > -0.4 && (!w.also || vp.dot(w.also) > -0.4)));
     wallSets.forEach((w, i) => w.objs.forEach((o) => ghost(o, !wallOn[i])));
     posts.forEach((p) => ghost(p.m, !(wallOn[p.a] && wallOn[p.b])));
-    onWall.forEach((w) => ghost(w.o, vp.dot(w.n) <= -0.4));
+    onWall.forEach((w) => ghost(w.o, !interior && vp.dot(w.n) <= -0.4));
     renderer.render(scene, cam);
     if (full) {
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -2219,7 +2256,7 @@ uniform float uStripEnd;
       });
     }
   };
-  let lastNow = 0, lastAmbient = 0, lastVideo = 0;
+  let lastNow = 0, lastAmbient = 0, lastVideo = 0, lastTick = 0;
   const loop = (now: number) => {
     requestAnimationFrame(loop);
     syncVideos();
@@ -2265,8 +2302,14 @@ uniform float uStripEnd;
     if (stepCards(dt)) dirty = true;
     if (hoops?.step(dt)) dirty = true;
     lastNow = now;
-    // The ambilight breathes and the clock ticks: redraw at ~30 fps while they're on.
-    if ((cur.amb > 0.002 && !opts.reduceMotion) || cur.clock > 0.02) {
+    // The ambilight breathes and the night clock flickers: redraw at ~30 fps while they're on. By day
+    // the clock only needs a redraw when its seconds change.
+    const sec = Math.floor(Date.now() / 1000);
+    if (cur.clock > 0.02 && sec !== lastTick) {
+      lastTick = sec;
+      dirty = true;
+    }
+    if ((cur.amb > 0.002 && !opts.reduceMotion) || (cur.clock > 0.02 && theme === 'dark' && !opts.reduceMotion)) {
       if (now - lastAmbient > 33) {
         lastAmbient = now;
         dirty = true;

@@ -41,6 +41,8 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 
 Not wanted: chat-style home page, room-only navigation, heavy real-time scenes.
 
+Room history: after a reload the panel starts at page level, even if the browser retains an old room state. A fresh room opening replaces that stale entry with the page before pushing its new room entry, so choosing a section cannot pop into and reopen a previous close-up.
+
 ### Section → object
 | Section | Object | Room shows |
 |---|---|---|
@@ -58,7 +60,8 @@ Clips: any resolution; trim to ≤ ~1 MB muted mp4 under `public/assets/video/`.
 ### Performance budget
 - Text first: static HTML, LCP never waits for 3D. three.js loads on idle on desktop, on demand on mobile.
 - No post-processing. Physics only for the toys on the bed (the pillow and the UMich M / UW W / SJTU gear plushes: pick up, throw, knock into each other) and the hoops game: cannon-es in its own chunk (~24 KB gzip), loaded when the full-screen room first opens, bodies sleep when settled. The hoops game has its own world: static floor, walls, bed and a ring of 14 boxes for the bin, fixed 1/120 s steps, stepping only while a throw is awake. Real-time light (hemisphere + one shadowed sun/moon + night lamps); per-asset baked AO only. Render on demand; stop when off-screen or the tab is hidden.
-- Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a shadow-only ceiling and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22). The shelf has a warm LED strip under every board: a line light written into the shelf's and walls' shaders (RectAreaLight would cost ~110 KB), so it lights each tier as an even band; on at night like the light bars.
+- Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a permanent shadow-only ceiling seal and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22). The shelf has a warm LED strip under every board: a line light written into the shelf's and walls' shaders (RectAreaLight would cost ~110 KB), so it lights each tier as an even band; on at night like the light bars.
+- Wall cutaways apply to the page/outside overview. In a full-screen interior view (eye inside the L-shaped footprint and below the ceiling), keep every wall, corner post and wall-mounted object visible, plus a lit L-shaped ceiling underside at the physical 2.7 m height. Its permanent shadow seal is unchanged; the visible liner does not receive the seal’s self-shadow. The outside overview stays open-topped. Direction-based cutaways can otherwise expose the page background as black vertical bands beside the doors in wide/night views.
 - Screen clips play in the page panel, redraw on decoded video frames (30 fps fallback), and pause in the full-screen room and every close-up. They resume on return to the page; hidden/off-screen panels also pause decoding. A paused clip alone must not keep the room rendering.
 - All 3D assets ≤ ~3 MB (now 1.52 MiB, meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
 - Lighthouse home page: Performance ≥ 90 desktop / ≥ 80 mobile, Accessibility ≥ 95.
