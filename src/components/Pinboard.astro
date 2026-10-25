@@ -141,8 +141,8 @@ const avatar = (await getImage({ src: avatarImg, width: 96, format: 'png' })).sr
       el.hidden = true;
     }
   };
-  // Starts once the card nears the viewport, or as soon as the full-screen room opens (`roomlevel`
-  // from RoomPanel), so the room's board already has the map when the page part was never seen.
+  // Starts once the card nears the viewport, or soon after the full-screen room opens (`roomlevel`
+  // from RoomPanel), so the room's board has the map even when the page part was never seen.
   let started = false;
   const start = async () => {
     if (started || !note) return;
@@ -171,7 +171,10 @@ const avatar = (await getImage({ src: avatarImg, width: 96, format: 'png' })).sr
   };
   const io = note ? new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && start(), { rootMargin: '400px 0px' }) : null;
   if (note) io!.observe(note);
-  addEventListener('roomlevel', (e) => (e as CustomEvent<number>).detail > 0 && start());
+  // Not during the room's opening morph: booting the map (WebGL, then a snapshot) made it stutter.
+  addEventListener('roomlevel', (e) => {
+    if ((e as CustomEvent<number>).detail > 0 && !started) setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200)))(start), 900);
+  });
 </script>
 
 <style>

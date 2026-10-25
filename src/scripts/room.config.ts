@@ -124,13 +124,14 @@ export const PLACEMENTS: Placement[] = [
   // Nixie clock (Madison time) on the back-right corner, clear of the right monitor.
   { id: 'clock', asset: 'nixie', at: [2.07, 3.51], z: 0.74 },
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: '#c4925e' }, section: 'playground' },
-  { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
+  { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.477], section: 'games' },
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
   { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
   { id: 'tvGamepad', asset: 'xbox_controller', at: [3.15, 3.365], z: 0.5, yaw: 10, section: 'games' },
-  { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
-  { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },
-  { id: 'gameC', asset: 'gamebox', at: [2.96, 3.52], z: 0.05, section: 'games' },
+  // On the floor of the stand's open middle cubby (its top is at 0.103 m).
+  { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.104, section: 'games' },
+  { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.104, section: 'games' },
+  { id: 'gameC', asset: 'gamebox', at: [2.96, 3.52], z: 0.104, section: 'games' },
   // Rug instead of a beanbag: marks the game corner without blocking the closet door (it swings over it).
   { id: 'rug', bounce: false, asset: 'rug', at: [2.78, 2.6], section: 'games' },
 
@@ -264,9 +265,13 @@ export const LABELS: [section: string, title: string, anchor: string][] = [
  * click; the light bars just follow the theme. */
 export const LIGHTS = { lamp: 'lamp', bedside: 'bedLamp', screen: ['barL', 'barR'], tv: 'tv', ambilight: 'tv', clock: 'clock' };
 
-/** Things that move: the plant's leaves sway when the view turns; the bed's pillow and the plushes
- * on it (`toys`) can be picked up and thrown, and knock into each other. */
-export const DECOR = { plant: 'plant', bed: 'bed', toys: ['plushUmich', 'plushUw', 'plushSjtu'] };
+/** Things that move: the plant's leaves sway and the tapestry ripples when the view turns; the
+ * bed's pillow and the plushes on it (`toys`) can be picked up and thrown, and knock into each other. */
+export const DECOR = { plant: 'plant', bed: 'bed', toys: ['plushUmich', 'plushUw', 'plushSjtu'], tapestry: 'bedTapestry' };
+
+/** How far a cabinet door (an asset's `doors`) swings open, in degrees, per placement and door node.
+ * The TV stand's right door stops at 70°: from 75° it runs into the closet door's frame. */
+export const DOOR_OPEN: Record<string, Record<string, number>> = { tvstand: { door_L: 100, door_R: 70 } };
 
 /** Pictures printed on an asset's `print` planes (the SJTU plush carries the emblem's inner field). */
 export const PRINTS: Record<string, string | Record<string, string>> = {

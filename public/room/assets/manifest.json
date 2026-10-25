@@ -396,7 +396,7 @@
         0.174,
         0.05
       ],
-      "elevation": 0.0,
+      "elevation": 0,
       "roles": [
         "accent",
         "frame",
@@ -623,9 +623,38 @@
         "frame",
         "wood"
       ],
-      "triangles": 3008,
-      "bytes": 57244,
-      "description": "Furnulem 3-drawer bedside cabinet."
+      "triangles": 3104,
+      "bytes": 58824,
+      "description": "Furnulem 3-drawer bedside cabinet.",
+      "drawers": [
+        {
+          "node": "drawer_0",
+          "travel": 0.181
+        },
+        {
+          "node": "drawer_1",
+          "travel": 0.181
+        },
+        {
+          "node": "drawer_2",
+          "travel": 0.181
+        }
+      ],
+      "drawer_0_pivot": [
+        0,
+        -0.1263,
+        0.45
+      ],
+      "drawer_1_pivot": [
+        0,
+        -0.1263,
+        0.288
+      ],
+      "drawer_2_pivot": [
+        0,
+        -0.1263,
+        0.126
+      ]
     },
     "nixie": {
       "file": "nixie.glb",
@@ -1530,7 +1559,7 @@
       "mount": "floor",
       "size": [
         1.2,
-        0.4375,
+        0.4455,
         0.5
       ],
       "elevation": 0,
@@ -1540,9 +1569,29 @@
         "metal",
         "wood"
       ],
-      "triangles": 1640,
-      "bytes": 18032,
-      "description": "Low TV console 120×40×50: two doors and an open middle cubby for the console."
+      "triangles": 2112,
+      "bytes": 23716,
+      "description": "Low TV console 120×40×50: hollow carcass, two hinged doors (door_L, door_R) and an open middle cubby for the console.",
+      "door_L_pivot": [
+        -0.585,
+        -0.1986,
+        0.29
+      ],
+      "door_R_pivot": [
+        0.585,
+        -0.1986,
+        0.29
+      ],
+      "doors": [
+        {
+          "node": "door_L",
+          "hinge": "left"
+        },
+        {
+          "node": "door_R",
+          "hinge": "right"
+        }
+      ]
     },
     "window": {
       "file": "window.glb",
@@ -1639,7 +1688,7 @@
           "min": [
             -0.093264851719141,
             -0.12431589141488075,
-            3.0468438882991222e-09
+            3.0468438882991222e-9
           ],
           "max": [
             0.093264851719141,
@@ -1821,16 +1870,16 @@
       "size": [
         0.3299,
         0.1233,
-        0.04
+        0.0415
       ],
       "elevation": 0.74,
       "roles": [
         "frame",
         "print"
       ],
-      "triangles": 17584,
-      "bytes": 159012,
-      "description": "Keychron V2 Knob Keyboard; calibrated desk prop, adapted from RelaxedImpala (CC BY 4.0).",
+      "triangles": 4862,
+      "bytes": 51492,
+      "description": "Keychron V2 Knob Keyboard; calibrated desk prop, adapted from RelaxedImpala (CC BY 4.0); geometry rebuilt cleanly on the real 65% layout.",
       "calibration": {
         "body_m": [
           0.3299,
@@ -1840,7 +1889,7 @@
         "measured_body_m": [
           0.3299,
           0.12325,
-          0.04
+          0.04147
         ],
         "reference": "https://www.keychron.com/products/keychron-v2-qmk-custom-mechanical-keyboard",
         "note": "Official footprint; overall keycap height approximated at 40 mm."
@@ -2030,7 +2079,7 @@
       "description": "Black Xbox wireless controller; Chistodrako._. (CC BY 4.0), simplified, resting face up.",
       "calibration": {
         "width_m": 0.153,
-        "resting_angle_degrees": -45.0,
+        "resting_angle_degrees": -45,
         "measured_m": [
           0.153,
           0.105665,

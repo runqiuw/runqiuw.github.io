@@ -60,7 +60,7 @@ import type { createHoops } from './room-hoops';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCoffeeSteam } from './room-coffee';
-import { CLOSEUPS, COFFEE, DECOR, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { CLOSEUPS, COFFEE, DECOR, DOOR_OPEN, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean };
 type Manifest = {
@@ -515,6 +515,85 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       b.k = opts.reduceMotion ? b.t : b.k + (b.t - b.k) * 0.14;
       b.cloth.scale.y = b.k;
       if (b.bar) b.bar.position.y = b.barY + (1 - b.k) * b.len;
+      moving = true;
+    }
+    return moving;
+  };
+
+  // Drawers and cabinet doors (an asset's `drawers` / `doors` in the manifest, each its own node
+  // with the pivot on its front face or hinge edge): in full-screen mode a click opens one and the
+  // next click closes it. Drawers slide out along the front, doors swing out; all close when the
+  // room closes.
+  type Opener = { o: Object3D; k: number; t: number; apply: (k: number) => void };
+  const openers: Opener[] = [];
+  for (const p of PLACEMENTS) {
+    const g = placed[p.id];
+    const info = g && (manifest.assets[p.asset] as { drawers?: { node: string; travel: number }[]; doors?: { node: string; hinge: 'left' | 'right' }[] });
+    if (!info) continue;
+    for (const d of info.drawers ?? []) {
+      const o = g.getObjectByName(d.node);
+      if (!o) continue;
+      const z = o.position.z;
+      openers.push({ o, k: 0, t: 0, apply: (k) => (o.position.z = z + k * d.travel) });
+    }
+    // Doors are inset: the exported ones stand a door's thickness proud of the carcass, so each is
+    // pushed back until its panel is flush with the carcass front, and hangs in a hinge group at the
+    // panel's front outer corner (where an inset hinge sits). Measured from the geometry.
+    // Boxes in the doors' parent's frame, where their positions live.
+    const ref = (info.doors?.length && g.getObjectByName(info.doors[0].node)?.parent) || g;
+    const box = (o: Object3D, skip?: (c: Object3D) => boolean) => {
+      const inv = ref.matrixWorld.clone().invert(), b = new Box3();
+      o.traverse((c) => {
+        if (!(c instanceof Mesh) || skip?.(c)) return;
+        if (!c.geometry.boundingBox) c.geometry.computeBoundingBox();
+        b.union(c.geometry.boundingBox!.clone().applyMatrix4(inv.clone().multiply(c.matrixWorld)));
+      });
+      return b;
+    };
+    g.updateWorldMatrix(true, true);
+    const doorNodes = (info.doors ?? []).map((d) => g.getObjectByName(d.node));
+    const inDoor = (c: Object3D) => {
+      for (let p: Object3D | null = c; p; p = p.parent) if (doorNodes.includes(p)) return true;
+      return false;
+    };
+    const carcassFront = info.doors?.length ? box(g, inDoor).max.z : 0;
+    for (const d of info.doors ?? []) {
+      const o = g.getObjectByName(d.node);
+      if (!o?.parent) continue;
+      // The panel is the door's biggest part (the knob sticks out in front of it).
+      let panel: Mesh | null = null, area = 0;
+      o.traverse((c) => {
+        if (!(c instanceof Mesh)) return;
+        const s = box(c).getSize(new Vector3());
+        if (s.x * s.y > area) (area = s.x * s.y), (panel = c);
+      });
+      if (!panel) continue;
+      const pb = box(panel);
+      o.position.z -= pb.max.z - carcassFront;
+      const outerX = d.hinge === 'left' ? pb.min.x : pb.max.x;
+      const hinge = new Group();
+      hinge.position.set(outerX, o.position.y, carcassFront);
+      o.parent.add(hinge);
+      hinge.updateWorldMatrix(true, false);
+      hinge.attach(o);
+      const a = MathUtils.degToRad(DOOR_OPEN[p.id]?.[d.node] ?? 100) * (d.hinge === 'left' ? -1 : 1);
+      openers.push({ o, k: 0, t: 0, apply: (k) => (hinge.rotation.y = k * a) });
+    }
+  }
+  const openerOf = (o: Object3D | null) => {
+    for (; o; o = o.parent) {
+      const x = openers.find((d) => d.o === o);
+      if (x) return x;
+    }
+  };
+  const stepOpeners = (dt: number) => {
+    let moving = false;
+    for (const d of openers) {
+      if (Math.abs(d.t - d.k) < 0.001) continue;
+      // `dt` is real elapsed time here, so a door closes fully even when frames come slowly.
+      d.k = opts.reduceMotion ? d.t : d.k + (d.t - d.k) * (1 - Math.exp(-9 * dt));
+      if (Math.abs(d.t - d.k) < 0.001) d.k = d.t;
+      d.apply(d.k);
       moving = true;
     }
     return moving;
@@ -980,7 +1059,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     });
     for (const [src, planes] of groups) {
       const { c, x, tex } = canvasTex(512, 512, false);
-      const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.9, side: (planes[0].material as Material).side });
+      // Sharp at a glancing angle; matte coated paper has a soft sheen, the woven tapestry none.
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.62, side: (planes[0].material as Material).side });
       if (FABRIC_PRINTS.includes(id)) {
         // Tiny repeating height map: the actual drape/folds are Blender geometry. No animation
         // or additional draw loop is needed for the printed cloth's woven surface.
@@ -1012,20 +1093,114 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
         Object.assign(c, { width: img.naturalWidth, height: img.naturalHeight });
         x.drawImage(img, 0, 0);
         tex.needsUpdate = true;
+        // Upload now, not the first time the wall comes into view (that hitched the turn).
+        renderer.initTexture(tex);
         dirty = true;
       }, () => {});
     }
   }
+
+  // --- wall art: a soft shadow painted on the wall behind each print (they hang a few millimetres
+  // off it, which real-time shadows can't show at this scale), and the tapestry ripples when the
+  // view turns, like the plant: a spring kicked by the camera's turn, bending the cloth more the
+  // further below its top pins a vertex hangs.
+  const artShadow = (id: string, blur: number, drop: number, alpha: number) => {
+    const g = placed[id], spec = PLACEMENTS.find((p) => p.id === id);
+    const size = spec && manifest.assets[spec.asset]?.size;
+    if (!g || !size) return;
+    const [w, , h] = size, m = blur * 2.5;
+    const { c, x, tex } = canvasTex(256, (256 * (h + 2 * m)) / (w + 2 * m));
+    const k = c.width / (w + 2 * m);
+    x.shadowColor = `rgba(20, 16, 40, ${alpha})`;
+    x.shadowBlur = blur * k;
+    x.shadowOffsetX = c.width;
+    x.shadowOffsetY = drop * k;
+    x.fillRect(m * k - c.width, m * k, w * k, h * k);
+    const sh = new Mesh(new PlaneGeometry(w + 2 * m, h + 2 * m), new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    sh.position.set(0, h / 2, -0.001);
+    sh.raycast = () => {};
+    g.add(sh);
+    renderer.initTexture(tex);
+  };
+  for (const id of Object.keys(PRINTS)) {
+    if (FABRIC_PRINTS.includes(id)) artShadow(id, 0.03, 0.02, 0.38);
+    else artShadow(id, 0.012, 0.008, 0.3);
+  }
+  const tapestry = placed[DECOR.tapestry] ?? null;
+  const ripple = { s: 0, v: 0, az: NaN };
+  const rippleU = { value: 0 };
+  let tapestryAt: Vector3 | null = null;
+  if (tapestry) {
+    tapestry.updateWorldMatrix(true, true);
+    const tb = new Box3().setFromObject(tapestry);
+    tapestryAt = tb.getCenter(new Vector3());
+    const uni = {
+      uRipple: rippleU,
+      uTop: { value: tb.max.y - 0.01 },
+      uDrop: { value: Math.max(0.1, tb.max.y - tb.min.y) },
+      uOut: { value: new Vector3(0, 0, 1).transformDirection(tapestry.matrixWorld) },
+      uAlong: { value: new Vector3(1, 0, 0).transformDirection(tapestry.matrixWorld) },
+    };
+    tapestry.traverse((o) => {
+      if (!(o instanceof Mesh) || (o.material as Material).userData.role === 'metal') return;
+      const src = o.material as MeshStandardMaterial;
+      if (!(src instanceof MeshStandardMaterial)) return;
+      const m = src.clone();
+      const ao = src.customProgramCacheKey() === 'baked-ao';
+      if (ao) withAO(m);
+      const base = m.onBeforeCompile;
+      m.onBeforeCompile = (sh, r) => {
+        base.call(m, sh, r);
+        Object.assign(sh.uniforms, uni);
+        sh.vertexShader = 'uniform float uRipple, uTop, uDrop;\nuniform vec3 uOut, uAlong;\n' + sh.vertexShader.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+  vec3 rippleW = (modelMatrix * vec4(transformed, 1.0)).xyz;
+  float rippleK = clamp((uTop - rippleW.y) / uDrop, 0.0, 1.0);
+  // Out from the wall (never into it) in a slow wave across the cloth, and a little sideways swing.
+  float rippleOut = rippleK * (abs(uRipple) * 0.6 + uRipple * 0.4 * sin(dot(rippleW, uAlong) * 7.0));
+  transformed += inverse(mat3(modelMatrix)) * (uOut * rippleOut + uAlong * uRipple * 0.5 * rippleK * rippleK);`,
+        );
+      };
+      m.customProgramCacheKey = () => `ripple-${ao}`;
+      o.material = m;
+    });
+  }
+  const stepRipple = (dt: number) => {
+    if (!tapestryAt || opts.reduceMotion) return false;
+    const az = Math.atan2(cam.position.x - tapestryAt.x, cam.position.z - tapestryAt.z);
+    if (focused === 'hoops') {
+      ripple.az = az;
+      ripple.s = ripple.v = rippleU.value = 0;
+      return false;
+    }
+    let d = Number.isNaN(ripple.az) ? 0 : az - ripple.az;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    ripple.az = az;
+    // Only a drag of the view kicks it, not the camera flying to a close-up or back.
+    if (d && !tween) ripple.v -= d * 0.5;
+    // Settled once it moves less than half a millimetre (and quickly: frames can be slow).
+    if (Math.abs(ripple.s) < 5e-4 && Math.abs(ripple.v) < 3e-3) {
+      if (rippleU.value) rippleU.value = ripple.s = ripple.v = 0;
+      return false;
+    }
+    ripple.v = (ripple.v - ripple.s * 38 * dt) * Math.exp(-3 * dt);
+    ripple.s = MathUtils.clamp(ripple.s + ripple.v * dt, -0.03, 0.03);
+    rippleU.value = ripple.s;
+    return true;
+  };
 
   // --- screens: the `screen` / `cover` planes of the assets (glTF UVs, so textures are not flipped)
   const videos = new Set<HTMLVideoElement>();
   const videoPlayback: (() => void)[] = [];
   let videosPlaying = false;
   // `glowing` screens are unlit (they show their picture as is and reflect nothing); printed
-  // surfaces like game covers take the room light.
-  const makeScreen = (id: string, node: string, aspect: number, width = 640, glowing = true) => {
+  // surfaces like game covers take the room light. Drawing happens in `width` units; `density`
+  // renders that at a multiple of it (sharper text and pictures up close, same layout).
+  const makeScreen = (id: string, node: string, aspect: number, width = 640, glowing = true, density = 1) => {
     const mesh = placed[id].getObjectByName(node) as Mesh;
-    const { c, x, tex } = canvasTex(width, width / aspect, false);
+    const { c, x, tex } = canvasTex(width * density, (width * density) / aspect, false);
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const mat = glowing ? new MeshBasicMaterial({ map: tex, toneMapped: false }) : new MeshStandardMaterial({ map: tex, roughness: 0.7 });
     mesh.material = mat;
     let video: HTMLVideoElement | null = null;
@@ -1058,7 +1233,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       draw(fn: (x: CanvasRenderingContext2D, w: number, h: number) => void) {
         req++;
         useCanvas();
-        fn(x, c.width, c.height);
+        x.setTransform(density, 0, 0, density, 0, 0);
+        fn(x, c.width / density, c.height / density);
         tex.needsUpdate = true;
         dirty = true;
       },
@@ -1100,9 +1276,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     };
   };
   const aspectOf = (id: string, key: 'screen' | 'cover') => manifest.assets[PLACEMENTS.find((p) => p.id === id)!.asset]?.[key]?.aspect ?? 16 / 9;
-  const scrPaper = makeScreen(SCREENS.paper, 'screen', aspectOf(SCREENS.paper, 'screen'));
-  const scrInfo = makeScreen(SCREENS.paperInfo, 'screen', aspectOf(SCREENS.paperInfo, 'screen'));
-  const scrTv = makeScreen(SCREENS.tv, 'screen', aspectOf(SCREENS.tv, 'screen'));
+  const scrPaper = makeScreen(SCREENS.paper, 'screen', aspectOf(SCREENS.paper, 'screen'), 640, true, 2);
+  const scrInfo = makeScreen(SCREENS.paperInfo, 'screen', aspectOf(SCREENS.paperInfo, 'screen'), 640, true, 2);
+  const scrTv = makeScreen(SCREENS.tv, 'screen', aspectOf(SCREENS.tv, 'screen'), 640, true, 2);
 
   const pageItems = (section: string) => [...document.querySelectorAll<HTMLElement>(`#${section} [data-item]`)];
   const terminal = (x: CanvasRenderingContext2D, w: number, h: number) => {
@@ -1605,6 +1781,7 @@ uniform float uStripEnd;
   // grows at the same time); orbiting and labels start once it has arrived.
   const enterFull = (ms = 0, aspect = cam.aspect, clock?: Clock) => {
     full = true;
+    morphClock = clock ?? null;
     loadPhysics();
     // The bounding-sphere fit is too cautious on tall portrait screens; tighten it there.
     const q = place({ ...shots.top, r: shots.top.r * (aspect < 0.8 ? 0.78 : 1) }, aspect);
@@ -1634,7 +1811,9 @@ uniform float uStripEnd;
   // Closing: back to the shot of `section` (the one picked in the room) or of the current section.
   const exitFull = (ms = 0, section?: string, aspect = cam.aspect, clock?: Clock) => {
     full = false;
+    morphClock = clock ?? null;
     flying = false;
+    for (const d of openers) d.t = 0;
     if (focused) closeupHooks[focused]?.leave?.();
     focused = null;
     hover();
@@ -1673,6 +1852,17 @@ uniform float uStripEnd;
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, cam);
     return ray.intersectObjects(scene.children, true).find((h) => shown(h.object))?.object;
+  };
+  // In the desk close-up, the paper a click on a monitor stands for: the one showing, or on the
+  // terminal's list, the line under the pointer. `undefined` when the monitors weren't hit.
+  const screenPick = (e: PointerEvent): { item?: string } | undefined => {
+    hitAt(e);
+    const h = ray.intersectObjects([scrPaper.mesh, scrInfo.mesh], false)[0];
+    if (!h) return;
+    const shownPaper = active === 'research' && item ? item : undefined;
+    if (shownPaper || h.object !== scrPaper.mesh || !h.uv) return { item: shownPaper };
+    const line = Math.floor(((h.uv.y * 640) / aspectOf(SCREENS.paper, 'screen') - 92) / 46);
+    return { item: pageItems('research')[line]?.dataset.item };
   };
 
   // Hover bounce: interactive objects (placements with a section) spring up a little under the
@@ -1758,6 +1948,9 @@ uniform float uStripEnd;
     const moved = Math.hypot(e.clientX - down[0], e.clientY - down[1]);
     down = null;
     if (!full || flying || (focused && focused !== 'desk') || moved >= 6) return;
+    // In the desk close-up, a click on a monitor leaves the room for that paper on the page.
+    const onScreen = focused === 'desk' ? screenPick(e) : undefined;
+    if (onScreen) return visit('research', onScreen.item);
     const hit = hitAt(e) ?? null;
     const o = interactiveOf(hit);
     // First click explores the desk; once inside, its actual switches take precedence.
@@ -1767,6 +1960,12 @@ uniform float uStripEnd;
     const blind = blindOf(hit);
     if (blind) {
       blind.t = blind.t > 0.5 ? 0.06 : 1;
+      dirty = true;
+      return;
+    }
+    const opener = openerOf(hit);
+    if (opener) {
+      opener.t = opener.t ? 0 : 1;
       dirty = true;
       return;
     }
@@ -1784,12 +1983,12 @@ uniform float uStripEnd;
     if (!full || down || flying || (focused && focused !== 'desk')) return;
     const hit = hitAt(e) ?? null;
     if (focused) {
-      if (focused === 'desk') canvas.style.cursor = switchOf(hit) || blindOf(hit) ? 'pointer' : '';
+      if (focused === 'desk') canvas.style.cursor = switchOf(hit) || blindOf(hit) || openerOf(hit) || screenPick(e) ? 'pointer' : '';
       return;
     }
     const o = interactiveOf(hit);
     hover(o);
-    canvas.style.cursor = o || blindOf(hit) || switchOf(hit) ? 'pointer' : chairTop && isIn(hit, chairTop) ? 'ew-resize' : 'grab';
+    canvas.style.cursor = o || blindOf(hit) || switchOf(hit) || openerOf(hit) ? 'pointer' : chairTop && isIn(hit, chairTop) ? 'ew-resize' : 'grab';
   });
   canvas.addEventListener('pointerleave', () => hover());
 
@@ -2251,11 +2450,67 @@ uniform float uStripEnd;
     return moving;
   };
 
+  // Get the materials of things not on screen ready before they're first seen (the walls the
+  // overview cuts away, the poster wall, the ceiling and the back of the room only drawn inside it):
+  // done on first sight, it made the first turn toward the poster wall and opening the full-screen
+  // room hitch. Shortly after mount they are drawn once, unhidden and unculled (compiling alone
+  // isn't enough: the GPU finishes a program and its pipeline on the first real draw), a couple of
+  // materials per idle moment so no single step blocks for long.
+  const offscreen = () => {
+    const byMat = new Map<Material, Mesh[]>();
+    scene.traverse((o) => {
+      if (!(o instanceof Mesh)) return;
+      let shown = true;
+      for (let p: Object3D | null = o; p; p = p.parent) if (!p.visible) shown = false;
+      if (shown && !o.userData.ghost) return;
+      const m = (o.userData.ghost ?? o.material) as Material;
+      if (Array.isArray(m)) return;
+      byMat.set(m, [...(byMat.get(m) ?? []), o]);
+    });
+    return [...byMat.values()];
+  };
+  const warmBatch = (meshes: Mesh[]) => {
+    const hidden: Object3D[] = [], ghosted: [Mesh, Material][] = [];
+    for (const o of meshes) {
+      for (let p: Object3D | null = o; p; p = p.parent) if (!p.visible) hidden.push(p), (p.visible = true);
+      if (o.userData.ghost) ghosted.push([o, o.material as Material]), (o.material = o.userData.ghost);
+      o.frustumCulled = false;
+    }
+    renderer.render(scene, cam);
+    for (const o of meshes) o.frustumCulled = true;
+    for (const [o, m] of ghosted) o.material = m;
+    for (const o of hidden) o.visible = false;
+    dirty = true;
+  };
+  const idle = (f: () => void) => (window.requestIdleCallback ?? ((g: () => void) => setTimeout(g, 200)))(f);
+  const warmUp = () => {
+    const groups = offscreen();
+    const next = () => {
+      const batch = groups.splice(0, 2).flat();
+      if (!batch.length) return;
+      warmBatch(batch);
+      idle(next);
+    };
+    idle(next);
+  };
   // Resizing clears the canvas, and the ResizeObserver runs after this frame's draw, so redraw
   // right away; otherwise the room would vanish while the frame morphs in and out of full screen.
+  // While it morphs, only the camera follows the frame's shape (CSS stretches the canvas):
+  // reallocating the drawing buffer on every frame of the morph made opening the room stutter.
+  // The buffer catches up once the morph ends.
+  let morphClock: Clock | null = null;
+  let sizePending = false;
   const resize = () => {
     const w = frame.clientWidth, h = frame.clientHeight;
     if (!w || !h) return;
+    if (morphClock && !morphClock.done()) {
+      cam.aspect = w / h;
+      cam.updateProjectionMatrix();
+      sizePending = dirty = true;
+      return;
+    }
+    morphClock = null;
+    sizePending = false;
     renderer.setSize(w, h, false);
     hoops?.resize(w, h);
     cam.aspect = w / h;
@@ -2392,7 +2647,19 @@ uniform float uStripEnd;
     if (stepSprings(dt)) dirty = true;
     if (stepChair(dt)) dirty = true;
     if (stepToys(dt)) dirty = true;
-    if (stepSway(dt)) dirty = true;
+    // The plant and the tapestry settle in real time, even when frames come slowly (software
+    // rendering): their springs advance by the time that passed, in small steps.
+    const real = Math.min(1, (now - (lastNow || now)) / 1000);
+    if (sizePending && (!morphClock || morphClock.done())) {
+      morphClock = null;
+      resize();
+    }
+    if (stepOpeners(real)) dirty = true;
+    for (let left = real; left > 1e-6; left -= 1 / 60) {
+      const h = Math.min(left, 1 / 60);
+      if (stepSway(h)) dirty = true;
+      if (stepRipple(h)) dirty = true;
+    }
     if (stepCards(dt)) dirty = true;
     if (hoops?.step(dt)) dirty = true;
     if (coffeeSteam.step(now, !focused || focused === 'desk', frame.clientHeight)) dirty = true;
@@ -2432,5 +2699,6 @@ uniform float uStripEnd;
     updateScreens();
   });
   window.addEventListener('themechange', (e) => setTheme((e as CustomEvent<'light' | 'dark'>).detail));
+  setTimeout(warmUp, 1500);
   return { canvas, enterFull, exitFull, focus, unfocus, visit };
 }
