@@ -1139,7 +1139,10 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const shelfW = shelfAsset.size[0] - 0.08;
   const fw = Math.min(0.34, shelfW / perTier - 0.04), fh = fw * 0.66;
   const frameMat = new MeshStandardMaterial({ color: new Color('#ffffff'), roughness: 0.8 });
-  const grow = 0.22, advance = 0.012, gap = 0.016;
+  // Hover grows a display up to 22%; miniatures reserve only 10% so they fill their slot, and grow
+  // as far as the slot allows. Growth moves forward, so depth needs no reserve, and miniatures may
+  // overhang the open shelf front a little.
+  const grow = 0.22, minGrow = 0.1, overhang = 0.04, advance = 0.012, gap = 0.016;
   const miniatureModels = projects.map((el, i) => {
     const spec = PROJECT_MODELS[el.dataset.item ?? ''];
     const src = spec && source[spec.asset];
@@ -1148,9 +1151,11 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     model.rotation.y = MathUtils.degToRad(spec.yaw ?? 0);
     const bounds = new Box3().setFromObject(model), size = bounds.getSize(new Vector3());
     const n = Math.min(perTier, projects.length - Math.floor(i / perTier) * perTier);
-    const maxSize = new Vector3(shelfW / n - 2 * gap, (shelfAsset.tier_clear ?? 0.33) - 2 * gap, shelfAsset.size[1] - 2 * gap - advance);
-    const fit = Math.min(1, Math.min(maxSize.x / size.x, maxSize.y / size.y, maxSize.z / size.z) / (1 + grow));
-    return { model, bounds, fit, lifeSize: spec.lifeSize };
+    const maxSize = new Vector3(shelfW / n - 2 * gap, (shelfAsset.tier_clear ?? 0.33) - 2 * gap, shelfAsset.size[1] - 2 * gap - advance + overhang);
+    const room = Math.min(maxSize.x / size.x, maxSize.y / size.y);
+    const fit = Math.min(1, room / (1 + minGrow), maxSize.z / size.z);
+    const s = spec.lifeSize ? grow : Math.min(grow, room / fit - 1);
+    return { model, bounds, fit, s, lifeSize: spec.lifeSize };
   });
   const projectDisplays = projects.map((el, i) => {
     const tier = tiers[Math.floor(i / perTier)] ?? tiers[tiers.length - 1];
@@ -1163,7 +1168,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const slotX = (k - (n - 1) / 2) * (shelfW / n);
     const miniature = miniatureModels[i];
     if (miniature) {
-      const { model, bounds: b, fit, lifeSize } = miniature;
+      const { model, bounds: b, fit, s, lifeSize } = miniature;
       const center = b.getCenter(new Vector3());
       const scale = lifeSize ? 1 : fit;
       model.scale.setScalar(scale);
@@ -1172,9 +1177,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       f.add(model);
       const halfDepth = (b.max.z - b.min.z) * scale / 2;
       const backClearance = -shelfAsset.size[1] / 2 + 0.012 + gap;
-      const forward = lifeSize ? advance + halfDepth * grow : advance;
-      f.position.set(slotX, tier + 0.003, lifeSize ? Math.max(-advance / 2, backClearance + halfDepth) : -advance / 2);
-      return { id: el.dataset.item, pop: poppable(f, { p: new Vector3(0, 0, forward), s: grow }) };
+      f.position.set(slotX, tier + 0.003, Math.max(-advance / 2, backClearance + halfDepth));
+      return { id: el.dataset.item, pop: poppable(f, { p: new Vector3(0, 0, advance + halfDepth * s), s }) };
     }
     const border = new Mesh(new BoxGeometry(fw, fh, 0.018), frameMat);
     border.castShadow = true;

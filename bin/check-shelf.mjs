@@ -10,7 +10,9 @@ import { Box3, Matrix4, Ray, Vector3 } from 'three';
 
 const site = process.env.URL ?? 'http://localhost:4321';
 const manifest = JSON.parse(readFileSync(new URL('../public/room/assets/manifest.json', import.meta.url)));
-const modelIds = ['imu-localization', 'sketchgenie', 'transformable-rover', 'telegram-chatbot'];
+const modelIds = ['imu-localization', 'sketchgenie', 'robotics-vehicle', 'robotic-arm', 'transformable-rover', 'telegram-chatbot'];
+// Hover grows a model 10–22%: miniatures that fill their slot grow only as far as it allows.
+const minPop = 1.099;
 const slots = {
   'imu-localization': {tier:3,left:-.36,right:0}, sketchgenie:{tier:3,left:0,right:.36},
   'transformable-rover':{tier:1,left:-.36,right:0}, 'telegram-chatbot':{tier:1,left:0,right:.36},
@@ -192,19 +194,20 @@ try {
     const p = await evaluate(`(() => {const r=document.querySelector('#projects [data-item="${id}"]').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+30};})()`);
     await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...p });
   };
-  for (const id of ['imu-localization','sketchgenie','transformable-rover','telegram-chatbot','transformable-rover']) {
+  for (const id of ['imu-localization','sketchgenie','robotics-vehicle','robotic-arm','transformable-rover','telegram-chatbot','transformable-rover']) {
     await evaluate(`document.querySelector('#projects [data-item="${id}"]').scrollIntoView({behavior:'instant',block:'center'})`);
     await sleep(500);
     await moveTo(id);
     await until(`document.documentElement.dataset.item === '${id}'`, `hover ${id}`);
     for (let i = 0; i < 30; i++) { check(await evaluate('__shelf.sample()')); await sleep(25); }
     const selected=modelIds.includes(id)?id:'transformable-rover';
-    await until(`(() => { const s=__shelf.sample().displays.find(d=>d.name==='project-${selected}').scale; return ${modelIds.includes(id) ? 's>1.219' : 's<1.001'}; })()`, 'settled display scale');
+    await until(`(() => { const s=__shelf.sample().displays.find(d=>d.name==='project-${selected}').scale; return ${modelIds.includes(id) ? 's>minPop' : 's<1.001'}; })()`.replace('minPop', minPop), 'settled display scale');
+    await sleep(1500);
     const s = await evaluate('__shelf.sample()');
     assert.deepEqual(s.camera, before.camera, 'Card hover moved the camera');
     assert.deepEqual(s.rotation, before.rotation, 'Card hover turned the camera');
     const scale=s.displays.find(d=>d.name===`project-${selected}`).scale;
-    assert(modelIds.includes(id) ? scale>1.21 : scale<1.01, `Wrong display highlighted: ${id} scale=${scale}`);
+    assert(modelIds.includes(id) ? scale>minPop : scale<1.01, `Wrong display highlighted: ${id} scale=${scale}`);
     checkSurfaces(await evaluate('__shelf.surfaces()'));
   }
   // An observer update during hover must not replace the user's hovered item.

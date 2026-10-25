@@ -1770,6 +1770,45 @@
       "description": "Short, arms-down S-Bot figurine adapted from amanpatel9725's S-Bot: Stylized Cartoon Robot, CC BY 4.0.",
       "license": "CC-BY-4.0",
       "credits": "/room/assets/CREDITS.txt"
+    },
+    "robotics_vehicle": {
+      "file": "robotics_vehicle.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.372,
+        0.4236,
+        0.3291
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame",
+        "glass",
+        "metal"
+      ],
+      "triangles": 7940,
+      "bytes": 62236,
+      "description": "Bluetooth robotics vehicle (SJTU Liming Cup 2023) modelled from project photos: mecanum chassis, acrylic tower, orange lift arms lowered, foam-lined gripper. No wiring."
+    },
+    "robotic_arm": {
+      "file": "robotic_arm.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.4991,
+        0.3,
+        0.448
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame",
+        "metal"
+      ],
+      "triangles": 5264,
+      "bytes": 50980,
+      "description": "ME 250 robotic arm modelled from project photos, a CAD view and notes: four red legs, motor-driven turntable gear, six columns, shortened box boom with carriage and rack, three-finger silicone gripper. Solid colours; no wiring."
     }
   }
 }

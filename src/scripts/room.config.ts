@@ -264,7 +264,9 @@ export const WINDOWS = ['windowA', 'windowB'];
 export const PROJECT_MODELS: Record<string, { asset: string; yaw?: number; lifeSize?: boolean }> = {
   'imu-localization': { asset: 'imu_devices', yaw: 5, lifeSize: true },
   sketchgenie: { asset: 'quest3', yaw: -10, lifeSize: true },
-  'transformable-rover': { asset: 'rover', yaw: -8 },
+  'robotics-vehicle': { asset: 'robotics_vehicle', yaw: 5 },
+  'robotic-arm': { asset: 'robotic_arm' },
+  'transformable-rover': { asset: 'rover' },
   'telegram-chatbot': { asset: 'chatbot_robot', yaw: -8 },
 };
 
