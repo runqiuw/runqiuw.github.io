@@ -7,8 +7,6 @@ shelf tiers...) for room.config.ts.
 import bpy, json, re, sys
 from pathlib import Path
 
-out_dir = Path(sys.argv[sys.argv.index("--") + 1])
-out_dir.mkdir(parents=True, exist_ok=True)
 SPECIAL = ("screen", "cover", "board")
 
 def base(name):
@@ -25,7 +23,8 @@ def plane_info(o):
     return {"width": round(hi[0] - lo[0], 4), "height": round(hi[2] - lo[2], 4),
             "aspect": round((hi[0] - lo[0]) / (hi[2] - lo[2]), 4)}
 
-def export(coll):
+def export(coll, out_dir):
+    out_dir.mkdir(parents=True, exist_ok=True)
     name = coll.name[len("asset_"):]
     objs = list(coll.objects)
     offset = coll.instance_offset.copy()
@@ -79,15 +78,21 @@ def export(coll):
         o.name = n
     return name, entry
 
-scene = bpy.data.scenes["Assets"]
-bpy.context.window.scene = scene if bpy.context.window else scene
-manifest = {"source": Path(bpy.data.filepath).name,  # file name only: the manifest is public
-            "units": "m", "front": "-Y", "up": "+Z (glTF +Y)", "assets": {}}
-for coll in sorted(scene.collection.children, key=lambda c: c.name):
-    if coll.name.startswith("asset_"):
-        name, entry = export(coll)
-        manifest["assets"][name] = entry
-        print(f"{name:12s} {entry['triangles']:6d} tris {entry['bytes'] / 1024:7.1f} KB")
-(out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
-total = sum(e["bytes"] for e in manifest["assets"].values())
-print(f"total {total / 1024 / 1024:.2f} MB, {len(manifest['assets'])} assets -> {out_dir}")
+def main():
+    out_dir = Path(sys.argv[sys.argv.index("--") + 1])
+    scene = bpy.data.scenes["Assets"]
+    bpy.context.window.scene = scene if bpy.context.window else scene
+    manifest = {"source": Path(bpy.data.filepath).name,  # file name only: the manifest is public
+                "units": "m", "front": "-Y", "up": "+Z (glTF +Y)", "assets": {}}
+    for coll in sorted(scene.collection.children, key=lambda c: c.name):
+        if coll.name.startswith("asset_"):
+            name, entry = export(coll, out_dir)
+            manifest["assets"][name] = entry
+            print(f"{name:12s} {entry['triangles']:6d} tris {entry['bytes'] / 1024:7.1f} KB")
+    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    total = sum(e["bytes"] for e in manifest["assets"].values())
+    print(f"total {total / 1024 / 1024:.2f} MB, {len(manifest['assets'])} assets -> {out_dir}")
+
+
+if __name__ == "__main__":
+    main()

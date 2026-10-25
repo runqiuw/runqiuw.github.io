@@ -13,7 +13,7 @@ No endorsement implied.
 Apple iPhone 13 Pro Max — DatSketch, Creative Commons Attribution 4.0
 Original: https://sketchfab.com/3d-models/apple-iphone-13-pro-max-4328dea00e47497dbeac73c556121bc9
 Downloaded via SceneView: https://sceneview.github.io/credits.html
-Website asset: imu_devices.glb. Geometry simplified, fine logos removed,
+Website assets: imu_devices.glb and phone_charger.glb. Geometry simplified, fine logos removed,
 clay-style vertex colours and calibrated physical dimensions. No endorsement implied.
 The watch, closed earphone case and flat charging base are new simplified geometry.
 This base is inspired by flat three-in-one charging pads, not a precise Belkin product.
@@ -29,5 +29,58 @@ Website asset: chatbot_robot.glb. Body shortened, arms lowered and shortened, ch
 removed, new eye geometry added, fingers simplified and converted to clay-style vertex
 colours (white and blue). Static figurine. No endorsement implied.
 
+Keychron V2 Knob Keyboard — RelaxedImpala, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/keychron-v2-knob-keyboard-235cd5b3bfea471eb6bd88ddc2d826d6
+Website assets: keyboard_v2.glb and /room/prints/keychron-v2.jpg.
+Removed the presentation ground, flattened the display pose, reprojected the supplied
+key artwork, and adapted the case to clay-style colours. Footprint calibrated to
+329.9 x 123.25 mm; overall keycap height approximated at 40 mm.
+https://www.keychron.com/products/keychron-v2-qmk-custom-mechanical-keyboard
+No endorsement implied.
+
+Computer mouse — zhe_kan, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/computer-mouse-6e7940d9e2144efeae3468a906f27e07
+Website asset: mouse_superlight.glb. Based on the Logitech G PRO X SUPERLIGHT.
+Simplified geometry, replaced bitmap materials with clay-style vertex colours,
+and calibrated to 125 x 63.5 x 40 mm. No endorsement implied.
+https://www.logitechg.com/en-ch/products/gaming-mice/pro-x-superlight-wireless-mouse.910-005942.html
+
+JBL Flip 6 — polyman Studio, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/jbl-flip-6-b52362c876b640adaafe233ab0a942a8
+Website asset: jbl_flip6.glb. Simplified geometry, converted to clay-style vertex
+colours, and calibrated to a 178 x 68 x 72 mm rigid body. The loose carrying loop
+is retained and extends beyond that envelope. No endorsement implied.
+https://www.jbl.com/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw0a39b813/pdfs/JBL_Flip_6_SpecSheet_English.pdf
+
+(Free) Logitech DESK MAT - Blue — PolyDavid, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/free-logitech-desk-mat-blue-95d618deea6a4eae826f6eae33bd00d3
+Website assets: deskmat.glb and /room/prints/logitech-deskmat.webp. Source archive
+provided by the site author; reoriented and calibrated to 700 x 300 x 2 mm.
+https://www.logitech.com/en-us/shop/p/desk-mat-studio-series
+No endorsement implied.
+
+The ceramic coffee mug and coffee surface are original geometry made for this room.
+
+Xbox Inalambric Controller (Black) — Chistodrako._., Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/xbox-inalambric-controller-black-29cc9624894a4f2cae7d2a675044db45
+Downloaded via SceneView: https://sceneview.github.io/credits.html
+Website assets: xbox_controller.glb and /room/prints/xbox-controller.webp.
+Simplified, rested face up, calibrated to 153 mm width, and adapted to the room's
+material roles. Used on the desk and TV cabinet. No endorsement implied.
+
+The white upright wireless charging stand, soft tissue packet and black tablet are original geometry.
+The phone and tablet have inactive dark screens.
+The phone geometry is adapted from DatSketch's CC BY model credited above.
+
 Other room assets are not covered by the licences listed above.
+
+Bed-wall gallery: seven poster images and the horse-riding tapestry image were supplied
+by the site author. Image rights remain with their respective owners. Resized for room
+textures; neutral paper margins preserve the complete artwork where aspect ratios differ.
+The thin paper, pins, draped textile and sewn hems are original geometry.
 

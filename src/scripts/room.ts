@@ -7,8 +7,8 @@
 // asks the panel for its close-up (`onFocus`, then `focus()`), or calls `onNavigate(section)` when it
 // has none. There a click also switches a lamp, the TV ambilight or the nixie clock, and dragging the
 // chair spins its top; in the pinboard's close-up its cards can be dragged around. Rendering happens
-// only while something changes (the breathing ambilight and the ticking clock redraw at ~30 fps while
-// they're on).
+// only while something changes (visible coffee steam, the breathing ambilight and the night clock
+// keep their own capped redraw schedules).
 import {
   AdditiveBlending,
   Box2,
@@ -28,6 +28,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   NeutralToneMapping,
+  NoColorSpace,
   PMREMGenerator,
   BackSide,
   type Object3D,
@@ -38,6 +39,7 @@ import {
   PointLight,
   Quaternion,
   Raycaster,
+  RepeatWrapping,
   Scene,
   Shape,
   ShapeGeometry,
@@ -57,9 +59,10 @@ import type { createToyWorld, Toy, ToyShape } from './room-physics';
 import type { createHoops } from './room-hoops';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CLOSEUPS, DECOR, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { createCoffeeSteam } from './room-coffee';
+import { CLOSEUPS, COFFEE, DECOR, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
-type Shot = { t: Vector3; dir: Vector3; r: number; far?: number };
+type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean };
 type Manifest = {
   assets: Record<string, { size: number[]; mount?: string; tiers?: number[]; tier_clear?: number; screen?: { aspect: number }; cover?: { aspect: number } }>;
 };
@@ -374,6 +377,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     const g = src.clone(true);
     g.position.copy(P(p.at[0], p.at[1], p.z ?? 0));
     g.rotation.y = MathUtils.degToRad(p.yaw ?? 0);
+    if (p.tilt) g.rotateZ(MathUtils.degToRad(p.tilt));
     if (p.scale) g.scale.setScalar(p.scale);
     // Lying on its back (logo face up): tipped over, then turned by `yaw`, its middle at `at` and
     // its underside at `z`.
@@ -384,9 +388,14 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       g.position.add(new Vector3(want.x - c.x, want.y - b.min.y, want.z - c.z));
     }
     dress(g, p.colors, p.ao !== false, lampIds.has(p.id) ? p.id : '');
-    // A section hidden on the page (e.g. Playground) leaves its object as plain decoration. An object
-    // whose close-up has no section (the hoops bin) goes by the close-up id: still clickable, labeled.
-    g.userData.section = p.section && document.getElementById(p.section) ? p.section : Object.keys(CLOSEUPS).find((k) => CLOSEUPS[k].object === p.id && !CLOSEUPS[k].section);
+    g.userData.closeup = Object.keys(CLOSEUPS).find(k => {
+      const c = CLOSEUPS[k];
+      return (!c.section || document.getElementById(c.section)) && (c.object === p.id || c.targets?.includes(p.id));
+    });
+    // A dedicated close-up label (Desk/Hoops) takes priority over the page section's label.
+    // Otherwise hidden page sections leave their objects as decoration.
+    const closeLabel = LABELS.find(([key]) => key === g.userData.closeup)?.[0];
+    g.userData.section = closeLabel ?? (p.section && document.getElementById(p.section) ? p.section : undefined);
     g.userData.bounce = p.bounce !== false;
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
@@ -394,6 +403,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   }
   scene.updateMatrixWorld(true);
   for (const p of PLACEMENTS) if (p.on && placed[p.id] && placed[p.on]) placed[p.on].attach(placed[p.id]);
+  const coffeeSteam = createCoffeeSteam(placed[COFFEE.object], cam, opts.reduceMotion);
 
 
   // Sky outside the windows: a day and a night painting on planes behind each window, cross-faded
@@ -970,12 +980,35 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     });
     for (const [src, planes] of groups) {
       const { c, x, tex } = canvasTex(512, 512, false);
-      const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.9 });
+      const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.9, side: (planes[0].material as Material).side });
+      if (FABRIC_PRINTS.includes(id)) {
+        // Tiny repeating height map: the actual drape/folds are Blender geometry. No animation
+        // or additional draw loop is needed for the printed cloth's woven surface.
+        const weave = document.createElement('canvas');
+        weave.width = weave.height = 8;
+        const ctx = weave.getContext('2d')!;
+        const pixels = ctx.createImageData(8, 8);
+        for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+          const k = (y * 8 + x) * 4;
+          const h = 128 + Math.round(30 * Math.cos(x * Math.PI / 2) + 30 * Math.cos(y * Math.PI / 2));
+          pixels.data.set([h, h, h, 255], k);
+        }
+        ctx.putImageData(pixels, 0, 0);
+        const bump = new CanvasTexture(weave);
+        bump.colorSpace = NoColorSpace;
+        bump.wrapS = bump.wrapT = RepeatWrapping;
+        bump.repeat.set(180, 100);
+        mat.bumpMap = bump;
+        mat.bumpScale = 0.00035;
+        mat.roughness = 1;
+      }
       for (const m of planes) {
         m.material = mat;
         m.castShadow = false;
       }
       loadImg(src).then((img) => {
+        // The placeholder may already have GPU storage. Recreate it before changing size.
+        if (c.width !== img.naturalWidth || c.height !== img.naturalHeight) tex.dispose();
         Object.assign(c, { width: img.naturalWidth, height: img.naturalHeight });
         x.drawImage(img, 0, 0);
         tex.needsUpdate = true;
@@ -1412,7 +1445,7 @@ uniform float uStripEnd;
 
   // --- camera shots from the config
   const shot = (d: ShotDef): Shot => {
-    if (d.center) return { t: P(...d.center), dir: PD(d.dir), r: d.r ?? 3, far: d.far };
+    if (d.center) return { t: P(...d.center), dir: PD(d.dir), r: d.r ?? 3, far: d.far, fitWidth: d.fitWidth };
     const b = bounds(d.frame ?? []);
     const t = b.getCenter(new Vector3());
     t.y += d.lift ?? 0;
@@ -1436,7 +1469,7 @@ uniform float uStripEnd;
   });
   labels.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
-    if (b) pick(anchorObj[b.dataset.go!], b.dataset.go!);
+    if (b) pick(anchorObj[b.dataset.go!], b.dataset.go!, false);
   });
   frame.append(labels);
   // Labels show for 2 s when the room opens, then fade; hovering an object (or the label itself)
@@ -1476,13 +1509,15 @@ uniform float uStripEnd;
   // canvas will have at the end of the morph.
   const place = (s: Shot, aspect = cam.aspect) => {
     const v = MathUtils.degToRad(ROOM_FOV) / 2, h = Math.atan(Math.tan(v) * aspect);
-    return { t: s.t.clone(), p: s.t.clone().addScaledVector(s.dir, Math.min(s.far ?? Infinity, s.r / Math.sin(Math.min(v, h)))) };
+    const distance = Math.min(s.far ?? Infinity, s.r / Math.sin(s.fitWidth ? h : Math.min(v, h)));
+    const fov = s.fitWidth ? Math.max(ROOM_FOV, MathUtils.radToDeg(2 * Math.atan(Math.tan(Math.asin(s.r / distance)) / aspect))) : ROOM_FOV;
+    return { t: s.t.clone(), p: s.t.clone().addScaledVector(s.dir, distance), fov };
   };
   const jump = (s: Shot) => {
     const q = place(s);
     camT.copy(q.t);
     cam.position.copy(q.p);
-    setFov(ROOM_FOV);
+    setFov(q.fov);
     cam.lookAt(camT);
     dirty = true;
   };
@@ -1645,11 +1680,11 @@ uniform float uStripEnd;
   // Riders (a light bar on its monitor) count as part of what they ride on.
   const placedSet = new Set(PLACEMENTS.filter((p) => !p.on && placed[p.id]).map((p) => placed[p.id]));
   const projectSet = new Set(projectDisplays.map((p) => p.pop.o));
-  // Only the objects that bounce are clickable; big furniture (desk, TV stand, rug, door) is scenery.
+  // Close-up targets can be clicked without bouncing the furniture and everything on it.
   const interactiveOf = (o: Object3D | null) => {
     for (; o; o = o.parent) {
       if (projectSet.has(o)) return o;
-      if (placedSet.has(o)) return o.userData.section && o.userData.bounce ? o : undefined;
+      if (placedSet.has(o)) return o.userData.closeup || (o.userData.section && o.userData.bounce) ? o : undefined;
     }
   };
   type Spring = { o: Object3D; base: number; s: number; v: number; t: number };
@@ -1670,7 +1705,7 @@ uniform float uStripEnd;
     if (!o) return;
     // Displays already have a safe pop. Keep the bookcase itself fixed against the wall, and
     // never add the free object's overshooting spring to a miniature or its parent shelf.
-    if (projectSet.has(o) || o === shelf) return;
+    if (projectSet.has(o) || o === shelf || o.userData.closeup === 'desk' || !o.userData.bounce) return;
     const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };
     sp.t = 1.06;
     if (opts.reduceMotion) sp.s = sp.t;
@@ -1717,12 +1752,16 @@ uniform float uStripEnd;
   };
   canvas.addEventListener('pointercancel', endSpin);
   canvas.addEventListener('pointerdown', (e) => (down = [e.clientX, e.clientY]));
+  canvas.addEventListener('pointercancel', () => (down = null));
   canvas.addEventListener('pointerup', (e) => {
-    if (endSpin(e) || !full || focused || !down) return;
+    if (endSpin(e) || !down) return;
     const moved = Math.hypot(e.clientX - down[0], e.clientY - down[1]);
     down = null;
-    if (moved >= 6) return;
+    if (!full || flying || (focused && focused !== 'desk') || moved >= 6) return;
     const hit = hitAt(e) ?? null;
+    const o = interactiveOf(hit);
+    // First click explores the desk; once inside, its actual switches take precedence.
+    if (!focused && o?.userData.closeup === 'desk') return pick(o);
     const light = switchOf(hit);
     if (light) return flip(light);
     const blind = blindOf(hit);
@@ -1731,8 +1770,7 @@ uniform float uStripEnd;
       dirty = true;
       return;
     }
-    const o = interactiveOf(hit);
-    if (o) pick(o, o.userData.section);
+    if (!focused && o) pick(o, o.userData.section);
   });
   canvas.addEventListener('pointermove', (e) => {
     if (spin && e.pointerId === spin.id) {
@@ -1743,8 +1781,12 @@ uniform float uStripEnd;
       dirty = true;
       return;
     }
-    if (!full || focused || down || flying) return;
+    if (!full || down || flying || (focused && focused !== 'desk')) return;
     const hit = hitAt(e) ?? null;
+    if (focused) {
+      if (focused === 'desk') canvas.style.cursor = switchOf(hit) || blindOf(hit) ? 'pointer' : '';
+      return;
+    }
     const o = interactiveOf(hit);
     hover(o);
     canvas.style.cursor = o || blindOf(hit) || switchOf(hit) ? 'pointer' : chairTop && isIn(hit, chairTop) ? 'ew-resize' : 'grab';
@@ -2016,8 +2058,9 @@ uniform float uStripEnd;
   };
 
   // A click on an object (or its label) in the room: its close-up if it has one, else its section.
-  const pick = (o: Object3D | undefined, section?: string) => {
-    const id = Object.keys(CLOSEUPS).find((k) => o && placed[CLOSEUPS[k].object] === o);
+  const pick = (o: Object3D | undefined, section?: string, aliases = true) => {
+    // Section labels keep their page-navigation meaning; actual prop clicks accept aliases too.
+    const id = aliases && o?.userData.closeup || Object.keys(CLOSEUPS).find((k) => o && placed[CLOSEUPS[k].object] === o);
     if (id) opts.onFocus(id);
     else if (section) visit(section, o?.userData.item);
   };
@@ -2031,11 +2074,11 @@ uniform float uStripEnd;
     board: { leave: () => closeBoard() },
     hoops: { enter: () => enterHoops(), leave: () => hoops?.leave() },
   };
-  const flyTo = (q: { t: Vector3; p: Vector3 }, id: string) =>
+  const flyTo = (q: { t: Vector3; p: Vector3; fov?: number }, id: string) =>
     new Promise<void>((done) => {
       if (opts.reduceMotion) {
         tween = null;
-        setFov(ROOM_FOV);
+        setFov(q.fov ?? ROOM_FOV);
         cam.position.copy(q.p);
         camT.copy(q.t);
         cam.lookAt(camT);
@@ -2223,7 +2266,8 @@ uniform float uStripEnd;
         cam.position.copy(p);
         camT.copy(t);
         cam.lookAt(t);
-      } else setFov(ROOM_FOV);
+      } else if (focused) jump(closeShots[focused]);
+      else setFov(ROOM_FOV);
     }
     cam.updateProjectionMatrix();
     if (!full && !tween) jump(shots[active]);
@@ -2351,6 +2395,7 @@ uniform float uStripEnd;
     if (stepSway(dt)) dirty = true;
     if (stepCards(dt)) dirty = true;
     if (hoops?.step(dt)) dirty = true;
+    if (coffeeSteam.step(now, !focused || focused === 'desk', frame.clientHeight)) dirty = true;
     lastNow = now;
     // The ambilight breathes and the night clock flickers: redraw at ~30 fps while they're on. By day
     // the clock only needs a redraw when its seconds change.

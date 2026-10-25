@@ -1,4 +1,4 @@
-"""Append reviewed miniatures to the configured room asset library.
+"""Append reviewed models to the configured room asset library.
 
 Run Blender with the library open and pass --source <review.blend> --out <assets-dir>
 after --. Only the selected asset collections and their GLB/manifest entries change. The normal
@@ -35,10 +35,11 @@ for asset_name in args.assets:
         target.collections = [collection_name]
     coll = target.collections[0]
     scene.collection.children.link(coll)
-    coll["catalog"] = "Sections/Projects"
-    coll["mount"] = "shelf"
-    if bpy.data.collections["asset_shelf"].asset_data:
-        coll.asset_data.catalog_id = bpy.data.collections["asset_shelf"].asset_data.catalog_id
+    coll["catalog"] = coll.get("catalog", "Sections/Projects")
+    coll["mount"] = coll.get("mount", "shelf")
+    catalog_source = bpy.data.collections.get("asset_keyboard" if coll["mount"] == "desk" else "asset_shelf")
+    if catalog_source and catalog_source.asset_data:
+        coll.asset_data.catalog_id = catalog_source.asset_data.catalog_id
 
     offset = coll.instance_offset.copy()
     for part in coll.objects:
@@ -83,7 +84,7 @@ for asset_name in args.assets:
     manifest = json.loads(manifest_file.read_text())
     manifest["assets"][asset_name] = {
         "file": file.name, "catalog": coll["catalog"], "mount": coll["mount"],
-        "size": [round(v, 4) for v in hi - lo], "elevation": 0,
+        "size": [round(v, 4) for v in hi - lo], "elevation": coll.get("elevation", 0),
         "roles": sorted({m.name for m in obj.data.materials}),
         "triangles": sum(len(p.vertices) - 2 for p in obj.data.polygons),
         "bytes": file.stat().st_size, "description": coll.asset_data.description,

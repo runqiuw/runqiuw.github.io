@@ -17,6 +17,8 @@ export interface Placement {
   /** Height of the asset's bottom above the floor (desk top = 0.74). */
   z?: number;
   yaw?: number;
+  /** Turn slightly in the asset's front plane (e.g. a casually hung paper poster). */
+  tilt?: number;
   scale?: number;
   /** Recolor every part with this material role. Parts without an entry keep their Blender colors. */
   colors?: Partial<Record<Role, string>>;
@@ -59,6 +61,8 @@ export interface Shot {
   /** Cap on the camera's distance, for shots inside the room: on a tall portrait screen the fit
    * would otherwise back the camera through the furniture behind it. */
   far?: number;
+  /** Fit this horizontal half-width; widen the lens at `far` on portrait screens. */
+  fitWidth?: boolean;
 }
 
 export const SHELL = {
@@ -102,19 +106,28 @@ export const PLACEMENTS: Placement[] = [
   { id: 'desk', bounce: false, asset: 'desk', at: [1.42, 3.354], colors: { wood: NAVY, frame: NAVY, metal: NAVY }, section: 'research' },
   { id: 'monitorL', asset: 'monitor', at: [1.18, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
   { id: 'monitorR', asset: 'monitor', at: [1.82, 3.441], z: 0.74, colors: { frame: BEZEL }, section: 'research' },
-  // Light bars on the monitors' top edges (panel 54.3 cm up, its middle 8.7 cm behind the stand).
+  // Light bars stay on the original panel top edges, 54.3 cm above the desk.
   { id: 'barL', asset: 'screenbar', at: [1.18, 3.528], z: 1.2826, on: 'monitorL' },
   { id: 'barR', asset: 'screenbar', at: [1.82, 3.528], z: 1.2826, on: 'monitorR' },
-  { id: 'keyboard', asset: 'keyboard', at: [1.5, 3.19], z: 0.74, colors: { metal: '#c8cdf0' } },
+  // Fully on the desktop; monitor base plates sit behind the mat, under their uprights.
+  { id: 'deskmat', asset: 'deskmat', at: [1.505, 3.235], z: 0.74, yaw: 180, bounce: false },
+  { id: 'keyboard', asset: 'keyboard_v2', at: [1.5, 3.19], z: 0.742 },
+  { id: 'mouse', asset: 'mouse_superlight', at: [1.76, 3.19], z: 0.742, yaw: 180 },
+  { id: 'speaker', asset: 'jbl_flip6', at: [1.5, 3.47], z: 0.74 },
+  { id: 'charger', asset: 'phone_charger', at: [0.94, 3.405], z: 0.74, colors: { screen: '#080b10' } },
+  { id: 'tissues', asset: 'tissue_pack', at: [0.79, 3.16], z: 0.74, yaw: 4 },
+  { id: 'tablet', asset: 'tablet', at: [2.005, 3.2], z: 0.74, yaw: -6, colors: { screen: '#080b10' } },
+  { id: 'coffee', asset: 'coffee_mug', at: [1.05, 3.18], z: 0.74 },
   { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
   // Fractal Design Era ITX on the desk's left end, front toward the room, rear ~3.8 cm off the wall.
   { id: 'pc', asset: 'pc_era', at: [0.745, 3.5], z: 0.74 },
-  // Nixie clock (Madison time): the monitors leave no gap between them, so it stands right of the keyboard.
-  { id: 'clock', asset: 'nixie', at: [1.98, 3.22], z: 0.74 },
+  // Nixie clock (Madison time) on the back-right corner, clear of the right monitor.
+  { id: 'clock', asset: 'nixie', at: [2.07, 3.51], z: 0.74 },
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: '#c4925e' }, section: 'playground' },
   { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.481], section: 'games' },
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
   { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
+  { id: 'tvGamepad', asset: 'xbox_controller', at: [3.15, 3.365], z: 0.5, yaw: 10, section: 'games' },
   { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.05, section: 'games' },
   { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.05, section: 'games' },
   { id: 'gameC', asset: 'gamebox', at: [2.96, 3.52], z: 0.05, section: 'games' },
@@ -128,6 +141,16 @@ export const PLACEMENTS: Placement[] = [
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
   // Bedding: a blue-grey fitted sheet and pillow (fabric).
   { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72', fabric: '#9aa5c8' } },
+  // Bed-side south wall: loose gallery cluster, well clear of the hoop at x = 3 m.
+  // All widths/heights are built into the Blender assets, in real metres.
+  { id: 'bedTapestry', asset: 'wall_tapestry', at: [1.13, 0.005], z: 1.74, yaw: 180, wall: 'S', bounce: false },
+  { id: 'posterMichigan', asset: 'poster_40x50', at: [2.09, 0.003], z: 1.79, yaw: 180, tilt: -1, wall: 'S', bounce: false },
+  { id: 'posterSpurs', asset: 'poster_45x30', at: [2.17, 0.003], z: 1.365, yaw: 180, tilt: 1.3, wall: 'S', bounce: false },
+  { id: 'posterGroupies', asset: 'poster_30x30', at: [1.24, 0.003], z: 1.30, yaw: 180, tilt: -1.5, wall: 'S', bounce: false },
+  { id: 'posterLuo', asset: 'poster_30x30', at: [0.82, 0.003], z: 1.15, yaw: 180, tilt: 1, wall: 'S', bounce: false },
+  { id: 'posterSun', asset: 'poster_30x30', at: [0.40, 0.003], z: 1.37, yaw: 180, tilt: -1.8, wall: 'S', bounce: false },
+  { id: 'posterLipa', asset: 'poster_24x24', at: [0.265, 0.003], z: 1.96, yaw: 180, tilt: 1.5, wall: 'S', bounce: false },
+  { id: 'posterCampus', asset: 'poster_a3', at: [1.78, 0.003], z: 1.01, yaw: 180, tilt: -1.2, wall: 'S', bounce: false },
   // School plushes lying on the bed below the pillow, tops toward the head (toys: physics in the room).
   { id: 'plushUmich', asset: 'plush_umich', at: [0.86, 0.3], z: 0.63, yaw: 98, lie: true },
   { id: 'plushUw', asset: 'plush_uw', at: [0.9, 0.8], z: 0.63, yaw: 84, lie: true },
@@ -167,11 +190,18 @@ export const SHOTS: Record<string, Shot> = {
  */
 export interface CloseUp {
   object: string;
+  /** Other placements that open the same close-up when clicked in the room. */
+  targets?: string[];
   /** Its page section; without one (the hoops bin) there is no "on the page" button. */
   section?: string;
   shot: Shot;
 }
 export const CLOSEUPS: Record<string, CloseUp> = {
+  desk: {
+    object: 'desk', section: 'research',
+    targets: ['monitorL', 'monitorR', 'barL', 'barR', 'deskmat', 'keyboard', 'mouse', 'speaker', 'charger', 'tissues', 'tablet', 'coffee', 'pc', 'clock'],
+    shot: { center: [1.42, 3.35, 1.0], r: 0.94, dir: [0, -1, 0.6], far: 3.0, fitWidth: true },
+  },
   board: { object: 'pinboard', section: 'playground', shot: { frame: ['pinboard'], dir: [0, -1, 0.04], pad: 0.95 } },
   // Low, behind the throwing spot and a little to its side (so the arc of a throw reads), looking at
   // the bin and the taped backboard on the front wall.
@@ -221,6 +251,7 @@ export const HOOPS = {
 /** Labels in the full-screen room: [section, title, placement the label sits on]. A close-up without
  * a page section is labeled by its close-up id instead. */
 export const LABELS: [section: string, title: string, anchor: string][] = [
+  ['desk', 'Desk', 'desk'],
   ['research', 'Research', 'monitorR'],
   ['projects', 'Projects', 'shelf'],
   ['games', 'Games', 'tv'],
@@ -239,10 +270,27 @@ export const DECOR = { plant: 'plant', bed: 'bed', toys: ['plushUmich', 'plushUw
 
 /** Pictures printed on an asset's `print` planes (the SJTU plush carries the emblem's inner field). */
 export const PRINTS: Record<string, string | Record<string, string>> = {
+  bedTapestry: '/room/prints/horse-tapestry.webp',
+  posterMichigan: '/room/prints/michigan-poster.webp',
+  posterSpurs: '/room/prints/spurs-poster.webp',
+  posterGroupies: '/room/prints/groupies-poster.webp',
+  posterLuo: '/room/prints/luo-poster.webp',
+  posterSun: '/room/prints/sun-poster.webp',
+  posterLipa: '/room/prints/lipa-poster.webp',
+  posterCampus: '/room/prints/campus-poster.webp',
+  tvGamepad: '/room/prints/xbox-controller.webp',
+  deskmat: '/room/prints/logitech-deskmat.webp',
+  keyboard: '/room/prints/keychron-v2.jpg',
   plushSjtu: '/room/prints/sjtu.webp',
   // The PC case's side perforation and bottom slits (planes `vents_*`, `slits_*`).
   pc: { vents: '/room/prints/era-vents.webp', slits: '/room/prints/era-slits.webp' },
 };
+
+/** Printed fabric keeps its image but has a matte, finely woven surface. */
+export const FABRIC_PRINTS = ['bedTapestry'];
+
+/** Steam starts just above the liquid inside the 95 mm mug. Distances are metres. */
+export const COFFEE = { object: 'coffee', mouth: 0.084, width: 0.105, height: 0.18, fps: 24, minPixels: 9 };
 
 /**
  * Which way each lamp asset's head shines, in the asset's own Blender axes (x right, y back, z up;

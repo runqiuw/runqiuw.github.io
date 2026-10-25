@@ -199,10 +199,12 @@ try {
   }
   console.log('PASS: restored room/hoops reloads and subsequent section picks');
 
-  // Fresh desktop and cold mobile links, including reduced motion and both close-up types.
+  // Fresh desktop and cold mobile links, including reduced motion and the desk close-up.
   for (const config of [
     { id: 'hoops', width: 1440, height: 900, mobile: false, motion: 'no-preference' },
     { id: 'board', width: 1440, height: 900, mobile: false, motion: 'no-preference' },
+    { id: 'desk', width: 1440, height: 900, mobile: false, motion: 'no-preference' },
+    { id: 'desk', width: 390, height: 844, mobile: true, motion: 'reduce' },
     { id: 'hoops', width: 390, height: 844, mobile: true, motion: 'reduce' },
   ]) {
     await send('Emulation.setDeviceMetricsOverride', { width: config.width, height: config.height, deviceScaleFactor: 1, mobile: config.mobile });
@@ -234,11 +236,18 @@ try {
     await pickClip('research');
     await clipAdvanced('Research panel');
     await openRoom();
-    await measure('Full room with research clip selected', true);
+    // Visible coffee steam animates in the free room; focused views below remain idle.
+    await measure('Full room with research clip selected and coffee steam');
     // A new item event while the page is covered must not restart a video.
     await evaluate("dispatchEvent(new CustomEvent('itemchange', { detail: document.documentElement.dataset.item }))");
     await paused();
-    await measure('Full room after item update', true);
+    await measure('Full room after item update with coffee steam');
+    await closeup('desk', 'desk');
+    await measure('Desk close-up with coffee steam');
+    assert.equal(await evaluate("document.querySelector('[data-closeup=page]').textContent"), 'Research on the page →');
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await until("location.hash === '#room' && document.querySelector('.closeup').hidden", 'Esc from desk to room');
+    await sleep(1000);
     await closeup('board', 'playground');
     await measure('Board close-up', true);
     await back();
@@ -288,7 +297,7 @@ try {
     await pickClip('games');
     await clipAdvanced('Game panel');
     await openRoom();
-    await measure('Full room with game clip selected', true);
+    await measure('Full room with game clip selected and coffee steam');
     await exit();
     await clipAdvanced('Game panel resumed');
     assert.deepEqual(errors, [], 'Browser runtime errors');

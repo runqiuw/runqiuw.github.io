@@ -392,19 +392,19 @@
       "catalog": "Sections/Games",
       "mount": "desk",
       "size": [
-        0.77,
+        0.26,
         0.174,
-        0.053
+        0.05
       ],
-      "elevation": 0,
+      "elevation": 0.0,
       "roles": [
         "accent",
         "frame",
         "glow"
       ],
-      "triangles": 7500,
-      "bytes": 42712,
-      "description": "Game console with two chunky controllers (toy proportions)."
+      "triangles": 244,
+      "bytes": 7680,
+      "description": "Compact game console unit; controllers are separate Xbox assets."
     },
     "desk": {
       "file": "desk.glb",
@@ -587,7 +587,7 @@
       "mount": "desk",
       "size": [
         0.6157,
-        0.2125,
+        0.19,
         0.5426
       ],
       "elevation": 0.74,
@@ -596,12 +596,16 @@
         "screen"
       ],
       "triangles": 754,
-      "bytes": 19248,
-      "description": "27\" monitor. `screen` plane: papers and demo clips play on it. Placed twice.",
+      "bytes": 19240,
+      "description": "27\" monitor; base plate centred below upright. Screen plane for paper demos.",
       "screen": {
         "width": 0.5977,
         "height": 0.3362,
         "aspect": 1.7778
+      },
+      "layout": {
+        "base_centre_y": 0.08475,
+        "base_alignment": "centred below upright; panel and screen unchanged"
       }
     },
     "nightstand": {
@@ -1635,7 +1639,7 @@
           "min": [
             -0.093264851719141,
             -0.12431589141488075,
-            3.0468438882991222e-9
+            3.0468438882991222e-09
           ],
           "max": [
             0.093264851719141,
@@ -1809,6 +1813,501 @@
       "triangles": 5264,
       "bytes": 50980,
       "description": "ME 250 robotic arm modelled from project photos, a CAD view and notes: four red legs, motor-driven turntable gear, six columns, shortened box boom with carriage and rack, three-finger silicone gripper. Solid colours; no wiring."
+    },
+    "keyboard_v2": {
+      "file": "keyboard_v2.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.3299,
+        0.1233,
+        0.04
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "frame",
+        "print"
+      ],
+      "triangles": 17584,
+      "bytes": 159012,
+      "description": "Keychron V2 Knob Keyboard; calibrated desk prop, adapted from RelaxedImpala (CC BY 4.0).",
+      "calibration": {
+        "body_m": [
+          0.3299,
+          0.12325,
+          0.04
+        ],
+        "measured_body_m": [
+          0.3299,
+          0.12325,
+          0.04
+        ],
+        "reference": "https://www.keychron.com/products/keychron-v2-qmk-custom-mechanical-keyboard",
+        "note": "Official footprint; overall keycap height approximated at 40 mm."
+      },
+      "layout": {
+        "front": "-Y",
+        "origin": "rigid body bottom centre",
+        "horizontal": true
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "title": "Keychron V2 Knob Keyboard",
+        "author": "RelaxedImpala",
+        "source": "https://sketchfab.com/models/235cd5b3bfea471eb6bd88ddc2d826d6"
+      }
+    },
+    "mouse_superlight": {
+      "file": "mouse_superlight.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.0635,
+        0.125,
+        0.04
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "frame",
+        "metal"
+      ],
+      "triangles": 10999,
+      "bytes": 56212,
+      "description": "Computer mouse; calibrated desk prop, adapted from zhe_kan (CC BY 4.0).",
+      "calibration": {
+        "body_m": [
+          0.0635,
+          0.125,
+          0.04
+        ],
+        "measured_body_m": [
+          0.0635,
+          0.125,
+          0.04
+        ],
+        "reference": "https://www.logitechg.com/en-ch/products/gaming-mice/pro-x-superlight-wireless-mouse.910-005942.html",
+        "note": "Manufacturer rigid body dimensions; loose speaker loop excluded."
+      },
+      "layout": {
+        "front": "-Y",
+        "origin": "rigid body bottom centre",
+        "horizontal": true
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "title": "Computer mouse",
+        "author": "zhe_kan",
+        "source": "https://sketchfab.com/models/6e7940d9e2144efeae3468a906f27e07"
+      }
+    },
+    "jbl_flip6": {
+      "file": "jbl_flip6.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.178,
+        0.109,
+        0.068
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "fabric",
+        "frame",
+        "metal"
+      ],
+      "triangles": 14707,
+      "bytes": 79620,
+      "description": "JBL Flip 6; calibrated desk prop, adapted from polyman Studio (CC BY 4.0).",
+      "calibration": {
+        "body_m": [
+          0.178,
+          0.072,
+          0.068
+        ],
+        "measured_body_m": [
+          0.178,
+          0.072,
+          0.068
+        ],
+        "reference": "https://www.jbl.com/on/demandware.static/-/Sites-masterCatalog_Harman/default/dw0a39b813/pdfs/JBL_Flip_6_SpecSheet_English.pdf",
+        "note": "Manufacturer rigid body dimensions; loose speaker loop excluded."
+      },
+      "layout": {
+        "front": "-Y",
+        "origin": "rigid body bottom centre",
+        "horizontal": true
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "title": "JBL Flip 6",
+        "author": "polyman Studio",
+        "source": "https://sketchfab.com/models/b52362c876b640adaafe233ab0a942a8"
+      }
+    },
+    "deskmat": {
+      "file": "deskmat.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.7,
+        0.3,
+        0.002
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "fabric",
+        "print"
+      ],
+      "triangles": 396,
+      "bytes": 10452,
+      "description": "Logitech Desk Mat Blue, adapted from PolyDavid (CC BY 4.0); 700 x 300 x 2 mm.",
+      "calibration": {
+        "body_m": [
+          0.7,
+          0.3,
+          0.002
+        ],
+        "reference": "https://www.logitech.com/en-us/shop/p/desk-mat-studio-series"
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "author": "PolyDavid",
+        "source": "https://sketchfab.com/3d-models/free-logitech-desk-mat-blue-95d618deea6a4eae826f6eae33bd00d3"
+      }
+    },
+    "coffee_mug": {
+      "file": "coffee_mug.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.111,
+        0.084,
+        0.095
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "accent",
+        "frame"
+      ],
+      "triangles": 2192,
+      "bytes": 13008,
+      "description": "Original cream ceramic mug with a thick rim, open interior, coffee and a rounded handle; 95 mm high.",
+      "components": {
+        "cup": {
+          "diameter": 0.084,
+          "height": 0.095
+        },
+        "coffee": {
+          "height": 0.0824,
+          "radius": 0.0366
+        }
+      },
+      "layout": {
+        "steam_origin": [
+          0,
+          0,
+          0.084
+        ],
+        "handle": "+X"
+      }
+    },
+    "xbox_controller": {
+      "file": "xbox_controller.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.153,
+        0.1057,
+        0.0591
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "frame",
+        "print"
+      ],
+      "triangles": 11000,
+      "bytes": 96604,
+      "description": "Black Xbox wireless controller; Chistodrako._. (CC BY 4.0), simplified, resting face up.",
+      "calibration": {
+        "width_m": 0.153,
+        "resting_angle_degrees": -45.0,
+        "measured_m": [
+          0.153,
+          0.105665,
+          0.059065
+        ]
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "author": "Chistodrako._.",
+        "source": "https://sketchfab.com/3d-models/xbox-inalambric-controller-black-29cc9624894a4f2cae7d2a675044db45",
+        "mirror": "https://sceneview.github.io/credits.html"
+      }
+    },
+    "phone_charger": {
+      "file": "phone_charger.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.09,
+        0.1056,
+        0.1752
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "accent",
+        "frame",
+        "metal",
+        "screen"
+      ],
+      "triangles": 5560,
+      "bytes": 52028,
+      "description": "Original upright wireless charging stand with a calibrated iPhone 13 Pro Max (DatSketch, CC BY 4.0), tilted back 15 degrees.",
+      "calibration": {
+        "phone_body_m": [
+          0.0781,
+          0.00765,
+          0.1608
+        ],
+        "base_m": [
+          0.09,
+          0.105,
+          0.008
+        ],
+        "tilt_degrees": 15
+      },
+      "license": "Phone: CC-BY-4.0; stand: original geometry",
+      "credits": {
+        "phone_author": "DatSketch",
+        "phone_source": "https://sketchfab.com/3d-models/apple-iphone-13-pro-max-4328dea00e47497dbeac73c556121bc9"
+      }
+    },
+    "tissue_pack": {
+      "file": "tissue_pack.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.18,
+        0.1,
+        0.105
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "fabric",
+        "frame"
+      ],
+      "triangles": 1320,
+      "bytes": 17848,
+      "description": "Original soft mint-and-cream tissue packet with a folded white tissue; 180 x 100 x 55 mm packet.",
+      "calibration": {
+        "packet_m": [
+          0.18,
+          0.1,
+          0.055
+        ]
+      },
+      "license": "Original geometry"
+    },
+    "tablet": {
+      "file": "tablet.glb",
+      "catalog": "Room/Desk props",
+      "mount": "desk",
+      "size": [
+        0.242,
+        0.1806,
+        0.0062
+      ],
+      "elevation": 0.74,
+      "roles": [
+        "frame",
+        "metal",
+        "screen"
+      ],
+      "triangles": 1200,
+      "bytes": 24316,
+      "description": "Original black tablet lying flat, approximately 11-inch 4:3 inactive display, 242 x 180 x 6 mm body.",
+      "calibration": {
+        "body_m": [
+          0.242,
+          0.18,
+          0.006
+        ],
+        "display_m": [
+          0.22352,
+          0.16764
+        ],
+        "diagonal_inches": 11,
+        "screen_off": true
+      },
+      "license": "Original geometry"
+    },
+    "poster_40x50": {
+      "file": "poster_40x50.glb",
+      "catalog": "Room/Wall decor",
+      "mount": "wall",
+      "size": [
+        0.4,
+        0.0029,
+        0.5
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "metal",
+        "print"
+      ],
+      "triangles": 872,
+      "bytes": 13288,
+      "description": "Thin matte paper poster, two small top pins, subtle bottom-edge curl; no frame.",
+      "calibration": {
+        "nominal_width_height_m": [
+          0.4,
+          0.5
+        ],
+        "material": "Approximately 200 gsm matte coated paper; 0.25 mm thick"
+      },
+      "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
+    },
+    "poster_45x30": {
+      "file": "poster_45x30.glb",
+      "catalog": "Room/Wall decor",
+      "mount": "wall",
+      "size": [
+        0.45,
+        0.0029,
+        0.3
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "metal",
+        "print"
+      ],
+      "triangles": 872,
+      "bytes": 13428,
+      "description": "Thin matte paper poster, two small top pins, subtle bottom-edge curl; no frame.",
+      "calibration": {
+        "nominal_width_height_m": [
+          0.45,
+          0.3
+        ],
+        "material": "Approximately 200 gsm matte coated paper; 0.25 mm thick"
+      },
+      "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
+    },
+    "poster_30x30": {
+      "file": "poster_30x30.glb",
+      "catalog": "Room/Wall decor",
+      "mount": "wall",
+      "size": [
+        0.3,
+        0.0029,
+        0.3
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "metal",
+        "print"
+      ],
+      "triangles": 872,
+      "bytes": 13496,
+      "description": "Thin matte paper poster, two small top pins, subtle bottom-edge curl; no frame.",
+      "calibration": {
+        "nominal_width_height_m": [
+          0.3,
+          0.3
+        ],
+        "material": "Approximately 200 gsm matte coated paper; 0.25 mm thick"
+      },
+      "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
+    },
+    "poster_24x24": {
+      "file": "poster_24x24.glb",
+      "catalog": "Room/Wall decor",
+      "mount": "wall",
+      "size": [
+        0.24,
+        0.0029,
+        0.24
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "metal",
+        "print"
+      ],
+      "triangles": 872,
+      "bytes": 13552,
+      "description": "Thin matte paper poster, two small top pins, subtle bottom-edge curl; no frame.",
+      "calibration": {
+        "nominal_width_height_m": [
+          0.24,
+          0.24
+        ],
+        "material": "Approximately 200 gsm matte coated paper; 0.25 mm thick"
+      },
+      "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
+    },
+    "poster_a3": {
+      "file": "poster_a3.glb",
+      "catalog": "Room/Wall decor",
+      "mount": "wall",
+      "size": [
+        0.42,
+        0.0029,
+        0.297
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "metal",
+        "print"
+      ],
+      "triangles": 872,
+      "bytes": 13408,
+      "description": "Thin matte paper poster, two small top pins, subtle bottom-edge curl; no frame.",
+      "calibration": {
+        "nominal_width_height_m": [
+          0.42,
+          0.297
+        ],
+        "material": "Approximately 200 gsm matte coated paper; 0.25 mm thick"
+      },
+      "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
+    },
+    "wall_tapestry": {
+      "file": "wall_tapestry.glb",
+      "catalog": "Room/Wall decor",
+      "mount": "wall",
+      "size": [
+        1.2,
+        0.0308,
+        0.6747
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "metal",
+        "print"
+      ],
+      "triangles": 10328,
+      "bytes": 46760,
+      "description": "Soft printed fabric tapestry with gravity-shaped folds, top-edge sag, wavy free hem and two corner pins.",
+      "calibration": {
+        "nominal_width_height_m": [
+          1.2,
+          0.6747120131651124
+        ],
+        "material": "Matte woven polyester/cotton-style fabric; sewn 3 mm hems; 0.6 mm thick"
+      },
+      "layout": {
+        "top_corner_supports": 2,
+        "top_sag_m": 0.014,
+        "hem_width_m": 0.003,
+        "static_drape": true
+      },
+      "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
     }
   }
 }

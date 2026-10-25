@@ -16,7 +16,7 @@
 - `npm run dev`：开发服务器，默认 :4321；`npm run build`：输出 `dist/`；`npm run preview`：预览已经构建的 `dist/`。若 :4321 上是 preview，改源码后要先重新 build。
 - `.github/workflows/deploy.yml` 在推送 `main` 或手动触发时构建并部署 GitHub Pages，地址仍为 `https://runqiuw.github.io`。
 - `astro.config.mjs` 管理站点地址、sitemap 和旧 URL 重定向；保留旧站链接兼容性。
-- `bin/deploy`、`bin/cibuild`、`bin/entry_point.sh` 仍是旧 Jekyll 脚本，不能作为当前构建或发布入口。本地 `_site/`、`vendor/`、`.bundle/`、`.tweet-cache/` 是旧环境残留，不是当前源码，也不要未经要求删除。
+- `bin/deploy`、`bin/cibuild`、`bin/entry_point.sh` 仍是旧 Jekyll 脚本，不能作为当前构建或发布入口。本地旧 Jekyll 残留（`_site/`、`vendor/` 等）和已合入的 worktree 已于 2026-10-24 清理。
 
 ## 页面与内容入口
 
@@ -83,7 +83,7 @@
 - `asset_rover` 是从 `all_2` CAD 装配恢复并精简的书架模型；`asset_quest3` 对应 SketchGenie，仅保留正放头显，不含手柄；`asset_imu_devices` 是 IMU 的手机、智能手表和闭合耳机盒，共用简化的薄三合一充电底座。设备机身按 Apple 尺寸校准，整组等比缩放；IMU 与 Quest 以 `lifeSize: true` 保持房间内 1:1，不能为槽位缩小。保留原有每层两个项目的顺序：顶层 IMU/Quest，中层车/机械臂，下层 Rover/机器人，最底层不放项目。不要为适配模型擅自重排布局；Quest 已移除两个手柄以保留原槽位。hover 仍临时放大最多 22%，但增长向前留空间、后沿不顶入背板；书架前方为空气，允许探出前沿。Quest 按约 160 mm 的刚性前壳宽度校准，头带展开外包围尺寸不等于最小调节尺寸；手表为金属表壳、单层深色表面和哑光表带。`asset_robotics_vehicle` 依据项目照片建模：麦轮底盘、亚克力塔架、放下的橙色举升臂、海绵夹爪，底盘上有简化的 Arduino Uno、两块 L298N、HC-06 和 18650 电池盒；省略线束。`asset_robotic_arm` 依据照片、CAD 截图和作者说明建模：四根加长红腿（不做木块）、底板电机小齿轮驱动大齿轮、六根柱子、缩短的实色箱形悬臂梁与滑车齿条、三指硅胶软爪。`asset_chatbot_robot` 是 Telegram 的静态小机器人，由 CC BY 的 S-Bot 改为短身体、手臂下垂、白蓝配色并补做蓝色眼睛。头显、手机和机器人采用 CC BY 模型，来源见 `public/room/assets/CREDITS.txt`，页脚提供入口。`bin/room_model_assets.py` 将已审核的 collection 追加到外部资源库并单独导出，标准导出器已能保留它。`PROJECT_MODELS` 映射项目条目到模型，未配置的条目保留相框。页面 hover/focus 和房间直接 hover 共用有界的展品放大，各模型以底部为锚点放大 10–22%：缩小的模型只预留 10% 以尽量填满槽位，放大幅度取槽位宽高允许的值；放大时后沿固定、向前移动，深度不预留，并可伸出敞开的书架前沿最多 4 cm。Rover、机械臂朝向 0°，小车 5°，以减少斜放占用的槽位；书架整体不再放大。`npm run check:shelf` 用实际构建和 GLB 检查动画中的层板/邻近展品边界、相机固定和 hover/focus。
 - `asset_court` 是新的 Blender 地毯资源，`bin/room_court_asset.py` 在现有库中生成并单独导出，之后标准 `bin/room-assets` 会保留它。该生成器更新后仍须 meshopt 压缩并更新 manifest 的 bytes；不需要重导出其他资源。
 - 2026-10-24：manifest 的 42 项资源文件均存在，总计 2,145,664 bytes，大小记录匹配；房间主 chunk 约 193 KB gzip，低于 200 KB。物理库可能被构建器拆为共享 chunk，地图还有独立 worker，不要只按一个入口估算总下载。
-- 类型检查用 `npm run check` 或 `npx astro check`。`tsconfig.json` 已限于 `.astro/types.d.ts`、`src/**/*`、`astro.config.mjs`，不再扫描旧 Jekyll 依赖或本地 worktree；旧缓存、依赖、日志、`.claude/` 由 `.gitignore` 忽略，保留在磁盘。
+- 类型检查用 `npm run check` 或 `npx astro check`。`tsconfig.json` 已限于 `.astro/types.d.ts`、`src/**/*`、`astro.config.mjs`，不再扫描旧 Jekyll 依赖或本地 worktree；旧缓存、依赖、日志、`.claude/` 由 `.gitignore` 忽略。
 - 浏览器回归：先 `npm run build`，使用已有 :4321 Astro preview，再运行 `URL=http://localhost:4321 npm run check:room`；`CHROME` 可指定 Chrome，`VIDEO_FALLBACK=1` 验证无视频帧回调路径，`ROOM_LINKS_ONLY=1` 只验证直达、刷新恢复、手机冷启动、减少动态效果及返回/前进/区块跳转。脚本使用独立临时浏览器配置，不修改日常浏览器。
 - `npm run check:hoops` 使用实际 GLB 和 cannon-es、模拟指针输入与时间，验证 24 机位 × 三种物品共 72 种实际进球、两/三分打板识别与文案、特效、自动轮换、固定出手投影、碰撞结束（含未落地的椅子碰撞）、完整结果停留、描边只在待投时显示、引导与真实轨迹一致、力度与方向解耦、取消输入及休眠；不需要 GPU 或真实等待。
 - `bin/check-room.mjs` 在 SwiftShader 下计数房间 canvas 未绑定 framebuffer 时的 WebGL clear，报告 room frames，排除阴影贴图 pass：视频在页面播放并在退出房间后恢复，白天全屏/board/hoops 稳定后仅保留时钟的 1 Hz 重绘，三种投掷物投出会额外重绘、落稳后恢复该基线。测量前须等待相机、物理及初始 120 帧预热结束；空闲断言容许最多 3 frames / 2 s 的计时边界余量，不能再要求默认零绘制。
