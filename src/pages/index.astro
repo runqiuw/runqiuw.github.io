@@ -80,26 +80,31 @@ const games = (await getCollection('games')).sort((a, b) => a.data.order - b.dat
   // Same idea one level down: the item (paper, project, game…) in the middle of the viewport is the
   // one the room shows. Hovering or focusing another item shows that one until the pointer leaves.
   let scrolled = '';
+  let hoveredItem = '', focusedItem = '';
   const showItem = (id: string) => {
     if (id === document.documentElement.dataset.item) return;
     document.documentElement.dataset.item = id;
     window.dispatchEvent(new CustomEvent('itemchange', { detail: id }));
   };
+  const restoreItem = () => showItem(hoveredItem || focusedItem || scrolled);
   const items = document.querySelectorAll<HTMLElement>('[data-item]');
   const itemIo = new IntersectionObserver(
     (entries) => {
-      for (const e of entries) if (e.isIntersecting) showItem((scrolled = (e.target as HTMLElement).dataset.item!));
+      for (const e of entries) if (e.isIntersecting) scrolled = (e.target as HTMLElement).dataset.item!;
+      restoreItem();
     },
     { rootMargin: '-40% 0px -55% 0px' },
   );
   items.forEach((el) => {
     itemIo.observe(el);
-    const pick = () => showItem(el.dataset.item!);
-    const back = () => scrolled && showItem(scrolled);
-    el.addEventListener('pointerenter', pick);
-    el.addEventListener('pointerleave', back);
-    el.addEventListener('focusin', pick);
-    el.addEventListener('focusout', back);
+    el.addEventListener('pointerenter', () => { hoveredItem = el.dataset.item!; restoreItem(); });
+    el.addEventListener('pointerleave', () => { hoveredItem = ''; restoreItem(); });
+    el.addEventListener('focusin', () => { focusedItem = el.dataset.item!; restoreItem(); });
+    el.addEventListener('focusout', (e) => {
+      if (e.relatedTarget instanceof Node && el.contains(e.relatedTarget)) return;
+      focusedItem = '';
+      restoreItem();
+    });
   });
 </script>
 

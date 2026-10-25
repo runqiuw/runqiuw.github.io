@@ -1,0 +1,33 @@
+3D model credits
+
+Meta Quest 3 — Elin, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/meta-quest-3-65a813833dc04eeeb7d33bdca58c184c
+Downloaded adaptation: PirateWill, https://modworkshop.net/mod/54859
+Website asset: quest3.glb. Headset only; no controllers. Further simplified, stood upright and converted to
+clay-style vertex colours. Housing width calibrated to approximately 160 mm;
+the open strap pose differs from the minimum-adjustment product envelope.
+https://www.itmedia.co.jp/pcuser/articles/2309/28/news095.html
+No endorsement implied.
+
+Apple iPhone 13 Pro Max — DatSketch, Creative Commons Attribution 4.0
+Original: https://sketchfab.com/3d-models/apple-iphone-13-pro-max-4328dea00e47497dbeac73c556121bc9
+Downloaded via SceneView: https://sceneview.github.io/credits.html
+Website asset: imu_devices.glb. Geometry simplified, fine logos removed,
+clay-style vertex colours and calibrated physical dimensions. No endorsement implied.
+The watch, closed earphone case and flat charging base are new simplified geometry.
+This base is inspired by flat three-in-one charging pads, not a precise Belkin product.
+Device body dimensions are calibrated from Apple specifications:
+https://support.apple.com/en-euro/111870
+https://support.apple.com/en-ie/111909
+https://support.apple.com/en-ie/111834
+
+S-Bot: Stylized Cartoon Robot — amanpatel9725, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/s-bot-stylized-cartoon-robot-6350b20fbe76463f82aa41d34c4330c9
+Website asset: chatbot_robot.glb. Body shortened, arms lowered and shortened, chest logo
+removed, new eye geometry added, fingers simplified and converted to clay-style vertex
+colours (white and blue). Static figurine. No endorsement implied.
+
+Other room assets are not covered by the licences listed above.
+

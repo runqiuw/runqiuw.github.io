@@ -260,6 +260,14 @@ export const LAMP_AIM: Record<string, [x: number, y: number, z: number]> = {
 /** Windows get a sky outside (day/night) and a blind you can click to roll up or down. */
 export const WINDOWS = ['windowA', 'windowB'];
 
+/** Shelf miniatures keyed by the page's project id; other projects keep their framed cover. */
+export const PROJECT_MODELS: Record<string, { asset: string; yaw?: number; lifeSize?: boolean }> = {
+  'imu-localization': { asset: 'imu_devices', yaw: 5, lifeSize: true },
+  sketchgenie: { asset: 'quest3', yaw: -10, lifeSize: true },
+  'transformable-rover': { asset: 'rover', yaw: -8 },
+  'telegram-chatbot': { asset: 'chatbot_robot', yaw: -8 },
+};
+
 /** Which placements show page content. */
 export const SCREENS = {
   /** Research: left monitor shows the paper's figure or clip, right monitor its title. */
@@ -268,7 +276,7 @@ export const SCREENS = {
   /** Games: the TV shows the game in view; one game case per game, in page order. */
   tv: 'tv',
   gameBoxes: ['gameA', 'gameB', 'gameC'],
-  /** Projects: framed covers stand on these shelf tiers (heights from the shelf asset). */
+  /** Projects: miniatures and framed covers stand on these shelf tiers. */
   shelf: 'shelf',
   shelfTiers: [1, 2, 3],
   /** Playground: cards pinned to the board. */

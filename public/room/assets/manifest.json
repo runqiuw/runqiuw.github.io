@@ -1579,6 +1579,197 @@
       "bytes": 9932,
       "description": "Compact seafoam basketball rug with cream court lines, free-throw lane and 1.32 m three-point arc. 140 x 168 cm, clear of the bed and cart.",
       "three_radius": 1.32
+    },
+    "rover": {
+      "file": "rover.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.302,
+        0.2141,
+        0.0983
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "frame",
+        "metal"
+      ],
+      "triangles": 26742,
+      "bytes": 193412,
+      "description": "Transformable rover miniature recovered from all_2 CAD assembly; simplified chassis, hook wheels, motors and electronics."
+    },
+    "quest3": {
+      "file": "quest3.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.1865,
+        0.2486,
+        0.1635
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame"
+      ],
+      "triangles": 6499,
+      "bytes": 53436,
+      "description": "Upright life-size Quest 3 headset only, without controllers; calibrated rigid housing and open strap pose.",
+      "calibration": {
+        "units": "m",
+        "rigid_front_width": 0.16,
+        "rigid_front_height": 0.10032853840408448,
+        "headset_scale": 0.9817352191265695,
+        "reference_envelope_min_adjustment": {
+          "width": 0.16,
+          "height": 0.098,
+          "depth": 0.184
+        },
+        "note": "Headset calibrated by its rigid front housing, not its adjustable strap envelope. The upright open strap is taller and deeper than the minimum adjusted dimensions; controller length uses its native WebXR profile axis.",
+        "source": "https://www.itmedia.co.jp/pcuser/articles/2309/28/news095.html",
+        "controller_count": 0
+      },
+      "layout": {
+        "upright": true,
+        "headset": {
+          "min": [
+            -0.093264851719141,
+            -0.12431589141488075,
+            3.0468438882991222e-9
+          ],
+          "max": [
+            0.093264851719141,
+            0.12431589886546135,
+            0.16352020813436008
+          ],
+          "dark_front_mean_z": 0.026119330100163863
+        },
+        "controllers": {},
+        "reference": "User supplied front photo; three sensor capsules below centre"
+      },
+      "license": "CC-BY-4.0",
+      "credits": "/room/assets/CREDITS.txt"
+    },
+    "imu_devices": {
+      "file": "imu_devices.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.24,
+        0.1608,
+        0.102
+      ],
+      "elevation": 0,
+      "roles": [
+        "accent",
+        "fabric",
+        "frame",
+        "metal",
+        "screen"
+      ],
+      "triangles": 12854,
+      "bytes": 90024,
+      "description": "Dimension-calibrated phone, clean smartwatch and closed AirPods-size case on a simplified flat three-in-one charging pad.",
+      "components": {
+        "phone": {
+          "min": [
+            -0.11460850387811661,
+            -0.08042459934949875,
+            0.01119999960064888
+          ],
+          "max": [
+            -0.03539149463176727,
+            0.08042459934949875,
+            0.02248387224972248
+          ]
+        },
+        "watch": {
+          "min": [
+            -0.0139999995008111,
+            -0.025600001215934753,
+            0.009999999776482582
+          ],
+          "max": [
+            0.026200000196695328,
+            0.05199999734759331,
+            0.10200000554323196
+          ]
+        },
+        "airpods": {
+          "min": [
+            0.05269999802112579,
+            -0.02280000038444996,
+            0.011200000531971455
+          ],
+          "max": [
+            0.11329999566078186,
+            0.022600000724196434,
+            0.03317499905824661
+          ]
+        }
+      },
+      "calibration": {
+        "units": "m",
+        "measured": {
+          "phone_body": [
+            0.07809999585151672,
+            0.1607999950647354,
+            0.0076500000432133675
+          ],
+          "watch_case": [
+            0.03799999877810478,
+            0.04500000178813934,
+            0.010700002312660217
+          ],
+          "airpods_case": [
+            0.06059999763965607,
+            0.04520000144839287,
+            0.021700002253055573
+          ]
+        },
+        "dimension_order": "width, height, depth; before the display pose",
+        "charging_pad": [
+          0.24,
+          0.09,
+          0.01
+        ],
+        "closed_case": true,
+        "exposed_earbuds": 0,
+        "phone_pose": "screen up on pad",
+        "watch_materials": [
+          "metal case",
+          "single opaque glass face",
+          "matte silicone band"
+        ],
+        "sources": {
+          "phone": "https://support.apple.com/en-euro/111870",
+          "watch": "https://support.apple.com/en-ie/111909",
+          "case": "https://support.apple.com/en-ie/111834"
+        }
+      },
+      "license": "CC-BY-4.0 (phone); original watch, case and charging-pad geometry",
+      "credits": "/room/assets/CREDITS.txt"
+    },
+    "chatbot_robot": {
+      "file": "chatbot_robot.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.1662,
+        0.126,
+        0.235
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame",
+        "metal",
+        "screen"
+      ],
+      "triangles": 18694,
+      "bytes": 103852,
+      "description": "Short, arms-down S-Bot figurine adapted from amanpatel9725's S-Bot: Stylized Cartoon Robot, CC BY 4.0.",
+      "license": "CC-BY-4.0",
+      "credits": "/room/assets/CREDITS.txt"
     }
   }
 }

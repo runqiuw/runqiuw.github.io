@@ -165,12 +165,30 @@ try {
     await sleep(1500);
   };
 
-  // Reloading a room/close-up keeps the browser's old state, while the panel starts on the page.
-  // A fresh room visit must close to that page, never pop into and reopen the stale close-up.
+  const restoredCloseup = async (id) => {
+    await until(`location.hash === '#room/${id}' && !!document.querySelector('.room.full') && !document.querySelector('.closeup').hidden`, `restored ${id} close-up`, 60000);
+    if (id === 'hoops') await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'direct-link hoops ready', 60000);
+    assert.equal(await evaluate('history.state.room'), 2);
+    await paused();
+  };
+  const reloadLink = async (hash, state = null) => {
+    await evaluate(`window.__historyReloadPending = true; history.replaceState(${JSON.stringify(state)}, '', ${JSON.stringify(hash)}); location.reload()`);
+    await until("!window.__historyReloadPending && document.querySelector('.frame.live')", 'new document loaded from room link', 60000);
+  };
+  const pageFromRoom = async () => {
+    await evaluate("document.getElementById('room-exit').click()");
+    await until("!document.querySelector('.room.full') && !history.state?.room && !location.hash.startsWith('#room')", 'room link returns to page');
+    await sleep(600);
+  };
+
+  // A reload restores its URL and rebuilds page → room → close-up, even with old history metadata.
+  // Subsequent section picks must return to the page instead of reopening an older game entry.
   for (const stale of [{ room: 1 }, { room: 2, closeup: 'hoops' }]) {
-    await evaluate(`window.__historyReloadPending = true; history.replaceState(${JSON.stringify(stale)}, '', '#room${stale.closeup ? '/hoops' : ''}'); location.reload()`);
-    await until("!window.__historyReloadPending && document.querySelector('.frame.live')", 'room after stale history reload', 60000);
-    await openRoom();
+    await reloadLink(`#room${stale.closeup ? '/hoops' : ''}`, stale);
+    if (stale.closeup) {
+      await restoredCloseup(stale.closeup);
+      await back();
+    } else await until("location.hash === '#room' && !document.getElementById('room-exit').hidden", 'restored full room');
     for (const section of ['research', 'projects', 'games']) {
       await evaluate(`document.querySelector('[data-go="${section}"]').click()`);
       await until("!document.querySelector('.room.full') && !history.state?.room", `${section} returns to page`);
@@ -179,70 +197,103 @@ try {
       if (section !== 'games') await openRoom();
     }
   }
-  console.log('PASS: section picks after reloading stale room/hoops history');
+  console.log('PASS: restored room/hoops reloads and subsequent section picks');
 
-  await pickClip('research');
-  await clipAdvanced('Research panel');
-  await openRoom();
-  await measure('Full room with research clip selected', true);
-  // A new item event while the page is covered must not restart a video.
-  await evaluate("dispatchEvent(new CustomEvent('itemchange', { detail: document.documentElement.dataset.item }))");
-  await paused();
-  await measure('Full room after item update', true);
-  await closeup('board', 'playground');
-  await measure('Board close-up', true);
-  await back();
-  await closeup('hoops', 'hoops');
-  await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'automatic hoops turn');
-  assert.equal(await evaluate("[...document.querySelectorAll('.closeup button')].filter(b => !b.hidden).length"), 1, 'Manual projectile buttons remain');
-  await measure('Hoops close-up before a throw', true);
-  const projectiles = process.env.VIDEO_FALLBACK ? [] : ['Paper ball', 'Bottle', 'Bouncy ball'];
-  const distances = [];
-  for (const [i, label] of projectiles.entries()) {
-    await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'next automatic turn');
-    const turn = await evaluate("({ ...document.querySelector('.hoops-turn').dataset })");
-    assert.equal(turn.kind, ['paper', 'bottle', 'bouncy'][i]);
-    assert.equal(turn.points, Number(turn.distance) > 1.32 ? '3' : '2');
-    assert(Number(turn.distance) >= 0.58 && Number(turn.distance) <= 3.6);
-    distances.push(turn.distance);
-    if (process.env.ROOM_SCREENSHOTS) {
-      mkdirSync(process.env.ROOM_SCREENSHOTS, { recursive: true });
-      const shot = await send('Page.captureScreenshot', { format: 'png' });
-      writeFileSync(join(process.env.ROOM_SCREENSHOTS, `hoops-${turn.kind}-${turn.points}pt.png`), Buffer.from(shot.data, 'base64'));
-    }
-    const rect = await evaluate("(() => { const r = document.querySelector('.room-canvas').getBoundingClientRect(); return { x: r.x + r.width * 0.5, y: r.y + r.height * 0.62, span: Math.min(r.width,r.height) }; })()");
-    const pull = rect.span * 0.22 * 0.55;
-    await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...rect, button: 'left', buttons: 1, clickCount: 1 });
-    await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y + pull, button: 'left', buttons: 1 });
-    assert.equal(await evaluate("document.querySelector('.hoops-power').hidden"), false);
-    if (process.env.ROOM_SCREENSHOTS) {
-      await sleep(300);
-      const shot = await send('Page.captureScreenshot', { format: 'png' });
-      writeFileSync(join(process.env.ROOM_SCREENSHOTS, `guide-${turn.kind}.png`), Buffer.from(shot.data, 'base64'));
-    }
-    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y + pull, button: 'left', buttons: 0, clickCount: 1 });
-    assert.equal(await evaluate("document.querySelector('.hoops-power').hidden"), true);
-    assert.equal(await evaluate("document.querySelector('.hoops-turn').dataset.phase"), 'flight');
-    await measure(`${label} in flight`);
-    await until("document.querySelector('.hoops-turn').dataset.phase === 'ready'", 'contact, result and next angle', 20000);
-    await sleep(11000);
-    await measure(`${label} settled`, true);
+  // Fresh desktop and cold mobile links, including reduced motion and both close-up types.
+  for (const config of [
+    { id: 'hoops', width: 1440, height: 900, mobile: false, motion: 'no-preference' },
+    { id: 'board', width: 1440, height: 900, mobile: false, motion: 'no-preference' },
+    { id: 'hoops', width: 390, height: 844, mobile: true, motion: 'reduce' },
+  ]) {
+    await send('Emulation.setDeviceMetricsOverride', { width: config.width, height: config.height, deviceScaleFactor: 1, mobile: config.mobile });
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: config.motion }] });
+    await reloadLink(`#room/${config.id}`);
+    await restoredCloseup(config.id);
+    await back();
+    assert.equal(await evaluate('history.state.room'), 1);
+    await evaluate('history.forward()');
+    await restoredCloseup(config.id);
+    await evaluate('history.back()');
+    await until("location.hash === '#room' && !document.getElementById('room-exit').hidden", 'browser back to room');
+    await pageFromRoom();
+    console.log(`PASS: direct ${config.id} link, ${config.mobile ? 'mobile/reduced motion' : 'desktop'}, back/forward/page`);
   }
-  if (projectiles.length) {
-    assert.equal(await evaluate("document.querySelector('.hoops-score').dataset.attempts"), '3');
-    assert.equal(new Set(distances).size, 3, 'Shot distances did not vary');
-  }
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+  // Re-evaluate the page's startup media queries before the remaining desktop checks.
+  await reloadLink('');
+  // Typing/pasting a room hash in an already-loaded page also needs to work without a reload.
+  await evaluate("location.hash = '#room/hoops'");
+  await restoredCloseup('hoops');
   await back();
-  await exit();
-  await clipAdvanced('Research panel resumed');
-  await pickClip('games');
-  await clipAdvanced('Game panel');
-  await openRoom();
-  await measure('Full room with game clip selected', true);
-  await exit();
-  await clipAdvanced('Game panel resumed');
-  assert.deepEqual(errors, [], 'Browser runtime errors');
-  console.log(`PASS: panel playback, paused full/close-up views${projectiles.length ? ', three hoops projectiles' : ''}${process.env.VIDEO_FALLBACK ? ', 30 fps fallback' : ', video-frame callbacks'}`);
+  await pageFromRoom();
+  assert.deepEqual(errors, [], 'Room-link browser runtime errors');
+  console.log('PASS: same-document room link');
+
+  if (!process.env.ROOM_LINKS_ONLY) {
+    await pickClip('research');
+    await clipAdvanced('Research panel');
+    await openRoom();
+    await measure('Full room with research clip selected', true);
+    // A new item event while the page is covered must not restart a video.
+    await evaluate("dispatchEvent(new CustomEvent('itemchange', { detail: document.documentElement.dataset.item }))");
+    await paused();
+    await measure('Full room after item update', true);
+    await closeup('board', 'playground');
+    await measure('Board close-up', true);
+    await back();
+    await closeup('hoops', 'hoops');
+    await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'automatic hoops turn');
+    assert.equal(await evaluate("[...document.querySelectorAll('.closeup button')].filter(b => !b.hidden).length"), 1, 'Manual projectile buttons remain');
+    await measure('Hoops close-up before a throw', true);
+    const projectiles = process.env.VIDEO_FALLBACK ? [] : ['Paper ball', 'Bottle', 'Bouncy ball'];
+    const distances = [];
+    for (const [i, label] of projectiles.entries()) {
+      await until("document.querySelector('.hoops-turn')?.dataset.phase === 'ready'", 'next automatic turn');
+      const turn = await evaluate("({ ...document.querySelector('.hoops-turn').dataset })");
+      assert.equal(turn.kind, ['paper', 'bottle', 'bouncy'][i]);
+      assert.equal(turn.points, Number(turn.distance) > 1.32 ? '3' : '2');
+      assert(Number(turn.distance) >= 0.58 && Number(turn.distance) <= 3.6);
+      distances.push(turn.distance);
+      if (process.env.ROOM_SCREENSHOTS) {
+        mkdirSync(process.env.ROOM_SCREENSHOTS, { recursive: true });
+        const shot = await send('Page.captureScreenshot', { format: 'png' });
+        writeFileSync(join(process.env.ROOM_SCREENSHOTS, `hoops-${turn.kind}-${turn.points}pt.png`), Buffer.from(shot.data, 'base64'));
+      }
+      const rect = await evaluate("(() => { const r = document.querySelector('.room-canvas').getBoundingClientRect(); return { x: r.x + r.width * 0.5, y: r.y + r.height * 0.62, span: Math.min(r.width,r.height) }; })()");
+      const pull = rect.span * 0.22 * 0.55;
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...rect, button: 'left', buttons: 1, clickCount: 1 });
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y + pull, button: 'left', buttons: 1 });
+      assert.equal(await evaluate("document.querySelector('.hoops-power').hidden"), false);
+      if (process.env.ROOM_SCREENSHOTS) {
+        await sleep(300);
+        const shot = await send('Page.captureScreenshot', { format: 'png' });
+        writeFileSync(join(process.env.ROOM_SCREENSHOTS, `guide-${turn.kind}.png`), Buffer.from(shot.data, 'base64'));
+      }
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y + pull, button: 'left', buttons: 0, clickCount: 1 });
+      assert.equal(await evaluate("document.querySelector('.hoops-power').hidden"), true);
+      assert.equal(await evaluate("document.querySelector('.hoops-turn').dataset.phase"), 'flight');
+      await measure(`${label} in flight`);
+      await until("document.querySelector('.hoops-turn').dataset.phase === 'ready'", 'contact, result and next angle', 20000);
+      await sleep(11000);
+      await measure(`${label} settled`, true);
+    }
+    if (projectiles.length) {
+      assert.equal(await evaluate("document.querySelector('.hoops-score').dataset.attempts"), '3');
+      assert.equal(new Set(distances).size, 3, 'Shot distances did not vary');
+    }
+    await back();
+    await exit();
+    await clipAdvanced('Research panel resumed');
+    await pickClip('games');
+    await clipAdvanced('Game panel');
+    await openRoom();
+    await measure('Full room with game clip selected', true);
+    await exit();
+    await clipAdvanced('Game panel resumed');
+    assert.deepEqual(errors, [], 'Browser runtime errors');
+    console.log(`PASS: panel playback, paused full/close-up views${projectiles.length ? ', three hoops projectiles' : ''}${process.env.VIDEO_FALLBACK ? ', 30 fps fallback' : ', video-frame callbacks'}`);
+  }
 } finally {
   socket?.close();
   chrome.kill();

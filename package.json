@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "check": "astro check",
     "check:hoops": "node bin/check-hoops.mjs",
+    "check:shelf": "node bin/check-shelf.mjs",
     "check:room": "node bin/check-room.mjs"
   },
   "dependencies": {

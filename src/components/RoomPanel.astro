@@ -142,7 +142,7 @@ import night from '../assets/img/room/poster-night.webp';
     return room;
   };
 
-  async function open(push = true) {
+  async function open(push = true, immediate = false) {
     if (isFull || !webgl) return;
     const from = home();
     isFull = true;
@@ -158,20 +158,19 @@ import night from '../assets/img/room/poster-night.webp';
     // the #room entry, which would cancel the jump to the chosen section.
     history.scrollRestoration = 'manual';
     if (push) {
-      // A reload preserves history.state but starts this panel at page level. Replace that stale
-      // room entry with the page before opening a fresh stack, or closing can pop into an old
-      // close-up and onHistory will immediately reopen it (e.g. hoops after picking Research).
+      // A page-level visit may retain old room metadata. Replace that stale entry before opening
+      // a fresh stack, or closing can pop into and reopen an old close-up.
       if (entry()?.room) history.replaceState(null, '', location.pathname + location.search);
       history.pushState({ room: 1 }, '', '#room');
     }
-    const to = viewport();
-    const opened = morph(from?.rect ?? shrunk(to, 0.2), to, OPEN_MS, [from?.radius ?? '28px', '0px'], [from ? 1 : 0, 1]);
-    if (live) (await room)!.enterFull(OPEN_MS, to.width / to.height, clockOf(morphing!));
+    const to = viewport(), ms = immediate ? 0 : OPEN_MS;
+    const opened = morph(from?.rect ?? shrunk(to, 0.2), to, ms, [from?.radius ?? '28px', '0px'], [from ? 1 : 0, 1]);
+    if (live) (await room)!.enterFull(ms, to.width / to.height, clockOf(morphing!));
     else {
       const r = await load();
       loading.hidden = true;
       // First open on mobile: the room arrives after the frame has grown; let it settle in.
-      if (isFull) r.enterFull(OPEN_MS, to.width / to.height);
+      if (isFull) r.enterFull(ms, to.width / to.height);
     }
     if ((await opened) && isFull) morphing?.cancel(); // hand the full-window layout back to CSS
     if (isFull) exitBtn.focus({ preventScroll: true });
@@ -251,10 +250,34 @@ import night from '../assets/img/room/poster-night.webp';
   // The history moved (back, forward, or our own `back`): go to the level its entry is for.
   async function onHistory() {
     const e = entry(), to = e?.room ?? 0;
+    if (to === 0 && roomLink()) return followRoomLink();
     if (to === 0) return close(undefined, true);
     if (!isFull) await open(false);
     if (to === 1) unfocus();
     else if (e?.closeup) focus(e.closeup, false);
+  }
+
+  const roomLink = () => {
+    const match = /^#room(?:\/([^/]+))?$/.exec(location.hash);
+    if (!match || (match[1] && !Object.hasOwn(CLOSEUPS, match[1]))) return null;
+    return { closeup: match[1] };
+  };
+  let followingLink = false;
+  async function followRoomLink() {
+    const link = roomLink();
+    if (!link || followingLink) return;
+    followingLink = true;
+    try {
+      // Direct links and reloads need a complete page → room → close-up history stack too.
+      // Replace the incoming entry, then build both levels so Back never leaves the site early.
+      history.replaceState(null, '', location.pathname + location.search);
+      if (isFull) await close(undefined, true);
+      // Establish the overview camera before focusing, including a cold/mobile room load.
+      await open(true, true);
+      if (isFull && link.closeup) await focus(link.closeup);
+    } finally {
+      followingLink = false;
+    }
   }
 
   if (webgl) {
@@ -263,7 +286,7 @@ import night from '../assets/img/room/poster-night.webp';
     const start = () => {
       if (started || !wide.matches) return;
       started = true;
-      enterBtn.hidden = false;
+      enterBtn.hidden = isFull;
       const run = () => load();
       'requestIdleCallback' in window ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 300);
     };
@@ -287,8 +310,12 @@ import night from '../assets/img/room/poster-night.webp';
       if (e.key === 'Escape' && isFull) back();
     });
     addEventListener('popstate', onHistory);
+    addEventListener('hashchange', () => {
+      if (!entry()?.room) void followRoomLink();
+    });
     addEventListener('roomopen', () => open());
     document.documentElement.classList.add('has-room');
+    void followRoomLink();
   }
 </script>
 

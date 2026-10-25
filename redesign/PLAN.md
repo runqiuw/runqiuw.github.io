@@ -8,7 +8,8 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 - [ ] Playground: more pins, ~10 photos / things (me), then pin → pinboard card highlight. The distance card also starts when the full-screen room opens, so the board has its map even if the page's Playground was never scrolled to. The section is back (2026-10-22) with one card: how far the visitor is from Madison, after joshwcomeau.com/about-josh. A MapLibre map (OpenFreeMap tiles, no key) pulls back from the visitor's pin and draws a dotted great-circle line to my avatar pin; the room's pinboard gets a still of it. Location: city-level IP lookup from the browser via get.geojs.io, else the time zone, else "Where I live and work." (`distance: true` in `playground.yaml`, code in `src/scripts/distance-map.ts`). The map (~440 KB gzip with its worker) loads only when the card nears the viewport
 
 ### 2. Deferred
-- Project models for the shelf (deferred 2026-10-21). Toy-sized figurines that fit a 30 cm tier; the item in view lights up. Rover, robotic arm, vehicle from CAD (STEP/STL → decimate → clay roles; fallback: model from photos); IMU = phone + watch + earbuds; SketchGenie = AR headset; Telegram Chatbot = robot head / speech bubble
+- Remaining project models for the shelf: robotic arm and vehicle from CAD (STEP/STL → decimate → clay roles; fallback: model from photos)
+- Telegram: replace the current robot with the blue figure from [Robot Cartoon Collection](https://sketchfab.com/3d-models/robot-cartoon-collection-1300eb8e684b42868bda89657cac1605) when the user has the source file; the listing currently offers no download.
 - Travel map: a map poster on the wall → `/travel` (no content yet)
 - Blog / notes (no content yet)
 - Say hi character: a character (design TBD) standing in the room, e.g. by the door, with the contact camera shot aimed at it. When it exists: add the `contact` shot in `SHOTS`, a `Say hi` label anchored on the character, make the character clickable (it bounces like the other interactive objects), and turn `show.contact` on. Until then the Say hi section is hidden and the door is scenery
@@ -41,14 +42,14 @@ Personal academic homepage built with **Astro**, with a clay-style 3D model of m
 
 Not wanted: chat-style home page, room-only navigation, heavy real-time scenes.
 
-Room history: after a reload the panel starts at page level, even if the browser retains an old room state. A fresh room opening replaces that stale entry with the page before pushing its new room entry, so choosing a section cannot pop into and reopen a previous close-up.
+Room links: recognize `#room` and configured `#room/<id>` on first load, reload and same-page hash navigation, including a cold mobile load. Replace the incoming entry with the page and rebuild page → room → close-up history; establish the overview camera before focusing. Back and Forward preserve the three levels, and choosing a section cannot pop into and reopen a stale close-up. Unknown close-ups leave the page visible.
 
 ### Section → object
 | Section | Object | Room shows |
 |---|---|---|
 | Intro | room overview | — |
 | Research | desk + two monitors | left: the paper's figure or `teaser` clip (bib field); right: title + venue |
-| Projects | bookshelf, left-wall corner by the desk | each project's cover in a frame; the one in view tips forward |
+| Projects | bookshelf, left-wall corner by the desk | Rover miniature, upright Meta Quest 3 headset for SketchGenie, a calibrated phone/watch/closed-case charging set for IMU, and a small robot for Telegram; framed covers for the other projects. Scroll selects a display; card hover/focus temporarily selects another without moving the camera. Two projects per tier in page order: IMU/Quest, vehicle/arm covers, Rover/robot. Quest and IMU keep 1:1 base scale; Quest has no controllers. All displays grow from the bottom with space reserved behind and above; direct room hover uses the same bounded animation |
 | Games | TV on a stand, console, game cases, round rug, right of the desk | the TV plays the game in view (`clip` in games.yaml); its case lifts |
 | Playground | pinboard wall | every pin |
 | Contact | door (hidden for now) | — |
@@ -63,7 +64,7 @@ Clips: any resolution; trim to ≤ ~1 MB muted mp4 under `public/assets/video/`.
 - Light only comes in through the windows: walls (also the ones hidden in the dollhouse view), a permanent shadow-only ceiling seal and closed blinds cast shadows, so sun patches show only with a blind up. The floor lamp, bedside lamp and the two monitor light bars cast shadows too; the light bars follow the theme, no switch (2026-10-22). The shelf has a warm LED strip under every board: a line light written into the shelf's and walls' shaders (RectAreaLight would cost ~110 KB), so it lights each tier as an even band; on at night like the light bars.
 - Wall cutaways apply to the page/outside overview. In a full-screen interior view (eye inside the L-shaped footprint and below the ceiling), keep every wall, corner post and wall-mounted object visible, plus a lit L-shaped ceiling underside at the physical 2.7 m height. Its permanent shadow seal is unchanged; the visible liner does not receive the seal’s self-shadow. The outside overview stays open-topped. Direction-based cutaways can otherwise expose the page background as black vertical bands beside the doors in wide/night views.
 - Screen clips play in the page panel, redraw on decoded video frames (30 fps fallback), and pause in the full-screen room and every close-up. They resume on return to the page; hidden/off-screen panels also pause decoding. A paused clip alone must not keep the room rendering.
-- All 3D assets ≤ ~3 MB (now 1.52 MiB, meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
+- All 3D assets ≤ ~3 MB (meshopt), room JS ≤ 200 KB gzip. Poster image fallback without WebGL or with reduced motion.
 - Lighthouse home page: Performance ≥ 90 desktop / ≥ 80 mobile, Accessibility ≥ 95.
 
 ## 3D assets
@@ -72,6 +73,7 @@ Clips: any resolution; trim to ≤ ~1 MB muted mp4 under `public/assets/video/`.
 
 - Library: a local `bedroom/` folder outside the repo (path in `bin/.room-assets-path`, not committed), with its own README. `room_assets.blend` holds one `asset_<name>` collection per asset; `source/` is the measured model, never edited in place.
 - Export: `bin/room-assets` once, or `--watch` to re-export on every save → `public/room/assets/<name>.glb` + `manifest.json`.
+- Shelf models: `asset_rover` is the simplified `all_2` CAD assembly, kept in the library. `bin/room_model_assets.py --source <review.blend> --out <assets-dir> --assets rover` runs inside Blender to append/update the reviewed collection and export only the requested assets; meshopt-compress its GLB and update manifest bytes afterwards. `PROJECT_MODELS` maps page project ids to shelf assets; missing models fall back to covers. `asset_quest3` contains only the upright headset, without controllers; `asset_imu_devices` uses a CC BY phone plus original simplified watch, closed earphone case and flat 240 × 90 × 10 mm charging pad. Device bodies use Apple dimensions, with measured dimensions and sources in manifest `calibration`; the complete group scales uniformly. IMU and Quest stay at 1:1 in the room (`lifeSize`), in the original two-projects-per-tier layout. Do not rearrange the shelf to fit a model without an explicit request; Quest controllers were removed to fit its existing slot. Quest housing dimension references are stored in its own `calibration`. `asset_chatbot_robot` is a static, shortened, arms-down figurine adapted from the CC BY S-Bot model. Attribution and changes are in `public/room/assets/CREDITS.txt`, linked from the footer. Device envelopes are stored in manifest `components`; Quest pose is recorded in `layout`. Only miniatures fit down to their slots. Life-size devices never shrink to fit: their hover moves forward as they grow, keeping the back edge clear of the backboard. The shelf front is open; overhang into free space is allowed. Regression checks actual triangles against the shelf and nearby scene meshes.
 - After layout or lighting changes: `bin/room-posters` (needs the preview server on :4321), then rebuild; `bin/room-og.mjs` for `public/og.png`.
 
 ### Asset rules

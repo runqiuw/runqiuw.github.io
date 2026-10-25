@@ -57,7 +57,7 @@ import type { createToyWorld, Toy, ToyShape } from './room-physics';
 import type { createHoops } from './room-hoops';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CLOSEUPS, DECOR, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
+import { CLOSEUPS, DECOR, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number; far?: number };
 type Manifest = {
@@ -200,7 +200,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // Canvas text uses the site fonts; wait for them briefly so the first textures aren't in a fallback.
   const fontsReady = Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1500))]);
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const names = [...new Set(PLACEMENTS.map((p) => p.asset))];
+  const names = [...new Set([...PLACEMENTS.map((p) => p.asset), ...Object.values(PROJECT_MODELS).map((p) => p.asset)])];
   const [manifest, gltfs] = await Promise.all([
     fetch(ASSETS + 'manifest.json').then((r) => r.json() as Promise<Manifest>),
     // An asset that isn't exported yet is left out instead of failing the whole room.
@@ -1129,28 +1129,61 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     return { id: el?.dataset.item, pop: poppable(placed[id], { p: new Vector3(0, 0.06, 0) }) };
   });
 
-  // Project frames standing on the shelf tiers, one per project, in page order.
+  // Preserve page order and two displays per tier. Calibrated devices stay life-size;
+  // the open front lets hover grow towards the room, clear of the solid backboard.
   const shelf = placed[SCREENS.shelf];
-  const tiers = SCREENS.shelfTiers.map((i) => manifest.assets[PLACEMENTS.find((p) => p.id === SCREENS.shelf)!.asset].tiers?.[i] ?? 0.4 * i).sort((a, b) => b - a);
+  const shelfAsset = manifest.assets[PLACEMENTS.find((p) => p.id === SCREENS.shelf)!.asset];
+  const tiers = SCREENS.shelfTiers.map((i) => shelfAsset.tiers?.[i] ?? 0.4 * i).sort((a, b) => b - a);
   const projects = pageItems('projects');
   const perTier = Math.max(1, Math.ceil(projects.length / tiers.length));
-  const shelfW = manifest.assets[PLACEMENTS.find((p) => p.id === SCREENS.shelf)!.asset].size[0] - 0.08;
+  const shelfW = shelfAsset.size[0] - 0.08;
   const fw = Math.min(0.34, shelfW / perTier - 0.04), fh = fw * 0.66;
   const frameMat = new MeshStandardMaterial({ color: new Color('#ffffff'), roughness: 0.8 });
-  const frames = projects.map((el, i) => {
+  const grow = 0.22, advance = 0.012, gap = 0.016;
+  const miniatureModels = projects.map((el, i) => {
+    const spec = PROJECT_MODELS[el.dataset.item ?? ''];
+    const src = spec && source[spec.asset];
+    if (!src) return;
+    const model = src.clone(true);
+    model.rotation.y = MathUtils.degToRad(spec.yaw ?? 0);
+    const bounds = new Box3().setFromObject(model), size = bounds.getSize(new Vector3());
+    const n = Math.min(perTier, projects.length - Math.floor(i / perTier) * perTier);
+    const maxSize = new Vector3(shelfW / n - 2 * gap, (shelfAsset.tier_clear ?? 0.33) - 2 * gap, shelfAsset.size[1] - 2 * gap - advance);
+    const fit = Math.min(1, Math.min(maxSize.x / size.x, maxSize.y / size.y, maxSize.z / size.z) / (1 + grow));
+    return { model, bounds, fit, lifeSize: spec.lifeSize };
+  });
+  const projectDisplays = projects.map((el, i) => {
     const tier = tiers[Math.floor(i / perTier)] ?? tiers[tiers.length - 1];
     const k = i % perTier, n = Math.min(perTier, projects.length - Math.floor(i / perTier) * perTier);
     const f = new Group();
+    f.name = `project-${el.dataset.item}`;
+    f.userData.section = 'projects';
+    f.userData.item = el.dataset.item;
+    shelf.add(f);
+    const slotX = (k - (n - 1) / 2) * (shelfW / n);
+    const miniature = miniatureModels[i];
+    if (miniature) {
+      const { model, bounds: b, fit, lifeSize } = miniature;
+      const center = b.getCenter(new Vector3());
+      const scale = lifeSize ? 1 : fit;
+      model.scale.setScalar(scale);
+      model.position.set(-center.x * scale, -b.min.y * scale, -center.z * scale);
+      dress(model);
+      f.add(model);
+      const halfDepth = (b.max.z - b.min.z) * scale / 2;
+      const backClearance = -shelfAsset.size[1] / 2 + 0.012 + gap;
+      const forward = lifeSize ? advance + halfDepth * grow : advance;
+      f.position.set(slotX, tier + 0.003, lifeSize ? Math.max(-advance / 2, backClearance + halfDepth) : -advance / 2);
+      return { id: el.dataset.item, pop: poppable(f, { p: new Vector3(0, 0, forward), s: grow }) };
+    }
     const border = new Mesh(new BoxGeometry(fw, fh, 0.018), frameMat);
     border.castShadow = true;
     const { x, tex, c } = canvasTex(384, 384 * ((fh - 0.03) / (fw - 0.03)));
     const pic = new Mesh(new PlaneGeometry(fw - 0.03, fh - 0.03), new MeshStandardMaterial({ map: tex, roughness: 0.6 }));
     pic.position.z = 0.0095;
     f.add(border, pic);
-    f.position.set((k - (n - 1) / 2) * (shelfW / n), tier + fh / 2 + 0.005, -0.03);
+    f.position.set(slotX, tier + fh / 2 + 0.005, -0.03);
     f.rotation.x = -0.16;
-    f.userData.section = 'projects';
-    shelf.add(f);
     if (el.dataset.screenImg)
       loadImg(el.dataset.screenImg).then((img) => {
         fit(x, img, c.width, c.height, 'cover');
@@ -1159,13 +1192,16 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       });
     return { id: el.dataset.item, pop: poppable(f, { p: new Vector3(0, 0.02, 0.07), r: 0.2, s: 0.1 }) };
   });
+  let hoveredProject: string | undefined;
+  const updateProjectPops = () => projectDisplays.forEach(({ id, pop }) => {
+    pop.t = (hoveredProject ? id === hoveredProject : active === 'projects' && id === item) ? 1 : 0;
+  });
   // Display lights: an LED strip under the front edge of every board, lighting the tier below it.
   // A strip is a line of light, so instead of a spot (a round pool) each one is a line light added in
   // the shader of the shelf's own materials: even along its length, fading with distance, shining
   // down and back, and only inside its own tier (the boards would block it). Three's RectAreaLight
   // would do this too, but its lookup tables cost ~110 KB. Like the monitor light bars, the strips
   // follow the theme (on at night).
-  const shelfAsset = manifest.assets[PLACEMENTS.find((p) => p.id === SCREENS.shelf)!.asset];
   const clear = shelfAsset.tier_clear ?? 0.33, depth = shelfAsset.size[1];
   const allTiers = (shelfAsset.tiers ?? []).slice().sort((a, b) => a - b);
   const shelfGlow = new MeshStandardMaterial({ color: new Color('#fff4e0'), emissive: new Color('#ffd9a0'), emissiveIntensity: 0 });
@@ -1365,7 +1401,7 @@ uniform float uStripEnd;
 
     const on = (list: { id?: string; pop: Pop }[], section: string) => list.forEach((b) => (b.pop.t = active === section && b.id === item ? 1 : 0));
     on(boxes, 'games');
-    on(frames, 'projects');
+    updateProjectPops();
     on(cards, 'playground');
     dirty = true;
   };
@@ -1604,9 +1640,13 @@ uniform float uStripEnd;
   // pointer, with a bit of overshoot, and spring back when it leaves.
   // Riders (a light bar on its monitor) count as part of what they ride on.
   const placedSet = new Set(PLACEMENTS.filter((p) => !p.on && placed[p.id]).map((p) => placed[p.id]));
+  const projectSet = new Set(projectDisplays.map((p) => p.pop.o));
   // Only the objects that bounce are clickable; big furniture (desk, TV stand, rug, door) is scenery.
   const interactiveOf = (o: Object3D | null) => {
-    for (; o; o = o.parent) if (placedSet.has(o)) return o.userData.section && o.userData.bounce ? o : undefined;
+    for (; o; o = o.parent) {
+      if (projectSet.has(o)) return o;
+      if (placedSet.has(o)) return o.userData.section && o.userData.bounce ? o : undefined;
+    }
   };
   type Spring = { o: Object3D; base: number; s: number; v: number; t: number };
   const springs = new Map<Object3D, Spring>();
@@ -1620,7 +1660,13 @@ uniform float uStripEnd;
     if (prevSection && prevSection !== o?.userData.section) hideLabel(prevSection);
     if (o?.userData.section) showLabel(o.userData.section);
     hovered = o;
+    hoveredProject = o && projectSet.has(o) ? o.userData.item : undefined;
+    updateProjectPops();
+    dirty = true;
     if (!o) return;
+    // Displays already have a safe pop. Keep the bookcase itself fixed against the wall, and
+    // never add the free object's overshooting spring to a miniature or its parent shelf.
+    if (projectSet.has(o) || o === shelf) return;
     const sp = springs.get(o) ?? { o, base: o.scale.x, s: 1, v: 0, t: 1 };
     sp.t = 1.06;
     if (opts.reduceMotion) sp.s = sp.t;
@@ -1969,7 +2015,7 @@ uniform float uStripEnd;
   const pick = (o: Object3D | undefined, section?: string) => {
     const id = Object.keys(CLOSEUPS).find((k) => o && placed[CLOSEUPS[k].object] === o);
     if (id) opts.onFocus(id);
-    else if (section) visit(section);
+    else if (section) visit(section, o?.userData.item);
   };
 
   // Close-ups (CLOSEUPS): the panel decides when to open or leave one, since it keeps the views and
