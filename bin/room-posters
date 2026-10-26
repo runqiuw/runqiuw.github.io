@@ -1,47 +1,7 @@
 #!/usr/bin/env bash
-# Re-render the room panel's still images (shown until the live 3D room loads, and when WebGL is
-# unavailable) from the current build: headless Chrome screenshots the panel in the light and dark
-# theme, and sharp writes src/assets/img/room/poster-{day,night}.webp. Also renders public/og.png.
-# Needs a server on :4321 serving dist/ (npm run build && npm run preview). Rebuild afterwards.
+# Real-time day/night captures wait for GPU preparation and image artwork; then update OG.
+# Build and serve dist first; URL and CHROME can override the local preview / browser.
 set -euo pipefail
-
-readonly REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
-readonly URL="${URL:-http://localhost:4321}"
-readonly TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP" "$REPO_ROOT/dist/_poster.html"' EXIT
-
-# A same-origin wrapper page: sets the theme, then loads the site in a 1440×900 frame with the
-# panel's buttons and rounded corners hidden.
-cat > "$REPO_ROOT/dist/_poster.html" <<'HTML'
-<!doctype html><meta charset="utf-8"><style>html,body{margin:0;overflow:hidden}iframe{border:0;width:1440px;height:900px}</style>
-<iframe id="f"></iframe>
-<script>
-  localStorage.setItem('theme', new URLSearchParams(location.search).get('theme'));
-  const f = document.getElementById('f');
-  f.onload = () => {
-    const s = f.contentDocument.createElement('style');
-    s.textContent = '.enter,.loading{display:none!important}.frame{border-radius:0!important;box-shadow:none!important}';
-    f.contentDocument.head.append(s);
-  };
-  f.src = '/';
-</script>
-HTML
-
-for theme in light dark; do
-  "$CHROME" --headless=new --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars \
-    --window-size=1440,900 --force-device-scale-factor=2 --virtual-time-budget=15000 \
-    --user-data-dir="$TMP/profile-$theme" --screenshot="$TMP/$theme.png" "$URL/_poster.html?theme=$theme" >/dev/null 2>&1
-done
-
-# Crop to the panel's frame (14, 74, 591 × 812 CSS px at 1440 × 900, ×2 for the device scale).
-node -e '
-  const sharp = require("sharp"), [tmp, out] = process.argv.slice(1);
-  const crop = { left: 28, top: 148, width: 1181, height: 1624 };
-  Promise.all([["light", "day"], ["dark", "night"]].map(([t, name]) =>
-    sharp(`${tmp}/${t}.png`).extract(crop).webp({ quality: 88 }).toFile(`${out}/poster-${name}.webp`)
-  )).then((r) => console.log("posters:", r.map((x) => `${x.width}x${x.height} ${(x.size / 1024).toFixed(0)} KB`).join(", ")));
-' "$TMP" "$REPO_ROOT/src/assets/img/room"
-
-# The 1200×630 link-preview image (public/og.png) from the same build.
-node "$REPO_ROOT/bin/room-og.mjs"
+readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+node "$SCRIPT_DIR/room-posters.mjs"
+node "$SCRIPT_DIR/room-og.mjs"

@@ -172,9 +172,14 @@ const avatar = (await getImage({ src: avatarImg, width: 96, format: 'png' })).sr
   const io = note ? new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && start(), { rootMargin: '400px 0px' }) : null;
   if (note) io!.observe(note);
   // Not during the room's opening morph: booting the map (WebGL, then a snapshot) made it stutter.
-  addEventListener('roomlevel', (e) => {
-    if ((e as CustomEvent<number>).detail > 0 && !started) setTimeout(() => (window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200)))(start), 900);
-  });
+  let roomReady = false, roomOpen = false;
+  const startAfterRoom = () => {
+    if (roomOpen && roomReady && !started) setTimeout(() =>
+      (window.requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200)))(start), 900);
+  };
+  addEventListener('roomready', () => { roomReady = true; startAfterRoom(); });
+  addEventListener('roomlevel', e => { roomOpen = (e as CustomEvent<number>).detail > 0; startAfterRoom(); });
+
 </script>
 
 <style>
@@ -228,6 +233,7 @@ const avatar = (await getImage({ src: avatarImg, width: 96, format: 'png' })).sr
     padding-inline: 6px;
   }
   .map {
+    position: relative;
     aspect-ratio: 16 / 7;
     border-radius: 3px;
     overflow: hidden;

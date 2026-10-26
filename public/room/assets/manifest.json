@@ -451,16 +451,18 @@
       "mount": "wall",
       "size": [
         0.99,
-        0.21,
+        0.188,
         2.1
       ],
-      "elevation": 0,
+      "elevation": 0.0,
       "roles": [
-        "frame"
+        "frame",
+        "metal"
       ],
-      "triangles": 1316,
-      "bytes": 14044,
-      "description": "Door with frame, 99×210; also used for the closet door."
+      "triangles": 1868,
+      "bytes": 25396,
+      "description": "99 x 210 cm panel door with a round rose, spindle and rounded L-shaped dark metal lever; shared by the entry and closet.",
+      "handle_detail_version": 1
     },
     "gamebox": {
       "file": "gamebox.glb",
@@ -783,131 +785,137 @@
         0.0974,
         0.3009
       ],
-      "elevation": 0,
+      "elevation": 0.0,
       "roles": [
         "accent",
         "fabric",
         "print"
       ],
       "triangles": 4826,
-      "bytes": 42484,
+      "bytes": 42180,
       "description": "SJTU gear plush (traced emblem): red 44-tooth ring, raised white field with print planes on both faces.",
       "collider_spheres": [
         [
-          0,
-          0,
+          -0.0,
+          0.0,
           0.0584,
           0.045
         ],
         [
           -0.046,
-          0,
+          0.0,
           0.0707,
           0.045
         ],
         [
           0.046,
-          0,
+          0.0,
           0.0707,
           0.045
         ],
         [
           -0.0797,
-          0,
+          0.0,
           0.1044,
           0.045
         ],
         [
           0.0797,
-          0,
+          0.0,
           0.1044,
           0.045
         ],
         [
           -0.023,
-          0,
+          0.0,
           0.1106,
           0.045
         ],
         [
           0.023,
-          0,
+          0.0,
           0.1106,
           0.045
         ],
         [
           -0.092,
-          0,
+          0.0,
           0.1504,
           0.045
         ],
         [
           -0.046,
-          0,
+          0.0,
           0.1504,
           0.045
         ],
         [
-          0,
-          0,
+          -0.0,
+          0.0,
           0.1504,
           0.045
         ],
         [
           0.046,
-          0,
+          0.0,
           0.1504,
           0.045
         ],
         [
           0.092,
-          0,
+          0.0,
           0.1504,
           0.045
         ],
         [
           -0.023,
-          0,
+          0.0,
           0.1903,
           0.045
         ],
         [
           0.023,
-          0,
+          0.0,
           0.1903,
           0.045
         ],
         [
           -0.0797,
-          0,
+          0.0,
           0.1965,
           0.045
         ],
         [
           0.0797,
-          0,
+          0.0,
           0.1965,
           0.045
         ],
         [
           -0.046,
-          0,
+          0.0,
           0.2301,
           0.045
         ],
         [
           0.046,
-          0,
+          0.0,
           0.2301,
           0.045
         ],
         [
-          0,
-          0,
+          -0.0,
+          0.0,
           0.2425,
           0.045
         ]
-      ]
+      ],
+      "ao_bake": {
+        "alpha_print_planes_occlude": false,
+        "floor_occlusion": false,
+        "radius_m": 0.03,
+        "samples": 64
+      }
     },
     "plush_umich": {
       "file": "plush_umich.glb",
@@ -1562,16 +1570,16 @@
         0.4455,
         0.5
       ],
-      "elevation": 0,
+      "elevation": 0.0,
       "roles": [
         "accent",
         "frame",
         "metal",
         "wood"
       ],
-      "triangles": 2112,
-      "bytes": 23716,
-      "description": "Low TV console 120×40×50: hollow carcass, two hinged doors (door_L, door_R) and an open middle cubby for the console.",
+      "triangles": 6252,
+      "bytes": 87292,
+      "description": "Low TV console 120 x 40 x 50: hollow carcass, two hinged doors and an open centre cubby with two rear rows of upright game cases and a recessed middle shelf.",
       "door_L_pivot": [
         -0.585,
         -0.1986,
@@ -1591,7 +1599,23 @@
           "node": "door_R",
           "hinge": "right"
         }
-      ]
+      ],
+      "cubby_stock": {
+        "rows": [
+          14,
+          14
+        ],
+        "case_floors_m": [
+          0.104,
+          0.296
+        ],
+        "shelf_m": {
+          "z": 0.289,
+          "thickness": 0.012,
+          "front_y": -0.075
+        },
+        "front_featured_cases_y": -0.142
+      }
     },
     "window": {
       "file": "window.glb",
@@ -1688,7 +1712,7 @@
           "min": [
             -0.093264851719141,
             -0.12431589141488075,
-            3.0468438882991222e-9
+            3.0468438882991222e-09
           ],
           "max": [
             0.093264851719141,
@@ -2357,6 +2381,973 @@
         "static_drape": true
       },
       "license": "Original geometry; artwork supplied by site author, rights remain with respective owners"
+    },
+    "backpack": {
+      "file": "backpack.glb",
+      "catalog": "Room/Props",
+      "mount": "floor",
+      "size": [
+        0.3288,
+        0.2875,
+        0.4566
+      ],
+      "elevation": 0,
+      "roles": [
+        "backpack_canvas",
+        "backpack_hardware"
+      ],
+      "triangles": 14200,
+      "bytes": 1030556,
+      "description": "Original black commuter backpack by MadeByYeshe (CC BY 4.0), 430 mm body with a 10 degree bedside lean. Original UVs, base-colour, normal and metallic-roughness maps preserved; no vertex-colour replacement or mesh decimation.",
+      "calibration": {
+        "body_height_m": 0.43,
+        "uniform_source_scale": 0.26493620813719826,
+        "posed_bounds_m": [
+          0.3287506699562073,
+          0.2875452935695648,
+          0.4566439092159271
+        ],
+        "basis": "Generic adult commuter size; source has no manufacturer measurements"
+      },
+      "layout": {
+        "front": "-Y",
+        "backward_lean_degrees": 10,
+        "loose_straps": "resting on floor",
+        "base": "bottom centre"
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "author": "MadeByYeshe",
+        "source": "https://sketchfab.com/3d-models/backpack-dd087558c1a24a9ea82d50d764ad4b78"
+      },
+      "preserve_materials": true,
+      "material_quality": {
+        "uvs": "original",
+        "pbr_maps": "original base colour, normal, metallic roughness and hardware specular",
+        "geometry_decimation": false,
+        "vertex_colour_baking": false,
+        "encoding": "WebP quality 95, original image resolution"
+      }
+    },
+    "office_rug": {
+      "file": "office_rug.glb",
+      "catalog": "Room/Props",
+      "mount": "rug",
+      "size": [
+        1.4,
+        1.4,
+        0.0052
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric"
+      ],
+      "triangles": 908,
+      "bytes": 6664,
+      "description": "Low-pile woven office chair rug, 1400 x 1400 x 4 mm, rounded corners and stitched border.",
+      "calibration": {
+        "footprint_m": [
+          1.4,
+          1.4
+        ],
+        "pile_m": 0.004
+      },
+      "license": "Original geometry"
+    },
+    "tv_remote": {
+      "file": "tv_remote.glb",
+      "catalog": "Room/Props",
+      "mount": "desk",
+      "size": [
+        0.042,
+        0.1455,
+        0.0137
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame",
+        "screen"
+      ],
+      "triangles": 3488,
+      "bytes": 65328,
+      "description": "Original slim charcoal TV remote, 145 x 42 x 14 mm with a directional pad and rubber keys.",
+      "calibration": {
+        "body_m": [
+          0.042,
+          0.145,
+          0.012
+        ]
+      },
+      "license": "Original geometry"
+    },
+    "white_phone": {
+      "file": "white_phone.glb",
+      "catalog": "Room/Props",
+      "mount": "desk",
+      "size": [
+        0.0747,
+        0.151,
+        0.0145
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame",
+        "metal",
+        "screen"
+      ],
+      "triangles": 3202,
+      "bytes": 44396,
+      "description": "White smartphone with vivo X200 Ultra-inspired circular camera styling: silver rim, dark four-aperture disc, three lenses and a blue centre badge; face down.",
+      "calibration": {
+        "body_m": [
+          0.074,
+          0.151,
+          0.0085
+        ],
+        "pose": "face down",
+        "camera_style": "vivo X200 Ultra-inspired, approximate geometry",
+        "reference": "https://m.vivo.com.cn/vivo/x200ultra"
+      },
+      "license": "Original geometry"
+    },
+    "headphones_black": {
+      "file": "headphones_black.glb",
+      "catalog": "Room/Props",
+      "mount": "hanging",
+      "size": [
+        0.1753,
+        0.076,
+        0.2099
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame",
+        "metal"
+      ],
+      "triangles": 2844,
+      "bytes": 29872,
+      "description": "Original compact black over-ear wireless headphones with padded headband, articulated yokes and cushioned cups; approximately 175 x 76 x 210 mm.",
+      "calibration": {
+        "approximate_headphone_width_m": 0.175,
+        "type": "generic compact over-ear, no brand"
+      },
+      "layout": {
+        "hook_anchor_m": [
+          0,
+          0,
+          0.189
+        ],
+        "front": "-Y"
+      },
+      "license": "Original geometry"
+    },
+    "xbox_series_x": {
+      "file": "xbox_series_x.glb",
+      "catalog": "Room/Props",
+      "mount": "cabinet",
+      "size": [
+        0.151,
+        0.152,
+        0.301
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame"
+      ],
+      "triangles": 7052,
+      "bytes": 54024,
+      "description": "Original simplified Xbox Series X disc console, life-size 151 x 151 x 301 mm, upright inside the left TV cabinet compartment.",
+      "calibration": {
+        "manufacturer_body_m": [
+          0.151,
+          0.151,
+          0.301
+        ],
+        "source": "https://www.xbox.com/en-gb/consoles/xbox-series-x",
+        "scale": 1
+      },
+      "layout": {
+        "orientation": "upright",
+        "compartment": "left closed TV cabinet bay",
+        "inner_space_m": [
+          0.373,
+          0.362,
+          0.384
+        ],
+        "floor_z_m": 0.098
+      },
+      "license": "Original geometry"
+    },
+    "backpack_small": {
+      "file": "backpack_small.glb",
+      "catalog": "Room/Props",
+      "mount": "hanging",
+      "size": [
+        0.218,
+        0.159,
+        0.3264
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric",
+        "frame",
+        "metal"
+      ],
+      "triangles": 1768,
+      "bytes": 23232,
+      "description": "Original low-poly casual mini daypack, charcoal canvas with two shoulder straps, a front zip pocket and a small woven label; 280 mm body.",
+      "calibration": {
+        "body_m": [
+          0.218,
+          0.1,
+          0.28
+        ],
+        "style": "original casual low-poly mini double-strap daypack",
+        "photographic_textures": false
+      },
+      "layout": {
+        "front": "-Y",
+        "hook_anchor_m": [
+          0,
+          0.058,
+          0.3215
+        ],
+        "base": "bottom centre"
+      },
+      "license": "Original geometry"
+    },
+    "ps5_slim": {
+      "file": "ps5_slim.glb",
+      "catalog": "Room/Props",
+      "mount": "cabinet",
+      "size": [
+        0.155,
+        0.216,
+        0.369
+      ],
+      "elevation": 0,
+      "roles": [
+        "frame",
+        "metal"
+      ],
+      "triangles": 9248,
+      "bytes": 88300,
+      "description": "Original simplified PS5 Slim disc console, 96 x 216 x 358 mm body, upright on a 155 mm-diameter, 11 mm-high stand. Both use manufacturer external dimensions; detailed styling is approximate.",
+      "calibration": {
+        "manufacturer_body_m": [
+          0.096,
+          0.216,
+          0.358
+        ],
+        "manufacturer_stand_m": [
+          0.155,
+          0.155,
+          0.011
+        ],
+        "body_source": "https://blog.playstation.com/2023/10/10/new-look-for-ps5-console-this-holiday-season/",
+        "stand_source": "https://www.playstation.com/content/dam/global_pdc/en/corporate/support/manuals/accessories/ps5-accessories/vertical-stand-cfi-zvs1/cfi-zvs1-b30/CFI-ZVS1X-B30_Instruction_Manial_Web$en.pdf",
+        "scale": 1,
+        "detail_geometry": "original simplified styling"
+      },
+      "layout": {
+        "orientation": "upright",
+        "compartment": "left TV cabinet bay, beside Xbox Series X",
+        "stand_lift_m": 0.011,
+        "installed_height_m": 0.369,
+        "cabinet_clear_height_m": 0.384
+      },
+      "license": "Original geometry"
+    },
+    "snack_stash": {
+      "file": "snack_stash.glb",
+      "catalog": "Sections/Games",
+      "mount": "cabinet",
+      "size": [
+        0.3574,
+        0.3089,
+        0.3606
+      ],
+      "elevation": 0,
+      "roles": [
+        "snack_Snackers",
+        "snack_Wrapper.Accent",
+        "snack_Wrapper.Middle",
+        "snack_Wrapper.White",
+        "snack_brownDark",
+        "snack_brownDark.001",
+        "snack_purple",
+        "snack_red",
+        "snack_white",
+        "snack_white.001"
+      ],
+      "triangles": 11146,
+      "bytes": 756268,
+      "description": "A densely packed right-hand TV-console cupboard: original Snackies package artwork, Snack Bar by accidentallyc, and candy/chocolate wrappers by Kenney. CC0 sources, generic small retail-package scale, no texture downsampling.",
+      "components": [
+        {
+          "source": "Cereal_A",
+          "min": [
+            -0.17868,
+            0.06492,
+            0.0
+          ],
+          "max": [
+            -0.00029,
+            0.14818,
+            0.3
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.9184676016736621
+        },
+        {
+          "source": "Cereal_C",
+          "min": [
+            0.00434,
+            0.11014,
+            0.0
+          ],
+          "max": [
+            0.17868,
+            0.15297,
+            0.275
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.6515957388213263
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            -0.16059,
+            0.07556,
+            0.302
+          ],
+          "max": [
+            -0.01838,
+            0.13754,
+            0.32087
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -3
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            -0.16024,
+            0.07671,
+            0.32187
+          ],
+          "max": [
+            -0.01873,
+            0.13639,
+            0.34074
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            2
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            -0.15988,
+            0.07787,
+            0.34174
+          ],
+          "max": [
+            -0.0191,
+            0.13524,
+            0.36061
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -1
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "chocolate-wrapper",
+          "min": [
+            0.02537,
+            0.06469,
+            0.277
+          ],
+          "max": [
+            0.15766,
+            0.15442,
+            0.30587
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -2
+          ],
+          "scale": 0.44452344952734285
+        },
+        {
+          "source": "chocolate-wrapper",
+          "min": [
+            0.02593,
+            0.06467,
+            0.30687
+          ],
+          "max": [
+            0.1571,
+            0.15444,
+            0.33574
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            1
+          ],
+          "scale": 0.44452344952734285
+        },
+        {
+          "source": "Chips_A",
+          "min": [
+            -0.17431,
+            -0.06376,
+            0.0
+          ],
+          "max": [
+            -0.00866,
+            0.03687,
+            0.205
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.6031675593913659
+        },
+        {
+          "source": "Chips_B",
+          "min": [
+            0.02318,
+            -0.02866,
+            0.0
+          ],
+          "max": [
+            0.14785,
+            0.03177,
+            0.205
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.5808508777329697
+        },
+        {
+          "source": "Chips_D",
+          "min": [
+            -0.1349,
+            -0.04726,
+            0.207
+          ],
+          "max": [
+            -0.04808,
+            0.02037,
+            0.339
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -3
+          ],
+          "scale": 0.5008824191169187
+        },
+        {
+          "source": "Cookies_B",
+          "min": [
+            0.00147,
+            -0.01286,
+            0.207
+          ],
+          "max": [
+            0.16955,
+            0.01596,
+            0.337
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.7916194623560394
+        },
+        {
+          "source": "Juice_A",
+          "min": [
+            0.05099,
+            0.04171,
+            0.0
+          ],
+          "max": [
+            0.12004,
+            0.1014,
+            0.12
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 1.0199319805863631
+        },
+        {
+          "source": "Cookies_E",
+          "min": [
+            -0.15084,
+            0.04931,
+            0.0
+          ],
+          "max": [
+            -0.11813,
+            0.0558,
+            0.13
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9121913351700919
+        },
+        {
+          "source": "Cookies_E",
+          "min": [
+            -0.11084,
+            0.04931,
+            0.0
+          ],
+          "max": [
+            -0.07813,
+            0.0558,
+            0.13
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9121913351700919
+        },
+        {
+          "source": "Cookies_E",
+          "min": [
+            -0.07084,
+            0.04931,
+            0.0
+          ],
+          "max": [
+            -0.03813,
+            0.0558,
+            0.13
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9121913351700919
+        },
+        {
+          "source": "Cookies_E",
+          "min": [
+            -0.03084,
+            0.04931,
+            0.0
+          ],
+          "max": [
+            0.00187,
+            0.0558,
+            0.13
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9121913351700919
+        },
+        {
+          "source": "Chips_C",
+          "min": [
+            -0.17001,
+            -0.15158,
+            0.0
+          ],
+          "max": [
+            -0.00896,
+            -0.10931,
+            0.16
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 1.0414884877666
+        },
+        {
+          "source": "Cookies_B",
+          "min": [
+            -0.00999,
+            -0.14596,
+            0.0
+          ],
+          "max": [
+            0.17102,
+            -0.11493,
+            0.14
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.852513267152658
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            0.00976,
+            -0.15329,
+            0.142
+          ],
+          "max": [
+            0.15127,
+            -0.09361,
+            0.16087
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -2
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            0.01012,
+            -0.15213,
+            0.16187
+          ],
+          "max": [
+            0.1509,
+            -0.09476,
+            0.18074
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            1
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            0.01012,
+            -0.15213,
+            0.18174
+          ],
+          "max": [
+            0.1509,
+            -0.09476,
+            0.20061
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -1
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "snack-bar",
+          "min": [
+            0.00941,
+            -0.15444,
+            0.20161
+          ],
+          "max": [
+            0.15162,
+            -0.09246,
+            0.22047
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            3
+          ],
+          "scale": 0.05870390109315545
+        },
+        {
+          "source": "Cookies_C",
+          "min": [
+            -0.17449,
+            -0.1504,
+            0.162
+          ],
+          "max": [
+            -0.00449,
+            -0.11049,
+            0.20191
+          ],
+          "rotation_degrees": [
+            0,
+            90,
+            0
+          ],
+          "scale": 0.7739068545984665
+        },
+        {
+          "source": "candy-wrapper",
+          "min": [
+            -0.14949,
+            -0.15444,
+            0.20291
+          ],
+          "max": [
+            -0.02949,
+            -0.10645,
+            0.23623
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.4103293380252396
+        },
+        {
+          "source": "candy-wrapper",
+          "min": [
+            -0.1502,
+            -0.15441,
+            0.23723
+          ],
+          "max": [
+            -0.02877,
+            -0.10649,
+            0.27055
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            -3
+          ],
+          "scale": 0.4103293380252396
+        },
+        {
+          "source": "Cookies_B",
+          "min": [
+            -0.1412,
+            -0.13931,
+            0.27155
+          ],
+          "max": [
+            -0.03777,
+            -0.12158,
+            0.35155
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "scale": 0.48715043837294736
+        },
+        {
+          "source": "Cookies_D",
+          "min": [
+            -0.14622,
+            -0.07944,
+            0.0
+          ],
+          "max": [
+            -0.12275,
+            -0.07345,
+            0.12
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9736145271375524
+        },
+        {
+          "source": "Cookies_D",
+          "min": [
+            -0.05622,
+            -0.07944,
+            0.0
+          ],
+          "max": [
+            -0.03275,
+            -0.07345,
+            0.12
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9736145271375524
+        },
+        {
+          "source": "Cookies_D",
+          "min": [
+            0.03378,
+            -0.07944,
+            0.0
+          ],
+          "max": [
+            0.05725,
+            -0.07345,
+            0.12
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9736145271375524
+        },
+        {
+          "source": "Cookies_D",
+          "min": [
+            0.12378,
+            -0.07944,
+            0.0
+          ],
+          "max": [
+            0.14725,
+            -0.07345,
+            0.12
+          ],
+          "rotation_degrees": [
+            0,
+            -90,
+            0
+          ],
+          "scale": 0.9736145271375524
+        }
+      ],
+      "layout": {
+        "compartment": "right TV-console bay",
+        "count": 30,
+        "inner_size_m": [
+          0.373,
+          0.362,
+          0.384
+        ],
+        "placement": {
+          "at": [
+            3.2594861558079717,
+            3.518446698784828
+          ],
+          "z": 0.098
+        },
+        "front_clearance_m": 0.02,
+        "generic_packages": true
+      },
+      "license": "CC0-1.0",
+      "credits": [
+        {
+          "author": "loafbrr_1",
+          "source": "https://opengameart.org/content/snackies"
+        },
+        {
+          "author": "accidentallyc",
+          "source": "https://poly.pizza/m/U13zn2LA0w"
+        },
+        {
+          "author": "Kenney",
+          "source": "https://poly.pizza/m/ZeJW3KyeTH"
+        },
+        {
+          "author": "Kenney",
+          "source": "https://poly.pizza/m/7IPEo5wlOx"
+        }
+      ],
+      "preserve_materials": true,
+      "material_quality": {
+        "original_uvs": true,
+        "original_texture_size": [
+          2048,
+          2048
+        ],
+        "vertex_colour_baking": false,
+        "source_text_meshes": "retained"
+      }
+    },
+    "nightstand_essentials": {
+      "file": "nightstand_essentials.glb",
+      "catalog": "Room/Details",
+      "mount": "cabinet",
+      "size": [
+        0.3047,
+        0.1763,
+        0.1281
+      ],
+      "elevation": 0,
+      "roles": [
+        "aiStandardSurface2.001",
+        "aiStandardSurface4.001",
+        "aiStandardSurface6.001",
+        "aiStandardSurface7.001",
+        "aiStandardSurface8.001",
+        "blinn2.001",
+        "body",
+        "bone conduction charcoal.001",
+        "eye drops blue.001",
+        "eye drops white.001",
+        "hand cream ivory.001",
+        "label ink.001",
+        "label paper.001",
+        "lambert2.001",
+        "lambert4.001",
+        "material"
+      ],
+      "triangles": 20537,
+      "bytes": 1313476,
+      "description": "Real-scale bedside toiletries, fitness band and bone-conduction headphones.",
+      "components": [
+        "hand cream bottle",
+        "face cream tube",
+        "eye drops",
+        "Mi Band 2",
+        "bone conduction headphones"
+      ],
+      "calibration": "Mi Band capsule about 40 mm long; headphones and cream tube uniformly scaled to adult size; other toiletries approximate everyday dimensions.",
+      "layout": "Grouped on the open shelf; metres in the nightstand local frame.",
+      "license": "CC-BY-4.0",
+      "credits": "Mi Band 2 by Ferran Romero bone-conduction headphones by llb and Cream tube by OlegCoder, CC BY 4.0; hand cream and eye drops original.",
+      "preserve_materials": true
     }
   }
 }

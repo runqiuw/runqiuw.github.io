@@ -20,10 +20,14 @@ import {
   DoubleSide,
   ExtrudeGeometry,
   FrontSide,
+  Frustum,
   Group,
   HemisphereLight,
+  LessDepth,
   MathUtils,
+  Matrix4,
   type Material,
+  type Intersection,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -60,11 +64,13 @@ import type { createHoops } from './room-hoops';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCoffeeSteam } from './room-coffee';
+import { addRoomMirror } from './room-mirror';
+import { roomWarmup } from './room-warmup';
 import { CLOSEUPS, COFFEE, DECOR, DOOR_OPEN, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean };
 type Manifest = {
-  assets: Record<string, { size: number[]; mount?: string; tiers?: number[]; tier_clear?: number; screen?: { aspect: number }; cover?: { aspect: number } }>;
+  assets: Record<string, { size: number[]; mount?: string; preserve_materials?: boolean; tiers?: number[]; tier_clear?: number; screen?: { aspect: number }; cover?: { aspect: number } }>;
 };
 
 const ASSETS = '/room/assets/';
@@ -116,9 +122,19 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   canvas.setAttribute('aria-hidden', 'true');
   frame.prepend(canvas);
 
+  // Start I/O and decoding before synchronous context/environment preparation.
+  MeshoptDecoder.useWorkers(Math.min(2, navigator.hardwareConcurrency || 2));
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const names = [...new Set([...PLACEMENTS.map(p => p.asset), ...Object.values(PROJECT_MODELS).map(p => p.asset)])];
+  const downloads = Promise.all([
+    fetch(ASSETS + 'manifest.json').then(r => r.json() as Promise<Manifest>),
+    Promise.all(names.map(n => loader.loadAsync(`${ASSETS}${n}.glb`).catch(() => null))),
+    Promise.race([document.fonts?.ready, new Promise(r => setTimeout(r, 1500))]),
+  ]);
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, stencil: true });
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.autoUpdate = false;
   renderer.shadowMap.type = PCFShadowMap;
   // Neutral (Khronos PBR Neutral) keeps the toy palette's hues and only rolls off the highlights.
   renderer.toneMapping = NeutralToneMapping;
@@ -133,7 +149,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   };
   const center = P(2.05, 1.85, 0.85);
 
-  let dirty = true;
+  let dirty = true, shadowDirty = true;
+  const preparation = roomWarmup(renderer, scene, cam, () => { dirty = true; });
   let active = opts.section in SHOTS ? opts.section : 'top';
   let item = document.documentElement.dataset.item ?? '';
 
@@ -181,6 +198,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // The ambilight's wash on the wall and stand behind the TV.
   const ambL = new PointLight(0xffffff, 0, 1.6, 1.5);
   scene.add(hemi, sun, sun.target, ambL);
+  const shadowLights = [sun, lampL, bedL, ...screenLs];
+  shadowLights.forEach(l => l.shadow.autoUpdate = false);
 
   // Environment light: a tiny stand-in room in the room's own colors (warm floor, lavender walls, the
   // bright window wall to the west), blurred into an environment map. It gives the soft bounce light
@@ -200,16 +219,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const envs = { light: envMap(false), dark: envMap(true) };
   pmrem.dispose();
 
-  // Canvas text uses the site fonts; wait for them briefly so the first textures aren't in a fallback.
-  const fontsReady = Promise.race([document.fonts?.ready, new Promise((r) => setTimeout(r, 1500))]);
-  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const names = [...new Set([...PLACEMENTS.map((p) => p.asset), ...Object.values(PROJECT_MODELS).map((p) => p.asset)])];
-  const [manifest, gltfs] = await Promise.all([
-    fetch(ASSETS + 'manifest.json').then((r) => r.json() as Promise<Manifest>),
-    // An asset that isn't exported yet is left out instead of failing the whole room.
-    Promise.all(names.map((n) => loader.loadAsync(`${ASSETS}${n}.glb`).catch(() => null))),
-    fontsReady,
-  ]);
+  const [manifest, gltfs] = await downloads;
   const source = Object.fromEntries(names.map((n, i) => [n, gltfs[i]?.scene]));
 
   // --- materials: one per role + color; parts without an override keep their Blender (vertex) colors
@@ -260,11 +270,13 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   };
   // Every part of an asset gets the material of its role, in `colors` where it gives one. `lamp` is
   // the placement id of a lamp: its glow switches on its own, and its head casts no shadow.
-  const dress = (g: Object3D, colors?: Partial<Record<Role, string>>, ao = true, lamp = '') =>
+  const dress = (g: Object3D, colors?: Partial<Record<Role, string>>, ao = true, lamp = '', preserveMaterials = false) =>
     g.traverse((o) => {
       if (!(o instanceof Mesh)) return;
       const role = (o.material as Material).name as Role;
-      o.material = material(role, colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, ao && o.geometry.hasAttribute('_ao'), role === 'glow' ? lamp : '');
+      o.material = preserveMaterials
+        ? (o.material as MeshStandardMaterial).clone()
+        : material(role, colors?.[role], o.geometry.hasAttribute('color'), (o.material as Material).side, ao && o.geometry.hasAttribute('_ao'), role === 'glow' ? lamp : '');
       // A lamp's own head would shade its light with a hard edge right beside it (the pinboard).
       o.castShadow = role !== 'glass' && !lamp;
       o.receiveShadow = true;
@@ -387,7 +399,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       const b = new Box3().setFromObject(g), c = b.getCenter(new Vector3()), want = P(p.at[0], p.at[1], p.z ?? 0);
       g.position.add(new Vector3(want.x - c.x, want.y - b.min.y, want.z - c.z));
     }
-    dress(g, p.colors, p.ao !== false, lampIds.has(p.id) ? p.id : '');
+    dress(g, p.colors, p.ao !== false, lampIds.has(p.id) ? p.id : '', manifest.assets[p.asset]?.preserve_materials);
     g.userData.closeup = Object.keys(CLOSEUPS).find(k => {
       const c = CLOSEUPS[k];
       return (!c.section || document.getElementById(c.section)) && (c.object === p.id || c.targets?.includes(p.id));
@@ -403,6 +415,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   }
   scene.updateMatrixWorld(true);
   for (const p of PLACEMENTS) if (p.on && placed[p.id] && placed[p.on]) placed[p.on].attach(placed[p.id]);
+  const roomMirror = placed.mirror && addRoomMirror(placed.mirror, scene, ceilingSurface);
   const coffeeSteam = createCoffeeSteam(placed[COFFEE.object], cam, opts.reduceMotion);
 
 
@@ -709,7 +722,9 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     x.shadowBlur = 22;
     x.shadowOffsetX = c.width;
     x.fillRect(34 - c.width, 34, 60, 60);
-    const mat = new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    // A slope-based offset grows with the pixel footprint when zooming out and can pull
+    // this patch through a thin phone/tablet. Keep its real depth; ties never cover a prop.
+    const mat = new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, depthFunc: LessDepth });
     const v = new Vector3();
     for (const p of PLACEMENTS) {
       const mount = manifest.assets[p.asset]?.mount;
@@ -1094,7 +1109,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
         x.drawImage(img, 0, 0);
         tex.needsUpdate = true;
         // Upload now, not the first time the wall comes into view (that hitched the turn).
-        renderer.initTexture(tex);
+        void preparation.upload(tex);
         dirty = true;
       }, () => {});
     }
@@ -1107,7 +1122,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const artShadow = (id: string, blur: number, drop: number, alpha: number) => {
     const g = placed[id], spec = PLACEMENTS.find((p) => p.id === id);
     const size = spec && manifest.assets[spec.asset]?.size;
-    if (!g || !size) return;
+    if (!g || !size || !spec?.wall) return;
     const [w, , h] = size, m = blur * 2.5;
     const { c, x, tex } = canvasTex(256, (256 * (h + 2 * m)) / (w + 2 * m));
     const k = c.width / (w + 2 * m);
@@ -1117,10 +1132,11 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     x.shadowOffsetY = drop * k;
     x.fillRect(m * k - c.width, m * k, w * k, h * k);
     const sh = new Mesh(new PlaneGeometry(w + 2 * m, h + 2 * m), new MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    sh.name = `wall-art-shadow-${id}`;
     sh.position.set(0, h / 2, -0.001);
     sh.raycast = () => {};
     g.add(sh);
-    renderer.initTexture(tex);
+    void preparation.upload(tex);
   };
   for (const id of Object.keys(PRINTS)) {
     if (FABRIC_PRINTS.includes(id)) artShadow(id, 0.03, 0.02, 0.38);
@@ -1740,10 +1756,12 @@ uniform float uStripEnd;
     target = levels();
     fading = true;
     if (opts.reduceMotion) cur = { ...target };
+    if (k === 'lamp' || k === 'bed') shadowDirty = true;
     dirty = true;
   };
   const setTheme = (t: 'light' | 'dark') => {
     theme = t;
+    shadowDirty = true;
     for (const k of Object.keys(sw) as Switch[]) sw[k] = onFor(k, t);
     for (const b of blinds) b.t = t === 'dark' ? 1 : 0.06;
     target = levels();
@@ -1847,18 +1865,25 @@ uniform float uStripEnd;
     for (; o; o = o.parent) if (!o.visible || o.userData.ghost) return false;
     return true;
   };
-  const hitAt = (e: PointerEvent) => {
+  const candidates: Mesh[] = [], blockers: Mesh[] = [];
+  type PointerPosition = Pick<PointerEvent, 'clientX' | 'clientY'>;
+  const surfaceAt = (e: PointerPosition): Intersection | undefined => {
     const r = canvas.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    scene.updateMatrixWorld(); cam.updateMatrixWorld();
     ray.setFromCamera(ndc, cam);
-    return ray.intersectObjects(scene.children, true).find((h) => shown(h.object))?.object;
+    const hit = ray.intersectObjects(candidates.filter(shown), false)[0];
+    if (!hit) return;
+    // Non-interactive surfaces still block picking through closed doors and furniture.
+    ray.far = Math.max(0, hit.distance - 1e-5);
+    const blocked = ray.intersectObjects(blockers.filter(shown), false).length > 0;
+    ray.far = Infinity;
+    if (!blocked) return hit;
   };
-  // In the desk close-up, the paper a click on a monitor stands for: the one showing, or on the
-  // terminal's list, the line under the pointer. `undefined` when the monitors weren't hit.
-  const screenPick = (e: PointerEvent): { item?: string } | undefined => {
-    hitAt(e);
-    const h = ray.intersectObjects([scrPaper.mesh, scrInfo.mesh], false)[0];
-    if (!h) return;
+  const hitAt = (e: PointerPosition) => surfaceAt(e)?.object;
+  // Reuse the same visible surface/UV; no second whole-room raycast for the monitors.
+  const screenPick = (h?: Intersection): { item?: string } | undefined => {
+    if (!h || (h.object !== scrPaper.mesh && h.object !== scrInfo.mesh)) return;
     const shownPaper = active === 'research' && item ? item : undefined;
     if (shownPaper || h.object !== scrPaper.mesh || !h.uv) return { item: shownPaper };
     const line = Math.floor(((h.uv.y * 640) / aspectOf(SCREENS.paper, 'screen') - 92) / 46);
@@ -1949,9 +1974,10 @@ uniform float uStripEnd;
     down = null;
     if (!full || flying || (focused && focused !== 'desk') || moved >= 6) return;
     // In the desk close-up, a click on a monitor leaves the room for that paper on the page.
-    const onScreen = focused === 'desk' ? screenPick(e) : undefined;
+    const surface = surfaceAt(e);
+    const onScreen = focused === 'desk' ? screenPick(surface) : undefined;
     if (onScreen) return visit('research', onScreen.item);
-    const hit = hitAt(e) ?? null;
+    const hit = surface?.object ?? null;
     const o = interactiveOf(hit);
     // First click explores the desk; once inside, its actual switches take precedence.
     if (!focused && o?.userData.closeup === 'desk') return pick(o);
@@ -1971,26 +1997,34 @@ uniform float uStripEnd;
     }
     if (!focused && o) pick(o, o.userData.section);
   });
+  let pendingHover: PointerPosition | null = null;
   canvas.addEventListener('pointermove', (e) => {
     if (spin && e.pointerId === spin.id) {
       const now = performance.now(), d = (e.clientX - spin.x) * 0.012;
       chairTop!.rotation.y += d;
+      shadowDirty = true;
       spin.v = d / Math.max(0.008, (now - spin.t) / 1000);
       Object.assign(spin, { x: e.clientX, t: now });
       dirty = true;
       return;
     }
+    if (full && !down && !flying && (!focused || focused === 'desk')) pendingHover = { clientX: e.clientX, clientY: e.clientY };
+  });
+  const updateHover = () => {
+    const e = pendingHover;
+    pendingHover = null;
+    if (!e) return;
     if (!full || down || flying || (focused && focused !== 'desk')) return;
-    const hit = hitAt(e) ?? null;
+    const surface = surfaceAt(e), hit = surface?.object ?? null;
     if (focused) {
-      if (focused === 'desk') canvas.style.cursor = switchOf(hit) || blindOf(hit) || openerOf(hit) || screenPick(e) ? 'pointer' : '';
+      if (focused === 'desk') canvas.style.cursor = switchOf(hit) || blindOf(hit) || openerOf(hit) || screenPick(surface) ? 'pointer' : '';
       return;
     }
     const o = interactiveOf(hit);
     hover(o);
     canvas.style.cursor = o || blindOf(hit) || switchOf(hit) || openerOf(hit) ? 'pointer' : chairTop && isIn(hit, chairTop) ? 'ew-resize' : 'grab';
-  });
-  canvas.addEventListener('pointerleave', () => hover());
+  };
+  canvas.addEventListener('pointerleave', () => { pendingHover = null; hover(); });
 
   // --- toys on the bed: the pillow and the school plushes (DECOR.toys). In the room they can be
   // picked up, carried over the bed and thrown; cannon-es (room-physics.ts, loaded the first time the
@@ -2450,49 +2484,6 @@ uniform float uStripEnd;
     return moving;
   };
 
-  // Get the materials of things not on screen ready before they're first seen (the walls the
-  // overview cuts away, the poster wall, the ceiling and the back of the room only drawn inside it):
-  // done on first sight, it made the first turn toward the poster wall and opening the full-screen
-  // room hitch. Shortly after mount they are drawn once, unhidden and unculled (compiling alone
-  // isn't enough: the GPU finishes a program and its pipeline on the first real draw), a couple of
-  // materials per idle moment so no single step blocks for long.
-  const offscreen = () => {
-    const byMat = new Map<Material, Mesh[]>();
-    scene.traverse((o) => {
-      if (!(o instanceof Mesh)) return;
-      let shown = true;
-      for (let p: Object3D | null = o; p; p = p.parent) if (!p.visible) shown = false;
-      if (shown && !o.userData.ghost) return;
-      const m = (o.userData.ghost ?? o.material) as Material;
-      if (Array.isArray(m)) return;
-      byMat.set(m, [...(byMat.get(m) ?? []), o]);
-    });
-    return [...byMat.values()];
-  };
-  const warmBatch = (meshes: Mesh[]) => {
-    const hidden: Object3D[] = [], ghosted: [Mesh, Material][] = [];
-    for (const o of meshes) {
-      for (let p: Object3D | null = o; p; p = p.parent) if (!p.visible) hidden.push(p), (p.visible = true);
-      if (o.userData.ghost) ghosted.push([o, o.material as Material]), (o.material = o.userData.ghost);
-      o.frustumCulled = false;
-    }
-    renderer.render(scene, cam);
-    for (const o of meshes) o.frustumCulled = true;
-    for (const [o, m] of ghosted) o.material = m;
-    for (const o of hidden) o.visible = false;
-    dirty = true;
-  };
-  const idle = (f: () => void) => (window.requestIdleCallback ?? ((g: () => void) => setTimeout(g, 200)))(f);
-  const warmUp = () => {
-    const groups = offscreen();
-    const next = () => {
-      const batch = groups.splice(0, 2).flat();
-      if (!batch.length) return;
-      warmBatch(batch);
-      idle(next);
-    };
-    idle(next);
-  };
   // Resizing clears the canvas, and the ResizeObserver runs after this frame's draw, so redraw
   // right away; otherwise the room would vanish while the frame morphs in and out of full screen.
   // While it morphs, only the camera follows the frame's shape (CSS stretches the canvas):
@@ -2550,7 +2541,7 @@ uniform float uStripEnd;
   const v = new Vector3(), vp = new Vector2();
   // Keep drawing for ~2 s after mount: frames drawn while the canvas is still fading in from
   // opacity 0 may never be presented, which would leave the panel blank until the next move.
-  let warmup = 120;
+  let warmUntil = 0;
   const cameraInsideRoom = () => {
     if (!full || cam.position.y <= 0 || cam.position.y >= H) return false;
     const x = cam.position.x, y = -cam.position.z, outline = SHELL.outline;
@@ -2560,6 +2551,20 @@ uniform float uStripEnd;
       if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
     }
     return inside;
+  };
+  const viewFrustum = new Frustum(), reflectedFrustum = new Frustum(), projection = new Matrix4();
+  const clockRegion = clockObj ? new Box3().setFromObject(clockObj).expandByScalar(.7) : new Box3();
+  const ambRegion = new Box3().setFromCenterAndSize(ambL.position, new Vector3(ambL.distance * 2, ambL.distance * 2, ambL.distance * 2));
+  const animatedLightsVisible = () => {
+    cam.updateMatrixWorld();
+    viewFrustum.setFromProjectionMatrix(projection.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const mirrored = roomMirror?.visible && shown(roomMirror) && viewFrustum.intersectsObject(roomMirror);
+    if (mirrored) {
+      const c = roomMirror.getReflectionCamera(cam);
+      reflectedFrustum.setFromProjectionMatrix(projection.multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse));
+    }
+    const sees = (box: Box3) => viewFrustum.intersectsBox(box) || (mirrored && reflectedFrustum.intersectsBox(box));
+    return (theme === 'dark' && cur.clock > .02 && sees(clockRegion)) || (cur.amb > .002 && sees(ambRegion));
   };
   // Draw one frame: lights, dollhouse walls, the scene, and the label positions.
   const draw = () => {
@@ -2593,7 +2598,15 @@ uniform float uStripEnd;
     wallSets.forEach((w, i) => w.objs.forEach((o) => ghost(o, !wallOn[i])));
     posts.forEach((p) => ghost(p.m, !(wallOn[p.a] && wallOn[p.b])));
     onWall.forEach((w) => ghost(w.o, !interior && vp.dot(w.n) <= -0.4));
+    // Keep light/shadow counts stable. Only depth/projection changes invalidate maps.
+    let updateShadows = false;
+    for (const l of shadowLights) {
+      l.shadow.needsUpdate = l.intensity > 0 && (shadowDirty || !l.shadow.map);
+      updateShadows ||= l.shadow.needsUpdate;
+    }
+    renderer.shadowMap.needsUpdate = updateShadows;
     renderer.render(scene, cam);
+    shadowDirty = false;
     if (full) {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       labels.querySelectorAll<HTMLElement>('[data-go]').forEach((p) => {
@@ -2641,12 +2654,12 @@ uniform float uStripEnd;
     // Not while disabled: right after the fly to a section ends, `full` is still set for this
     // frame, and an update would turn the camera to the orbit target for one frame.
     if (full && controls.enabled && !tween && controls.update()) dirty = true;
-    if (stepPops()) dirty = true;
-    if (stepBlinds()) dirty = true;
+    if (stepPops()) dirty = shadowDirty = true;
+    if (stepBlinds()) dirty = shadowDirty = true;
     const dt = Math.min(0.033, (now - (lastNow || now)) / 1000);
-    if (stepSprings(dt)) dirty = true;
-    if (stepChair(dt)) dirty = true;
-    if (stepToys(dt)) dirty = true;
+    if (stepSprings(dt)) dirty = shadowDirty = true;
+    if (stepChair(dt)) dirty = shadowDirty = true;
+    if (stepToys(dt)) dirty = shadowDirty = true;
     // The plant and the tapestry settle in real time, even when frames come slowly (software
     // rendering): their springs advance by the time that passed, in small steps.
     const real = Math.min(1, (now - (lastNow || now)) / 1000);
@@ -2654,13 +2667,14 @@ uniform float uStripEnd;
       morphClock = null;
       resize();
     }
-    if (stepOpeners(real)) dirty = true;
+    if (stepOpeners(real)) dirty = shadowDirty = true;
     for (let left = real; left > 1e-6; left -= 1 / 60) {
       const h = Math.min(left, 1 / 60);
-      if (stepSway(h)) dirty = true;
-      if (stepRipple(h)) dirty = true;
+      if (stepSway(h)) dirty = shadowDirty = true;
+      if (stepRipple(h)) dirty = shadowDirty = true;
     }
     if (stepCards(dt)) dirty = true;
+    if (pendingHover) updateHover();
     if (hoops?.step(dt)) dirty = true;
     if (coffeeSteam.step(now, !focused || focused === 'desk', frame.clientHeight)) dirty = true;
     lastNow = now;
@@ -2671,7 +2685,7 @@ uniform float uStripEnd;
       lastTick = sec;
       dirty = true;
     }
-    if ((cur.amb > 0.002 && !opts.reduceMotion) || (cur.clock > 0.02 && theme === 'dark' && !opts.reduceMotion)) {
+    if (!opts.reduceMotion && animatedLightsVisible()) {
       if (now - lastAmbient > 33) {
         lastAmbient = now;
         dirty = true;
@@ -2683,13 +2697,33 @@ uniform float uStripEnd;
       lastVideo = now;
       if ([...videos].some((vid) => !vid.paused && typeof vid.requestVideoFrameCallback !== 'function')) dirty = true;
     }
-    if (warmup > 0) {
-      warmup--;
-      dirty = true;
-    }
+    if (now < warmUntil) dirty = true;
     if (dirty) draw();
   };
+  const warmMeshes: Mesh[] = [];
+  scene.traverse(o => {
+    if (!(o instanceof Mesh)) return;
+    warmMeshes.push(o);
+    if (Object.hasOwn(o, 'raycast')) return;
+    // Physics toys have no section/close-up, but must remain pickable after leaving the bed hierarchy.
+    const clickable = interactiveOf(o) || switchOf(o) || blindOf(o) || openerOf(o) || toyAt(o) >= 0 || (chairTop && isIn(o, chairTop));
+    (clickable ? candidates : blockers).push(o);
+  });
+  if (roomMirror) {
+    const t = roomMirror.getRenderTarget(), ratio = renderer.getPixelRatio();
+    t.setSize(Math.min(2048, Math.floor(innerWidth * ratio)), Math.min(2048, Math.floor((innerHeight - (document.querySelector('.nav')?.clientHeight ?? 0)) * ratio)));
+    void preparation.enqueue(() => renderer.initRenderTarget(t));
+  }
+  // Prepare visible AND hidden canvas variants before the live canvas fades in.
+  await preparation.prepare(warmMeshes, null, shadowLights);
+  // The page remains usable while preparing; catch theme/scroll changes made during loading.
+  const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+  if (theme !== currentTheme) setTheme(currentTheme);
+  const section = document.documentElement.dataset.section;
+  if (section && shots[section]) { active = section; jump(shots[section]); }
+  item = document.documentElement.dataset.item ?? '';
   ready = true;
+  warmUntil = performance.now() + 1800;
   requestAnimationFrame(loop);
 
   updateScreens();
@@ -2699,6 +2733,14 @@ uniform float uStripEnd;
     updateScreens();
   });
   window.addEventListener('themechange', (e) => setTheme((e as CustomEvent<'light' | 'dark'>).detail));
-  setTimeout(warmUp, 1500);
+  if (roomMirror) setTimeout(() => {
+    const target = roomMirror.getRenderTarget();
+    void preparation.prepare(warmMeshes.filter(o => o !== roomMirror), target).then(() => {
+      roomMirror.visible = true;
+      dirty = true;
+      window.dispatchEvent(new Event('roomready'));
+    });
+  }, 1500);
+  else window.dispatchEvent(new Event('roomready'));
   return { canvas, enterFull, exitFull, focus, unfocus, visit };
 }

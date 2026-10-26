@@ -121,7 +121,12 @@ try {
     courtBox = placedBox("court");
   const bedBox = placedBox("bed");
   bedBox.max.y = manifest.assets.bed_single.mattress_top;
-  assert(!PLACEMENTS.some((p) => p.id === "cart"), "Cart is still placed");
+  if (PLACEMENTS.some((p) => p.id === "cart")) {
+    const cartBox = placedBox("cart");
+    assert(!cartBox.intersectsBox(courtBox), "Cart overlaps the court");
+    assert(!cartBox.intersectsBox(bedBox), "Cart overlaps the bed");
+    assert(HOOPS.obstacles.includes("cart"), "Cart is missing its hoops collider");
+  }
   assert(
     -binBox.max.z > 0 && -binBox.max.z < 0.02,
     "Gap behind the bin can swallow a projectile",

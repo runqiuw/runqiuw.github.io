@@ -118,7 +118,13 @@ export const PLACEMENTS: Placement[] = [
   { id: 'tissues', asset: 'tissue_pack', at: [0.79, 3.16], z: 0.74, yaw: 4 },
   { id: 'tablet', asset: 'tablet', at: [2.005, 3.2], z: 0.74, yaw: -6, colors: { screen: '#080b10' } },
   { id: 'coffee', asset: 'coffee_mug', at: [1.05, 3.18], z: 0.74 },
-  { id: 'chair', asset: 'chair', at: [1.506, 2.7], yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
+  // Centred on the desk, with its rear edge before the desk feet; all chair wheels stay on it.
+  { id: 'officeRug', asset: 'office_rug', at: [1.42, 2.36], bounce: false },
+  { id: 'chair', asset: 'chair', at: [1.506, 2.7], z: 0.004, yaw: 180, colors: { fabric: '#ff6b5e', frame: NAVY } },
+  // Existing desk hook saddles: x = 1.42 ± 0.75, plan y = 3.354 - 0.014, top z ≈ 0.6174.
+  // The bag tab and the headphone arch sit on those hooks; the props hang below the tabletop.
+  { id: 'deskBackpack', asset: 'backpack_small', at: [0.641, 3.2898], z: 0.2963, yaw: -30, bounce: false },
+  { id: 'headphones', asset: 'headphones_black', at: [2.17, 3.34], z: 0.4288, bounce: false },
   // Fractal Design Era ITX on the desk's left end, front toward the room, rear ~3.8 cm off the wall.
   { id: 'pc', asset: 'pc_era', at: [0.745, 3.5], z: 0.74 },
   // Nixie clock (Madison time) on the back-right corner, clear of the right monitor.
@@ -128,10 +134,17 @@ export const PLACEMENTS: Placement[] = [
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
   { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
   { id: 'tvGamepad', asset: 'xbox_controller', at: [3.15, 3.365], z: 0.5, yaw: 10, section: 'games' },
-  // On the floor of the stand's open middle cubby (its top is at 0.103 m).
-  { id: 'gameA', asset: 'gamebox', at: [2.76, 3.52], z: 0.104, section: 'games' },
-  { id: 'gameB', asset: 'gamebox', at: [2.86, 3.52], z: 0.104, section: 'games' },
-  { id: 'gameC', asset: 'gamebox', at: [2.96, 3.52], z: 0.104, section: 'games' },
+  { id: 'tvRemote', asset: 'tv_remote', at: [2.47, 3.38], z: 0.5, yaw: 12, section: 'games' },
+  // Left bay: 373 × 362 × 384 mm clear. Both consoles stand at 1:1, Xbox left / PS5 Slim right.
+  // The Slim's 358 mm body + 11 mm stand leave 15 mm overhead; its 155 mm base clears the Xbox.
+  { id: 'xbox', asset: 'xbox_series_x', at: [2.3685, 3.48], z: 0.098, bounce: false, section: 'games' },
+  { id: 'ps5', asset: 'ps5_slim', at: [2.542, 3.50], z: 0.0981, bounce: false, section: 'games' },
+  // Textured snack stash inside the right bay, behind its opening door.
+  { id: 'snacks', asset: 'snack_stash', at: [3.259486, 3.518447], z: 0.098, on: 'tvstand', bounce: false },
+  // Featured covers near the front; the two rows of spine-out cases sit behind them.
+  { id: 'gameA', asset: 'gamebox', at: [2.76, 3.335], z: 0.104, section: 'games' },
+  { id: 'gameB', asset: 'gamebox', at: [2.86, 3.335], z: 0.104, section: 'games' },
+  { id: 'gameC', asset: 'gamebox', at: [2.96, 3.335], z: 0.104, section: 'games' },
   // Rug instead of a beanbag: marks the game corner without blocking the closet door (it swings over it).
   { id: 'rug', bounce: false, asset: 'rug', at: [2.78, 2.6], section: 'games' },
 
@@ -142,6 +155,9 @@ export const PLACEMENTS: Placement[] = [
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
   // Bedding: a blue-grey fitted sheet and pillow (fabric).
   { id: 'bed', asset: 'bed_single', at: [1.044, 0.553], yaw: 90, colors: { frame: BLUE, wood: '#ff9a72', fabric: '#9aa5c8' } },
+  // On the open long side near the foot (+X), facing the room and leaning back toward the bed.
+  { id: 'backpack', asset: 'backpack', at: [1.79, 1.228], yaw: 180, bounce: false },
+  { id: 'cart', asset: 'cart', at: [1.35, 1.30], bounce: false },
   // Bed-side south wall: loose gallery cluster, well clear of the hoop at x = 3 m.
   // All widths/heights are built into the Blender assets, in real metres.
   { id: 'bedTapestry', asset: 'wall_tapestry', at: [1.13, 0.005], z: 1.74, yaw: 180, wall: 'S', bounce: false },
@@ -151,17 +167,20 @@ export const PLACEMENTS: Placement[] = [
   { id: 'posterLuo', asset: 'poster_30x30', at: [0.82, 0.003], z: 1.15, yaw: 180, tilt: 1, wall: 'S', bounce: false },
   { id: 'posterSun', asset: 'poster_30x30', at: [0.40, 0.003], z: 1.37, yaw: 180, tilt: -1.8, wall: 'S', bounce: false },
   { id: 'posterLipa', asset: 'poster_24x24', at: [0.265, 0.003], z: 1.96, yaw: 180, tilt: 1.5, wall: 'S', bounce: false },
-  { id: 'posterCampus', asset: 'poster_a3', at: [1.78, 0.003], z: 1.01, yaw: 180, tilt: -1.2, wall: 'S', bounce: false },
+  { id: 'posterCampus', asset: 'poster_a3', at: [1.78, 0.003], z: 0.69, yaw: 180, tilt: -1.2, scale: 2, wall: 'S', bounce: false },
   // School plushes lying on the bed below the pillow, tops toward the head (toys: physics in the room).
   { id: 'plushUmich', asset: 'plush_umich', at: [0.86, 0.3], z: 0.63, yaw: 98, lie: true },
   { id: 'plushUw', asset: 'plush_uw', at: [0.9, 0.8], z: 0.63, yaw: 84, lie: true },
   { id: 'plushSjtu', asset: 'plush_sjtu', at: [1.3, 0.55], z: 0.63, yaw: 95, lie: true },
   { id: 'nightstand', asset: 'nightstand', at: [0.188, 1.315], yaw: 90, colors: { frame: '#1fbf93', wood: '#1fbf93' } },
+  { id: 'nightstandEssentials', asset: 'nightstand_essentials', at: [0.188, 1.315], z: 0.548, yaw: 90, bounce: false },
   // Floor plant against the left wall between the two windows; its leaves sway when the view turns.
   { id: 'plant', asset: 'plant', at: [0.3, 1.81], yaw: 90 },
   { id: 'bedLamp', asset: 'desklamp', at: [0.2, 1.315], z: 0.7188, yaw: -70, colors: { frame: '#ffc93c', metal: '#ffc93c' } },
+  { id: 'bedPhone', asset: 'white_phone', at: [0.12, 1.205], z: 0.7189, yaw: 90, bounce: false },
 
-  // The cart asset stays in the library; its placement is hidden to clear the court.
+  // Leaning full-length mirror beside the entry door, clear of the court and closet return.
+  { id: 'mirror', asset: 'mirror', at: [3.98, 1.38], yaw: -90, wall: 'E', bounce: false, colors: { frame: NAVY } },
   // Trash-can basketball: a bin against the front wall past the foot of the bed, a backboard taped
   // on the wall above it (drawn in room.ts). Clicking it opens the `hoops` close-up.
   { id: 'court', asset: 'court', at: [3, 0.85], bounce: false },
@@ -200,7 +219,7 @@ export interface CloseUp {
 export const CLOSEUPS: Record<string, CloseUp> = {
   desk: {
     object: 'desk', section: 'research',
-    targets: ['monitorL', 'monitorR', 'barL', 'barR', 'deskmat', 'keyboard', 'mouse', 'speaker', 'charger', 'tissues', 'tablet', 'coffee', 'pc', 'clock'],
+    targets: ['monitorL', 'monitorR', 'barL', 'barR', 'deskmat', 'keyboard', 'mouse', 'speaker', 'charger', 'tissues', 'tablet', 'coffee', 'pc', 'clock', 'deskBackpack', 'headphones'],
     shot: { center: [1.42, 3.35, 1.0], r: 0.94, dir: [0, -1, 0.6], far: 3.0, fitWidth: true },
   },
   board: { object: 'pinboard', section: 'playground', shot: { frame: ['pinboard'], dir: [0, -1, 0.04], pad: 0.95 } },
@@ -218,7 +237,7 @@ export interface HoopsSpot {
 }
 export const HOOPS = {
   bin: 'bin', threeRadius: 1.32, resultMs: 1400, cameraMs: 650, pullSpan: 0.22,
-  obstacles: ['chair', 'desk', 'tvstand', 'tv', 'shelf', 'nightstand', 'plant'],
+  obstacles: ['chair', 'desk', 'deskBackpack', 'headphones', 'tvstand', 'tv', 'shelf', 'nightstand', 'plant', 'backpack', 'cart', 'mirror'],
   // Offsets from the rim in plan coordinates, plus release height. Cycle through a shuffled deck
   // so baseline, close shots and the far side of the room all get played, without repeats.
   spots: [

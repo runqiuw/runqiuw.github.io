@@ -82,10 +82,16 @@ try {
       if (name.toLowerCase() === 'video') window.__roomCheck.videos.push(element);
       return element;
     };
+    // Track draw binding in JS: getParameter on every clear stalls the GPU under test.
+    const bindings = new WeakMap(), bind = WebGL2RenderingContext.prototype.bindFramebuffer;
+    WebGL2RenderingContext.prototype.bindFramebuffer = function(target, framebuffer) {
+      if (target === this.FRAMEBUFFER || target === this.DRAW_FRAMEBUFFER) bindings.set(this, framebuffer);
+      return bind.call(this, target, framebuffer);
+    };
     const clear = WebGL2RenderingContext.prototype.clear;
     WebGL2RenderingContext.prototype.clear = function(...args) {
       // Count frames, not shadow-map passes: only clears of the canvas itself (no framebuffer bound).
-      if (this.canvas.classList.contains('room-canvas') && !this.getParameter(this.FRAMEBUFFER_BINDING)) window.__roomCheck.clears++;
+      if (this.canvas.classList.contains('room-canvas') && !bindings.get(this)) window.__roomCheck.clears++;
       return clear.apply(this, args);
     };
     ${process.env.VIDEO_FALLBACK ? "delete HTMLVideoElement.prototype.requestVideoFrameCallback; delete HTMLVideoElement.prototype.cancelVideoFrameCallback;" : ''}
@@ -106,8 +112,8 @@ try {
   const paused = () => until('window.__roomCheck.videos.every(v => v.paused)', 'paused room videos');
   const playing = () => until('window.__roomCheck.videos.some(v => !v.paused && v.readyState >= 2)', 'playing panel video');
   const settle = async () => {
-    // Software rendering may take much longer than two seconds to finish the room's initial
-    // 120-frame warmup. Wait for genuine idle (at most the clock's 1 Hz tick), but fail if redraws never stop.
+    // Wait for camera/physics/preparation to settle to the clock's 1 Hz tick,
+    // but fail if redraws never stop (including under software rendering).
     let quiet = 0;
     const deadline = Date.now() + 45000;
     while (Date.now() < deadline) {

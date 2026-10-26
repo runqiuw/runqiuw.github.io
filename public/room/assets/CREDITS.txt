@@ -1,4 +1,26 @@
+Snack stash — CC0 1.0 / Public Domain sources
+https://creativecommons.org/publicdomain/zero/1.0/
+Snackies — loafbrr_1: https://opengameart.org/content/snackies
+Snack Bar — accidentallyc: https://poly.pizza/m/U13zn2LA0w
+Candy Bar Wrapper — Kenney: https://poly.pizza/m/ZeJW3KyeTH
+Chocolate Wrapper — Kenney: https://poly.pizza/m/7IPEo5wlOx
+Website asset: snack_stash.glb. Thirty packages arranged inside the right TV-console
+bay at generic small retail-package dimensions. Original UVs, 2048 x 2048 Snackies
+artwork, coloured wrapper materials and Snack Bar text meshes retained. Artwork
+encoded as WebP quality 95 without resizing; geometry meshopt-compressed. Packaging
+uses opaque surfaces and matte roughness. No endorsement implied.
+
 3D model credits
+
+Backpack — MadeByYeshe, Creative Commons Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+Original: https://sketchfab.com/3d-models/backpack-dd087558c1a24a9ea82d50d764ad4b78
+Website asset: backpack.glb. Original UVs, mesh normals, base-colour, normal,
+metallic-roughness and hardware specular maps retained. Source image resolution is
+unchanged; textures encoded with WebP quality 95 and geometry meshopt-compressed.
+Loose strap ends rest on the floor, with a 10-degree backward lean. Case height is
+set to a generic 430 mm commuter size; no manufacturer dimensions were supplied by
+the author. No endorsement implied.
 
 Meta Quest 3 — Elin, Creative Commons Attribution 4.0
 https://creativecommons.org/licenses/by/4.0/
@@ -74,6 +96,13 @@ Simplified, rested face up, calibrated to 153 mm width, and adapted to the room'
 material roles. Used on the desk and TV cabinet. No endorsement implied.
 
 The white upright wireless charging stand, soft tissue packet and black tablet are original geometry.
+The casual mini daypack, office chair rug, TV remote, white bedside phone, black over-ear headphones and
+Xbox Series X representation are original geometry made for this room.
+White bedside phone camera styling references vivo X200 Ultra (simplified original geometry):
+https://m.vivo.com.cn/vivo/x200ultra
+Series X body: 151 x 151 x 301 mm, from the manufacturer's specifications:
+https://www.xbox.com/en-gb/consoles/xbox-series-x
+No endorsement implied.
 The phone and tablet have inactive dark screens.
 The phone geometry is adapted from DatSketch's CC BY model credited above.
 
@@ -84,3 +113,21 @@ by the site author. Image rights remain with their respective owners. Resized fo
 textures; neutral paper margins preserve the complete artwork where aspect ratios differ.
 The thin paper, pins, draped textile and sewn hems are original geometry.
 
+
+PS5 Slim disc console and vertical stand: original simplified geometry made for this room.
+Body envelope: 96 x 216 x 358 mm; vertical stand: 155 x 155 x 11 mm.
+Styling details are approximate; manufacturer dimension references:
+https://blog.playstation.com/2023/10/10/new-look-for-ps5-console-this-holiday-season/
+https://www.playstation.com/content/dam/global_pdc/en/corporate/support/manuals/accessories/ps5-accessories/vertical-stand-cfi-zvs1/cfi-zvs1-b30/CFI-ZVS1X-B30_Instruction_Manial_Web$en.pdf
+No endorsement implied.
+
+Mi Band 2 by Ferran Romero — CC BY 4.0
+https://sketchfab.com/3d-models/xiaomi-mi-band-2-ef0c6eac77fb4739b9741b1fa305381e
+Adapted: one band retained, scaled to real size and placed in the bedside shelf.
+Hand cream and eye drops: original models.
+Cream tube by OlegCoder — CC BY 4.0
+https://sketchfab.com/3d-models/cream-tube-4facf21bafce47039e74877732fb41c6
+Adapted: uniformly scaled and positioned; original UVs and 1024-pixel packaging textures preserved.
+Bone Conduction Headphone by llb — CC BY 4.0
+https://sketchfab.com/3d-models/bone-conduction-headphone-a0f0cd9a42cc48d5a0e5c469755969e2
+Adapted: uniformly scaled to adult size, posed on the shelf and recoloured charcoal.

@@ -2,7 +2,7 @@
 // visitor is, my avatar in a pin over Madison, and a dotted great-circle line between them. Loaded
 // on demand by Pinboard.astro. Tiles come from OpenFreeMap (free, no key). When the animation ends
 // it hands a still of the map (pins included) to `onStill`, which the room puts on its pinboard.
-import { LngLatBounds, Map, Marker, setWorkerUrl, type GeoJSONSource, type LngLatLike } from 'maplibre-gl';
+import { LngLatBounds, Map as MapLibreMap, Marker, setWorkerUrl, type GeoJSONSource, type LngLatLike } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -38,18 +38,20 @@ const pinEl = (cls: string, avatar?: string) => {
   return el;
 };
 
-export function mountDistanceMap(o: {
+type MapOptions = {
   el: HTMLElement;
   home: LngLat;
   visitor?: LngLat;
   avatar: string;
   reduceMotion: boolean;
   onStill: (url: string) => void;
-}) {
+};
+
+function renderDistanceMap(o: MapOptions & { onSnapshot: (page: string, room: string, credits: HTMLElement | null) => void }) {
   const theme = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
   const path = o.visitor ? arc(o.visitor, o.home) : [o.home];
   const home = path[path.length - 1];
-  const map = new Map({
+  const map = new MapLibreMap({
     container: o.el,
     style: STYLE[theme()],
     center: (o.visitor ?? o.home) as LngLatLike,
@@ -59,6 +61,11 @@ export function mountDistanceMap(o: {
     canvasContextAttributes: { preserveDrawingBuffer: true },
   });
 
+  let animation = 0, removed = false;
+  const dispose = () => {
+    if (removed) return;
+    removed = true; cancelAnimationFrame(animation); map.remove();
+  };
   let shown = o.reduceMotion ? path.length : 1;
   const line = () => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: path.slice(0, Math.max(2, shown)) } });
   map.on('style.load', () => {
@@ -111,7 +118,10 @@ export function mountDistanceMap(o: {
     const out = document.createElement('canvas');
     [out.width, out.height] = [cw, c.height];
     out.getContext('2d')!.drawImage(c, sx, 0, cw, c.height, 0, 0, cw, c.height);
-    o.onStill(out.toDataURL('image/jpeg', 0.85));
+    const page = c.toDataURL('image/png'), room = out.toDataURL('image/jpeg', .85);
+    const credits = map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')?.cloneNode(true) as HTMLElement | null;
+    dispose();
+    o.onSnapshot(page, room, credits);
   };
 
   const finish = () => {
@@ -140,16 +150,58 @@ export function mountDistanceMap(o: {
         const t = Math.min(1, (now - t0) / 1100);
         shown = Math.ceil(path.length * (1 - (1 - t) ** 3));
         (map.getSource('trip') as GeoJSONSource | undefined)?.setData(line());
-        if (t < 1) requestAnimationFrame(step);
+        if (t < 1) animation = requestAnimationFrame(step);
         else finish();
       };
-      requestAnimationFrame(step);
+      animation = requestAnimationFrame(step);
     });
   });
 
-  // The page's theme switch swaps the map style (the line comes back on `style.load`).
-  window.addEventListener('themechange', () => {
-    map.setStyle(STYLE[theme()], { diff: false });
-    map.once('idle', still);
-  });
+  return dispose;
+}
+
+/** Keep the final page/board images, release WebGL, and regenerate only on theme/size changes. */
+export function mountDistanceMap(o: MapOptions) {
+  const cache = new Map<string, { page: string; room: string; credits: HTMLElement | null }>();
+  let dispose = () => {}, timer = 0, generation = 0, last = '', first = true;
+  const display = (snapshot: { page: string; room: string; credits: HTMLElement | null }) => {
+    const image = new Image(); image.src = snapshot.page; image.alt = '';
+    image.className = 'map-still'; image.style.cssText = 'display:block;width:100%;height:100%;object-fit:cover';
+    o.el.replaceChildren(image);
+    if (snapshot.credits) {
+      const credits = snapshot.credits.cloneNode(true) as HTMLElement;
+      credits.style.cssText = 'position:absolute;right:0;bottom:0;padding:2px 4px;background:#ffffffd9;color:#333;font:10px sans-serif';
+      o.el.append(credits);
+    }
+    o.onStill(snapshot.room);
+  };
+  const refresh = () => {
+    clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      const width = o.el.clientWidth, height = o.el.clientHeight;
+      if (!width || !height) return;
+      const key = [document.documentElement.dataset.theme, width, height, devicePixelRatio].join(':');
+      if (key === last) return;
+      last = key; generation++; const current = generation;
+      dispose();
+      const snapshot = cache.get(key);
+      if (snapshot) { display(snapshot); return; }
+      o.el.replaceChildren();
+      dispose = renderDistanceMap({ ...o, reduceMotion: o.reduceMotion || !first,
+        onSnapshot: (page, room, credits) => {
+          if (current !== generation) return;
+          // Retain at most the two theme snapshots; old window sizes don't accumulate.
+          if (cache.size >= 2) cache.delete(cache.keys().next().value!);
+          const snapshot = { page, room, credits }; cache.set(key, snapshot); display(snapshot);
+        },
+      });
+      first = false;
+    }, 150);
+  };
+  const observer = new ResizeObserver(refresh);
+  observer.observe(o.el);
+  window.addEventListener('themechange', refresh);
+  window.addEventListener('resize', refresh);
+  refresh();
+  return () => { generation++; clearTimeout(timer); dispose(); observer.disconnect(); window.removeEventListener('themechange', refresh); window.removeEventListener('resize', refresh); };
 }

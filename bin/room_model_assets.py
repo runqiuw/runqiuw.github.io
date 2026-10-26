@@ -37,7 +37,7 @@ for asset_name in args.assets:
     scene.collection.children.link(coll)
     coll["catalog"] = coll.get("catalog", "Sections/Projects")
     coll["mount"] = coll.get("mount", "shelf")
-    catalog_source = bpy.data.collections.get("asset_keyboard" if coll["mount"] == "desk" else "asset_shelf")
+    catalog_source = bpy.data.collections.get({"desk": "asset_keyboard", "cabinet": "asset_tvstand"}.get(coll["mount"], "asset_shelf"))
     if catalog_source and catalog_source.asset_data:
         coll.asset_data.catalog_id = catalog_source.asset_data.catalog_id
 
@@ -53,6 +53,8 @@ for asset_name in args.assets:
     for obj in coll.objects:
         obj.select_set(True)
         for i, mat in enumerate(obj.data.materials):
+            if coll.get("preserve_materials"):
+                continue
             role = re.sub(r"\.\d{3}$", "", mat.name)
             canonical = bpy.data.materials.get(role)
             if canonical:
@@ -65,7 +67,7 @@ for asset_name in args.assets:
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     obj.data.validate()
     # Clay miniatures use Color rather than bitmap maps. Keep UVs only for page-driven planes.
-    if not any(m.name in {"screen", "cover", "board", "print"} for m in obj.data.materials):
+    if not coll.get("preserve_materials") and not any(m.name in {"screen", "cover", "board", "print"} for m in obj.data.materials):
         for uv in list(obj.data.uv_layers):
             obj.data.uv_layers.remove(uv)
     bpy.context.view_layer.update()
@@ -89,7 +91,7 @@ for asset_name in args.assets:
         "triangles": sum(len(p.vertices) - 2 for p in obj.data.polygons),
         "bytes": file.stat().st_size, "description": coll.asset_data.description,
     }
-    for key in ("components", "calibration", "layout", "license", "credits"):
+    for key in ("components", "calibration", "layout", "license", "credits", "preserve_materials", "material_quality"):
         if key in coll:
             value = coll[key]
             manifest["assets"][asset_name][key] = json.loads(value) if isinstance(value, str) and value.startswith(("[", "{")) else value

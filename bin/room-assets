@@ -37,6 +37,7 @@ export_once() {
 # three's MeshoptDecoder) and record the compressed sizes in manifest.json.
 compress() {
   local glb
+  node "$SCRIPT_DIR/room-pbr-textures.mjs" "$OUT_DIR"
   for glb in "$OUT_DIR"/*.glb; do
     "$REPO_ROOT/node_modules/.bin/gltf-transform" meshopt "$glb" "$glb" >/dev/null
   done

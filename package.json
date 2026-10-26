@@ -9,7 +9,9 @@
     "check": "astro check",
     "check:hoops": "node bin/check-hoops.mjs",
     "check:shelf": "node bin/check-shelf.mjs",
-    "check:room": "node bin/check-room.mjs"
+    "check:room": "node bin/check-room.mjs",
+    "check:mirror": "node bin/check-mirror.mjs",
+    "check:performance": "node bin/check-room-performance.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
