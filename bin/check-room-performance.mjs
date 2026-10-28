@@ -7,6 +7,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ts from 'typescript';
 
+// The baked gun atlas must not inherit the scan's redundant vertex colors: joining
+// unpainted stand/box geometry gives those new vertices black Color defaults.
+const gunBuffer=readFileSync(new URL('../dist/room/assets/m1917_figure.glb',import.meta.url));
+const gunJson=JSON.parse(gunBuffer.subarray(20,20+gunBuffer.readUInt32LE(12)).toString());
+assert(gunJson.meshes.every(m=>m.primitives.every(p=>!Object.hasOwn(p.attributes,'COLOR_0'))),'M1917 inherited duplicate/black vertex colors');
+
 const site = process.env.URL ?? 'http://localhost:4321';
 const dir = new URL('../dist/_astro/', import.meta.url);
 const file = readdirSync(dir).find(n => /^room\..*\.js$/.test(n));
@@ -125,6 +131,33 @@ try {
   assert(cold.maps.length===5&&cold.maps.every(Boolean),'Every shadow sampler needs an initialized comparison texture');
   assert(cold.rgba[3]>250&&cold.rgba.slice(0,3).reduce((a,b)=>a+b)>40,'Cold-day standard-material bed surface did not render');
   console.log('PASS: cold daylight renders the bed, with five valid shadow samplers and no WebGL errors');
+  const collectibles=await evaluate(`(()=>{
+    const {scene}=__shelf,Box=scene.getObjectByName('mattress_mesh').geometry.boundingBox.constructor;
+    scene.updateMatrixWorld(true);
+    const props=['bili_pillow','guldan_figure','m1917_figure'].map(n=>{
+      const o=scene.getObjectByName(n);if(!o)throw Error('Missing collectible '+n);
+      const b=new Box().setFromObject(o,true),meshes=[];o.traverse(m=>{if(m.isMesh)meshes.push(m);});
+      return {name:n,min:b.min.toArray(),max:b.max.toArray(),box:b,meshes:meshes.length};
+    });
+    const obstacles=['tv','tv_remote','xbox_controller','console'].map(n=>({name:n,box:new Box().setFromObject(scene.getObjectByName(n).parent,true)}));
+    // Props and existing furniture have separate placement parents. Test their actual meshes.
+    for(const p of props)for(const q of [...props,...obstacles]){
+      if(p===q)continue;
+      if(p.box.intersectsBox(q.box))throw Error(p.name+' overlaps '+q.name);
+    }
+    return props.map(({box,...p})=>p);
+  })()`);
+  for(const p of collectibles){
+    assert(p.min[0]>=2.265&&p.max[0]<=3.455,`${p.name} overhangs the cabinet sides`);
+    assert(p.min[1]>=.4995&&p.min[1]<=.503&&p.max[1]<.69,`${p.name} floats or penetrates the cabinet top`);
+    assert(p.min[2]>-3.672&&p.max[2]<-3.282,`${p.name} overhangs the cabinet front/back`);
+  }
+  const tech=await evaluate(`(()=>{const {scene}=__shelf,Box=scene.getObjectByName('mattress_mesh').geometry.boundingBox.constructor,shelf=scene.getObjectByName('project-transformable-rover').parent,inv=shelf.matrixWorld.clone().invert();scene.updateMatrixWorld(true);return ['android_mascot','rtx3070_fe'].map(n=>{const o=scene.getObjectByName(n);if(!o)throw Error('Missing '+n);const b=new Box().setFromObject(o,true).applyMatrix4(inv);return {name:n,min:b.min.toArray(),max:b.max.toArray()};});})()`);
+  for(const p of tech){assert(p.min[0]>0&&p.max[0]<.36,`${p.name} crosses the bottom-right slot sides: ${JSON.stringify(p)}`);assert(p.min[1]>=.075&&p.max[1]<.431,`${p.name} crosses a shelf board`);assert(p.min[2]>-.16&&p.max[2]<.15,`${p.name} crosses the shelf back/front`);}
+  assert(tech[0].max[0]<tech[1].min[0],'Android and graphics card intersect');
+  console.log('PASS: Android and RTX 3070 fit the bottom-right shelf beside the toy room',tech);
+  console.log('PASS: TV collectibles fit the cabinet top and clear the screen body, remote, controller and console',collectibles);
+  if(!process.env.ROOM_PROPS_ONLY){
   const drawCalls=await evaluate(`(()=>{const {renderer:r,scene,camera}=__shelf,auto=r.info.autoReset;r.info.autoReset=false;r.info.reset();r.render(scene,camera);const cached=r.info.render.calls;r.info.reset();scene.traverse(o=>{if(o.isLight&&o.castShadow)o.shadow.needsUpdate=true;});r.shadowMap.needsUpdate=true;r.render(scene,camera);const uncached=r.info.render.calls;r.info.autoReset=auto;return {cached,uncached};})()`);
   console.log('MEASURE: settled camera draw calls, cached vs all shadow maps',drawCalls);
   await evaluate(`(()=>{__shelf.shadows=[];__shelf.scene.traverse(o=>{if(o.isLight&&o.castShadow){const sh=o.shadow,update=sh.updateMatrices.bind(sh),s={light:o,n:0};__shelf.shadows.push(s);sh.updateMatrices=(...args)=>{s.n++;return update(...args);};}});})()`);
@@ -196,7 +229,31 @@ try {
   await clickAt(await evaluate('__visiblePoint(__shelf.clock)'));await sleep(1400);
   assert((await evaluate('__shelf.clockLight.intensity'))>.1,'Desk clock did not turn back on');
   assert.equal(await evaluate('location.hash'),'#room/desk');assert.deepEqual(await evaluate('__shelf.camera.matrixWorld.elements'),deskCamera);
+  await until("!!__shelf.scene.getObjectByName('tissue-ready')",'lazy tissue interaction');
+  const paperPoint=await evaluate("__visiblePoint(__shelf.scene.getObjectByName('tissue-ready'))");
+  const paperPrograms=await evaluate('__shelf.renderer.info.programs.length');
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',...paperPoint,button:'left',buttons:1,clickCount:1});
+  await sleep(160);
+  assert.equal(await evaluate('__shelf.renderer.domElement.style.cursor'),'grabbing','Exposed tissue cannot be grabbed');
+  for(let i=1;i<=8;i++){
+    await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:paperPoint.x+25*i/8,y:paperPoint.y-230*i/8,button:'left',buttons:1});await sleep(35);
+  }
+  await sleep(300);
+  const paper=await evaluate(`(()=>{const s=__shelf.scene,p=s.getObjectByName('tissue-pulled'),r=s.getObjectByName('tissue-ready');return {pulled:!!p,next:!!r,separate:p?.geometry!==r?.geometry,vertices:p?.geometry.attributes.position.count,programs:__shelf.renderer.info.programs.length};})()`);
+  assert(paper.pulled&&paper.next&&paper.separate,'Pulling a sheet did not ready the next tissue');
+  assert(paper.vertices<=130,'Tissue mesh exceeds the small cloth-grid budget');
+  assert.equal(paper.programs,paperPrograms,'Tissue pulling introduced a new shader program');
+  assert.deepEqual(await evaluate('__shelf.camera.matrixWorld.elements'),deskCamera,'Tissue drag moved the desk camera');
+  if(process.env.ROOM_COLLECTIBLE_SHOTS){mkdirSync(process.env.ROOM_COLLECTIBLE_SHOTS,{recursive:true});const shot=await send('Page.captureScreenshot',{format:'png'});writeFileSync(join(process.env.ROOM_COLLECTIBLE_SHOTS,'tissue-pull.png'),Buffer.from(shot.data,'base64'));}
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:paperPoint.x+25,y:paperPoint.y-230,button:'left',buttons:0,clickCount:1});
+  await sleep(4500);
+  assert.equal(await evaluate("__shelf.scene.getObjectsByProperty('name','tissue-pulled').length"),0,'Released tissue did not clean itself up');
+  // Leaving the view must also release a motionless held sheet.
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',...(await evaluate("__visiblePoint(__shelf.scene.getObjectByName('tissue-ready'))")),button:'left',buttons:1,clickCount:1});await sleep(100);
   await evaluate(`document.querySelector('[data-closeup="back"]').click()`);await until("location.hash==='#room'",'back from desk');await sleep(1300);
+  assert.equal(await evaluate('__shelf.renderer.domElement.hasPointerCapture(1)'),false,'Leaving the desk retained tissue pointer capture');
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',...paperPoint,button:'left',buttons:0});
+  console.log('PASS: tissue pulls into a soft low-poly sheet, readies its successor, reuses warmed shaders and cleans up on release/exit');
   console.log('PASS: clicking the clock opens desk; repeated clicks switch it without moving the view');
   await evaluate("document.getElementById('theme-switch').click()");
   await camera([1.4,1.4,-1.3],[1.4,1.2,0]);await quiet();
@@ -257,5 +314,26 @@ try {
       }
     }
   }
-  assert.deepEqual(errors,[]);console.log('PASS: performance behavior and unchanged visual quality');
+  }
+  await camera([2.86,.90,-1.8],[2.86,.59,-3.36]);
+  const screenGap=await evaluate(`(()=>{const {scene,camera:c,renderer}=__shelf;scene.updateMatrixWorld(true);const screen=scene.getObjectByName('tv').parent.getObjectByName('screen');if(!screen)throw Error('TV screen missing');const ys=root=>{const values=[],v=c.position.clone();root.traverse(o=>{if(!o.isMesh)return;const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){v.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld).project(c);values.push(v.y);}});return values;};return (Math.min(...ys(screen))-Math.max(...ys(scene.getObjectByName('m1917_figure'))))*renderer.domElement.getBoundingClientRect().height/2;})()`);
+  assert(screenGap>=1,`M1917 overlaps the TV screen in the cabinet front view (${screenGap.toFixed(2)} px gap)`);
+  console.log('PASS: M1917 stays below the TV screen in front view',screenGap.toFixed(2),'px gap');
+  if(process.env.ROOM_COLLECTIBLE_SHOTS){
+    mkdirSync(process.env.ROOM_COLLECTIBLE_SHOTS,{recursive:true});
+    for(const theme of ['light','dark']){
+      if(await evaluate('document.documentElement.dataset.theme')!==theme)await evaluate("document.getElementById('theme-switch').click()");
+      await sleep(1800);
+      const shot=await send('Page.captureScreenshot',{format:'png'});
+      writeFileSync(join(process.env.ROOM_COLLECTIBLE_SHOTS,`tv-collectibles-${theme}.png`),Buffer.from(shot.data,'base64'));
+    }
+  }
+  if(process.env.ROOM_COLLECTIBLE_SHOTS){
+    await camera([.99,.40,-2.70],[.15,.20,-3.28]);
+    for(const theme of ['light','dark']){
+      if(await evaluate('document.documentElement.dataset.theme')!==theme)await evaluate("document.getElementById('theme-switch').click()");
+      await sleep(1400);const shot=await send('Page.captureScreenshot',{format:'png'});writeFileSync(join(process.env.ROOM_COLLECTIBLE_SHOTS,`shelf-tech-${theme}.png`),Buffer.from(shot.data,'base64'));
+    }
+  }
+  assert.deepEqual(errors,[]);console.log(process.env.ROOM_PROPS_ONLY?'PASS: prop placement and day/night render':'PASS: performance behavior and unchanged visual quality');
 }finally{socket?.close();chrome.kill();if(chrome.pid&&chrome.exitCode===null&&chrome.signalCode===null)await new Promise(resolve=>chrome.once('exit',resolve));rmSync(profile,{recursive:true,force:true,maxRetries:5,retryDelay:100});}

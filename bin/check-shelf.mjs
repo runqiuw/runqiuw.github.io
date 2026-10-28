@@ -148,6 +148,14 @@ try {
         return {name:o.name,scale:o.scale.x,modelScale:o.children[0].scale.toArray(),min:b.min.toArray(),max:b.max.toArray()};
       })};
     };
+    window.__shelf.miniature=()=>{
+      scene.updateMatrixWorld(true);
+      const o=scene.getObjectByName('room_miniature');
+      if(!o)throw Error('Toy room missing');
+      const b=new Box().setFromObject(o,true).applyMatrix4(shelf.matrixWorld.clone().invert());
+      const materials=[];o.traverse(m=>{if(m.isMesh)materials.push({role:m.material.userData.role,glow:m.material.emissiveIntensity,color:m.material.color.getHexString(),map:!!m.material.map});});
+      return {min:b.min.toArray(),max:b.max.toArray(),materials};
+    };
     window.__shelf.surfaces=()=>{
       scene.updateMatrixWorld(true);
       const displays=shelf.children.filter(o=>o.name.startsWith('project-'));
@@ -173,6 +181,12 @@ try {
   await until("document.documentElement.dataset.section === 'projects'", 'project section');
   await sleep(3000);
   const before = await evaluate('__shelf.sample()');
+  const miniDay = await evaluate('__shelf.miniature()');
+  assert(miniDay.min[0]>-.36 && miniDay.max[0]<0,'Toy room must stay in the bottom-left slot');
+  assert(miniDay.min[1]>=manifest.assets.shelf.tiers[0] && miniDay.max[1]<manifest.assets.shelf.tiers[1]-.025,'Toy room crosses a shelf board');
+  assert(miniDay.min[2]>-.138 && miniDay.max[2]<.15,'Toy room crosses the shelf back/front');
+  assert.equal(miniDay.materials.length,4,'Toy room should use only four draw groups');
+  assert(miniDay.materials.every(m=>!m.map),'Toy room should not upload bitmap textures');
   const check = s => {
     const imu=s.displays.find(d=>d.name==='project-imu-localization');
     const quest=s.displays.find(d=>d.name==='project-sketchgenie');
@@ -225,6 +239,10 @@ try {
   };
   await moveTo('transformable-rover'); await sleep(1000); await shot('shelf-day');
   await evaluate("document.getElementById('theme-switch').click()"); await sleep(2000); await shot('shelf-night');
+  const miniNight = await evaluate('__shelf.miniature()');
+  assert.deepEqual(miniDay.min,miniNight.min,'Theme moved the toy room');
+  for(const role of ['mini_lamp','mini_screen'])assert(miniNight.materials.find(m=>m.role===role).glow>miniDay.materials.find(m=>m.role===role).glow,'Toy lighting did not follow dark theme');
+  assert.notEqual(miniDay.materials.find(m=>m.role==='mini_window').color,miniNight.materials.find(m=>m.role==='mini_window').color,'Toy windows did not follow theme');
   await evaluate("document.querySelector('#room-enter').click()");
   await sleep(2200);
   await send('Input.dispatchMouseEvent', {type:'mouseMoved',x:1400,y:20});
@@ -262,7 +280,7 @@ try {
   await evaluate("dispatchEvent(new CustomEvent('itemchange',{detail:'transformable-rover'}));dispatchEvent(new CustomEvent('sectionchange',{detail:'projects'}))");
   await sleep(800);check(await evaluate('__shelf.sample()'));
   assert.deepEqual(errors,[],'Browser runtime errors');
-  console.log('PASS: life-size Quest and IMU, actual triangle checks against shelf and nearby scene meshes, 165 animation samples without shelf/neighbour intersections, card hover/focus, direct 3D hover, fixed camera and mobile room');
+  console.log('PASS: toy-room slot bounds/four texture-free groups/theme sync, life-size Quest and IMU, actual triangle checks against shelf and nearby scene meshes, 165 animation samples without shelf/neighbour intersections, card hover/focus, direct 3D hover, fixed camera and mobile room');
 } finally {
   socket?.close();chrome.kill();
   if(chrome.pid&&chrome.exitCode===null&&chrome.signalCode===null)await new Promise(resolve=>chrome.once('exit',resolve));

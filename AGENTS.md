@@ -1,6 +1,6 @@
 # 项目记忆：runqiuw.github.io
 
-最近核查：2026-10-26。依据当前源码、`redesign/PLAN.md`、Git 历史和本地验证。开始任务时先检查 `git status` 和最新代码，不把日期快照当作永久现状。
+最近核查：2026-10-28。依据当前源码、`redesign/PLAN.md`、Git 历史和本地验证。开始任务时先检查 `git status` 和最新代码，不把日期快照当作永久现状。
 
 ## 工作约定
 
@@ -102,4 +102,9 @@
 - 点击候选列表必须包含 `toyAt(mesh) >= 0` 的枕头及学校抱枕；它们没有页面区块或特写，不能只按 `interactiveOf` 分类，否则会变成遮挡物而无法拿起。`check:performance` 实际拖动四件物体，按世界坐标检查抬起、跟随、松手下落及相机不动；子网格的局部位置不能用来判断整件抱枕是否移动。
 - Lighthouse 指标仍是目标，未完成实测；Vite 的大 chunk 提示不能当作类型错误，也不能忽略总加载体积。
 
-- 床头柜开放格净约 369 × 256 × 153 mm；`nightstand_essentials` 包含 Ferran Romero 的 CC BY Mi Band 2、llb 的 CC BY 骨传导耳机，OlegCoder 的 CC BY 面霜管，以及原创护手霜、眼药水，按真实比例摆放，柜内安装避免整片接触阴影。生成器为 `bin/room_nightstand_essentials.py`，需源手环、耳机和面霜管 GLB。2026-10-26 当前 manifest 为 67 项 GLB，总计 6,120,140 bytes，超过约 3 MB 目标；旧 66 项统计为历史值。
+- 床头柜开放格净约 369 × 256 × 153 mm；`nightstand_essentials` 包含 Ferran Romero 的 CC BY Mi Band 2、llb 的 CC BY 骨传导耳机，OlegCoder 的 CC BY 面霜管，以及原创护手霜、眼药水，按真实比例摆放，柜内安装避免整片接触阴影。生成器为 `bin/room_nightstand_essentials.py`，需源手环、耳机和面霜管 GLB。2026-10-26 的 manifest 为 67 项 GLB，总计 6,120,140 bytes，超过约 3 MB 目标；旧 66 项统计为历史值。
+- 2026-10-27：书架底层左侧新增 `room_miniature`，1:20 开顶微缩房间，底座 224 × 202 mm、高 141 mm，4,304 三角面、4 个无贴图材质组、58,184 bytes meshopt。`bin/room_miniature_asset.py` 从配置读取房间轮廓和家具摆放，生成独立静态资源；不复制运行时场景，不递归放置自身，不加实际灯光、实时镜面或物理。`room.ts` 的 `setTheme` 更新微缩窗户、屏幕和灯罩材质；不与项目 hover 联动。`check:shelf` 检查底层左侧边界、4 个绘制组和日夜同步；类型检查、构建、书架和性能回归通过，夜间不可见装饰保持 2 frames / 2.1 s 时钟基线。当前 68 项 GLB 总计 6,178,324 bytes，房间主 chunk 199,543 bytes gzip；资源总量仍超过约 3 MB 目标。
+- 2026-10-28：电视柜顶面有粉白 `bili_pillow`（原创鼓起布面及粉色刺绣，宽 145 mm）、`guldan_figure`（Berczihun 的 CC BY 雕像，高 160 mm，绿皮肤/紫袍/灰胡须/象牙骨饰分区顶点上色，参考 Blizzard 官方形象）、`m1917_figure`（Anticipateants 的 CC BY M1917A1 博物馆扫描）。按用户最新圈图保留完整上部枪体、瞄具、后握把及下方弧形支座；移除车、轮和下部车架，不能再将弧形支座删掉。枪体源长 180 mm，摆放 `scale: 2`，实际长约 360 mm；用户已要求撤掉三脚架，恢复原来的矩形展示底座与两根竖直支撑杆；枪体、弧形支座和带盒盖/提手的侧面木质弹药盒保留；按最新圈图移除弧座下端残留的圆形安装块。将扫描中上翘的枪口放平 6.5°、支杆缩短并将底座从 12 mm 压薄至 8 mm；弧座与底座保留约 2 mm 空隙，枪体不缩放。整组约 380 × 113 × 122 mm，平面位置 [2.68, 3.34]；1024px 原始漫反射图重排并提升暗部/中间调，保留扫描金属细节。遥控器和 Xbox 手柄在右侧小主机上，`on: console` 跟随其动作。生成器 `bin/room_tv_collectibles.py`，再由 `room_model_assets.py` 追加、单独导出、WebP 95 和 meshopt。枪体贴图已包含扫描颜色，导出前必须删除其冗余 Color 顶点属性，否则 Three.js 会再次乘暗枪身，并把合并进来的脚架/木盒默认顶点色变黑；`check:performance` 检查实际构建 GLB 不含 COLOR_0。正面柜顶机位 [2.86,.90,-1.8] → [2.86,.59,-3.36] 的实际屏幕投影检查有约 3.09 CSS px 间隙，`check:performance` 回归要求至少 1 px，不能只检查与电视实体不相交。M1917 为 350,336 bytes、18,965 三角面、6 个网格组；三件共 478,076 bytes、42,725 三角面、8 个网格组，无新灯光。
+- 底层书架右侧、微缩房间旁新增 `android_mascot`（经典绿色安卓，Google CC BY 3.0 设计的原创静态几何，约 103 mm 高、23 KB）和 `rtx3070_fe`（exela/Alexander Ershov，CC BY-NC 4.0）。`bin/room_shelf_tech.py` 保留显卡双风扇、外壳及 2048px 原始标签彩色图，去掉额外贴图，静态合并约 14.5k 面/3 组、263,156 bytes；按 242 mm 主外壳长度校准，IO 挡板有额外伸出，原创底脚和支柱实际接触下壳。两件均为无交互静态摆件，原六个项目布局和 hover 不变。来源、许可与改动写入 `CREDITS.txt`。
+- `room-tissues.ts` 首次进入 desk 特写才加载，复用预热后的 fabric 材质、顶点色格式和 `_ao=1`，不新增着色器或纹理。8 × 12 网格表现柔软折叠，拉出 170 mm 后立即补下一张，已抽纸松手后落向桌面、3.8 s 后销毁，最多保留 4 张并释放几何；仅运动/等待销毁时运行自己的 RAF。closeupHooks.desk.leave 和隐藏页面均取消捕获并清理，静止持纸不持续驱动绘制。`check:performance` 实际指针验证补纸、相机不动、材质复用、松手清理及退出释放；还检查新摆件在最底层右侧的边界和彼此间距。`ROOM_COLLECTIBLE_SHOTS` 产生日夜柜顶/书架图，`ROOM_PROPS_ONLY=1` 可只运行冷启动、边界及截图检查。上一轮类型检查、构建、完整性能及书架回归通过；本次 M1917 结构更新重新通过类型检查、构建、冷启动 GL/柜顶边界及日夜渲染检查。上一轮夜间不可见装饰仍为 2 frames / 2.1 s。当前 73 项 GLB 总计 6,942,772 bytes，主房间 chunk 199,637 bytes gzip，抽纸模块另为 2,175 bytes gzip；GLB 总量仍超约 3 MB 目标。
+- 菲比啾比暂缓：kirbyDX 在 BOOTH 免费提供 https://booth.pm/en/items/8759667 ，下载需要用户登录 Pixiv/BOOTH；用户已明确先完成其余修改，不用其他角色占位。

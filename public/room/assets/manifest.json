@@ -3348,6 +3348,183 @@
       "license": "CC-BY-4.0",
       "credits": "Mi Band 2 by Ferran Romero bone-conduction headphones by llb and Cream tube by OlegCoder, CC BY 4.0; hand cream and eye drops original.",
       "preserve_materials": true
+    },
+    "room_miniature": {
+      "file": "room_miniature.glb",
+      "catalog": "Sections/Projects",
+      "mount": "shelf",
+      "size": [
+        0.224,
+        0.202,
+        0.141
+      ],
+      "elevation": 0,
+      "roles": [
+        "mini_body",
+        "mini_window",
+        "mini_lamp",
+        "mini_screen"
+      ],
+      "triangles": 4304,
+      "bytes": 58184,
+      "description": "Texture-free 1:20 cutaway toy room: measured L floor, window wall, bed, desk, TV corner and shelf. Four merged material groups; theme-driven window/screen/lamp surfaces, no lights or live reflection."
+    },
+    "bili_pillow": {
+      "file": "bili_pillow.glb",
+      "catalog": "Room/Collectibles",
+      "mount": "desk",
+      "size": [
+        0.145,
+        0.0741,
+        0.1546
+      ],
+      "elevation": 0,
+      "roles": [
+        "fabric"
+      ],
+      "triangles": 5760,
+      "bytes": 27088,
+      "description": "Original pink-and-white bilibili TV-inspired plush cushion, 145 mm wide: inflated fabric body, curved pink embroidered screen/face, soft antennae and small feet. No bitmap textures.",
+      "calibration": {
+        "body_width_m": 0.145,
+        "static": true
+      },
+      "license": "Original geometry; bilibili mascot design belongs to bilibili."
+    },
+    "guldan_figure": {
+      "file": "guldan_figure.glb",
+      "catalog": "Room/Collectibles",
+      "mount": "desk",
+      "size": [
+        0.1191,
+        0.1017,
+        0.1599
+      ],
+      "elevation": 0,
+      "roles": [
+        "Guldan painted resin"
+      ],
+      "triangles": 18000,
+      "bytes": 100652,
+      "description": "Gul'dan collectible adapted from Berczihun's CC BY sculpture: 160 mm tall, simplified static sculpt, hand-painted green skin, purple robes, ivory bones and vertex-baked crevice shading. No bitmap textures.",
+      "calibration": {
+        "height_m": 0.16,
+        "static": true
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "author": "Berczihun",
+        "source": "https://sketchfab.com/3d-models/wo-w--guldanobj-24fb93047c6d4b668e01abe2021c070b",
+        "changes": "Scaled to 160 mm, merged/simplified static mesh, original region-painted resin palette based on Blizzard Guldan references and vertex crevice shading."
+      },
+      "preserve_materials": true
+    },
+    "m1917_figure": {
+      "file": "m1917_figure.glb",
+      "catalog": "Room/Collectibles",
+      "mount": "desk",
+      "size": [
+        0.19,
+        0.0563,
+        0.0611
+      ],
+      "elevation": 0,
+      "roles": [
+        "M1917 accessory painted steel.002",
+        "M1917 aged brass fittings.002",
+        "M1917 ammunition box end grain.002",
+        "M1917 ammunition box warm wood.002",
+        "M1917 original scanned finish.001",
+        "Miniature stand charcoal.002"
+      ],
+      "triangles": 18965,
+      "bytes": 350336,
+      "description": "M1917A1 miniature adapted from Anticipateants' CC BY museum scan: full upper gun with its curved cradle, sights and rear grip retained; low circular mount block, cart and wheels removed. Restored two-post exhibition base and side ammunition box; one readable 1024px source-color atlas.",
+      "calibration": {
+        "gun_length_m": 0.18,
+        "tripod": false,
+        "display_base_m": [
+          0.19,
+          0.055,
+          0.004
+        ],
+        "display_support": "short_two_posts",
+        "lower_mount_block": false,
+        "cradle_plinth_clearance_m": 0.001,
+        "display_pitch_degrees": -6.5,
+        "curved_cradle": true,
+        "side_ammunition_box": true,
+        "cart": false,
+        "wheels": false,
+        "static": true
+      },
+      "license": "CC-BY-4.0",
+      "credits": {
+        "author": "Anticipateants",
+        "source": "https://sketchfab.com/3d-models/m1917-machine-gun-idaho-military-history-museum-323b8d115e6b4016b40ca667d700761d",
+        "changes": "Retained complete upper gun, curved cradle, sights and grip; removed cart and wheels. Static simplification and repacked 1024px source atlas with lifted midtones. Removed the low circular mounting shoe/stub while retaining the curved cradle. Levelled the muzzle pitch and lowered the gun onto shortened posts above a thinner rectangular exhibition plinth; side wooden ammunition box retained. No tripod."
+      },
+      "preserve_materials": true
+    },
+    "android_mascot": {
+      "file": "android_mascot.glb",
+      "catalog": "Room/Collectibles",
+      "mount": "shelf",
+      "size": [
+        0.079,
+        0.0482,
+        0.1023
+      ],
+      "elevation": 0,
+      "roles": [
+        "Android eyes.002",
+        "Android green vinyl.002"
+      ],
+      "triangles": 2714,
+      "bytes": 23216,
+      "description": "Classic green Android robot: original 105 mm vinyl-toy geometry with dome head, antennae, rounded limbs and inset charcoal eyes. Static, no textures.",
+      "calibration": {
+        "height_m": 0.105,
+        "static": true
+      },
+      "license": "CC-BY-3.0",
+      "credits": {
+        "author": "Original geometry; Android robot design by Google",
+        "source": "https://developer.android.com/distribute/marketing-tools/brand-guidelines",
+        "changes": "Original three-dimensional static vinyl-toy interpretation."
+      },
+      "preserve_materials": true
+    },
+    "rtx3070_fe": {
+      "file": "rtx3070_fe.glb",
+      "catalog": "Room/Collectibles",
+      "mount": "shelf",
+      "size": [
+        0.2556,
+        0.06,
+        0.1595
+      ],
+      "elevation": 0,
+      "roles": [
+        "3070 brushed metal.002",
+        "3070 charcoal.002",
+        "3070 original label atlas.002"
+      ],
+      "triangles": 14517,
+      "bytes": 263156,
+      "description": "NVIDIA RTX 3070 Founders Edition by exela (CC BY-NC 4.0), simplified static display: original dual fans, metal shroud, PCB and labels; calibrated 242 mm body length, upright on a small display foot.",
+      "calibration": {
+        "body_length_m": 0.242,
+        "body_height_m": 0.112,
+        "static": true
+      },
+      "license": "CC-BY-NC-4.0",
+      "credits": {
+        "author": "exela / Alexander Ershov",
+        "source": "https://sketchfab.com/3d-models/geforce-rtx-3070-founders-edition-7ca66948de7d4f7daeb93abb7a685e67",
+        "changes": "Static pose, simplified hidden detail, consolidated materials, original label atlas at 2048px, real-size shroud and original feet."
+      },
+      "preserve_materials": true
     }
   }
 }

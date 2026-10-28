@@ -131,3 +131,45 @@ Adapted: uniformly scaled and positioned; original UVs and 1024-pixel packaging 
 Bone Conduction Headphone by llb — CC BY 4.0
 https://sketchfab.com/3d-models/bone-conduction-headphone-a0f0cd9a42cc48d5a0e5c469755969e2
 Adapted: uniformly scaled to adult size, posed on the shelf and recoloured charcoal.
+
+TV-console collectibles
+-----------------------
+Pink-and-white TV plush: original geometry inspired by bilibili's small-TV mascot.
+The bilibili mascot design belongs to bilibili. Puffy fabric form and embroidered face
+were modelled for this scene; no third-party model or product photo is redistributed.
+
+Wo W_ Gul'dan.obj by Berczihun — CC BY 4.0
+https://sketchfab.com/3d-models/wo-w--guldanobj-24fb93047c6d4b668e01abe2021c070b
+https://creativecommons.org/licenses/by/4.0/
+Changes: uniform 160 mm miniature, static mesh simplification, region-painted green skin,
+purple robes, grey beard and ivory bones, with vertex-baked crevice shading.
+Palette reference: https://heroesofthestorm.blizzard.com/en-us/heroes/guldan/
+ Warcraft/Gul'dan belongs to Blizzard Entertainment.
+
+M1917 Machine Gun @Idaho Military History Museum by Anticipateants — CC BY 4.0
+https://sketchfab.com/3d-models/m1917-machine-gun-idaho-military-history-museum-323b8d115e6b4016b40ca667d700761d
+https://creativecommons.org/licenses/by/4.0/
+The source is a museum M1917A1 scan, not an extracted Battlefield game asset.
+Changes: complete upper gun retained, including the curved cradle, sights and rear grip;
+cart, wheels and the low circular mounting shoe/stub removed. Uniform 180 mm source miniature displayed at 2x (360 mm gun),
+static simplification and one 1024-pixel source-color atlas with lifted midtones.
+Redundant scanned vertex colors removed after baking to avoid multiplying the color twice.
+Added an original side-mounted wooden ammunition box with lid and carrying handle.
+Retained the rectangular exhibition plinth and two vertical support posts; no tripod.
+Levelled the gun 6.5 degrees, lowered its supports and thinned the plinth to clear the TV display; no scaling change.
+
+Bottom-shelf technology collectibles
+------------------------------------
+Android robot: original static vinyl-toy geometry.
+The Android robot is reproduced or modified from work created and shared by Google
+and used according to terms described in the Creative Commons 3.0 Attribution License.
+https://developer.android.com/distribute/marketing-tools/brand-guidelines
+https://creativecommons.org/licenses/by/3.0/
+
+GeForce RTX 3070 Founders Edition by exela / Alexander Ershov — CC BY-NC 4.0
+https://sketchfab.com/3d-models/geforce-rtx-3070-founders-edition-7ca66948de7d4f7daeb93abb7a685e67
+https://creativecommons.org/licenses/by-nc/4.0/
+Changes: static pose, simplified mesh and consolidated materials, retained original
+label color atlas at 2048 pixels (WebP 95), removed additional maps, calibrated
+242 mm shroud length, upright display with original feet and supporting posts.
+Used as decoration on this non-commercial personal site. NVIDIA owns its trademarks.

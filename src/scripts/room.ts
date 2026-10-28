@@ -1768,6 +1768,19 @@ uniform float uStripEnd;
     fading = true;
     hemi.color.set(t === 'dark' ? 0x7d84ff : 0xffffff);
     scene.environment = envs[t];
+    // The toy room shares the page theme, with emissive surfaces instead of extra lights.
+    placed.roomMiniature?.traverse(o => {
+      if (!(o instanceof Mesh)) return;
+      const m = o.material as MeshStandardMaterial, role = m.userData.role;
+      if (role === 'mini_window') {
+        m.color.set(t === 'dark' ? '#25305d' : '#ffffff');
+        m.emissive.set('#80c7ff');
+        m.emissiveIntensity = t === 'dark' ? 0.03 : 0.25;
+      } else if (role === 'mini_lamp' || role === 'mini_screen') {
+        m.emissive.set(role === 'mini_lamp' ? '#ffd18b' : '#5285c4');
+        m.emissiveIntensity = t === 'dark' ? 1.2 : 0.08;
+      }
+    });
     sun.color.set(t === 'dark' ? 0x9fb2ff : 0xffffff);
     // Both come in through the west windows (the only way in); the sun a little higher than the moon.
     sun.position.copy(center.clone().add(t === 'dark' ? new Vector3(-6, 3.65, 1) : new Vector3(-5.5, 4.2, 2)));
@@ -2303,7 +2316,9 @@ uniform float uStripEnd;
   // and off. Orbit, labels and hover are off while one is open.
   let focused: string | null = null;
   let beforeFocus = { t: new Vector3(), p: new Vector3() };
+  let tissues: ReturnType<typeof import('./room-tissues').addTissues>;
   const closeupHooks: Record<string, { enter?: () => void; leave?: () => void }> = {
+    desk: { enter: () => { void import('./room-tissues').then(m => { tissues = m.addTissues(placed.tissues, canvas, cam, () => full && focused === 'desk' && !flying, surfaceAt, () => { dirty = shadowDirty = true; }); }); }, leave: () => tissues?.leave() },
     board: { leave: () => closeBoard() },
     hoops: { enter: () => enterHoops(), leave: () => hoops?.leave() },
   };

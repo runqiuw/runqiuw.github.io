@@ -132,9 +132,13 @@ export const PLACEMENTS: Placement[] = [
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: '#c4925e' }, section: 'playground' },
   { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.477], section: 'games' },
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
-  { id: 'console', asset: 'console', at: [2.86, 3.355], z: 0.5, section: 'games' },
-  { id: 'tvGamepad', asset: 'xbox_controller', at: [3.15, 3.365], z: 0.5, yaw: 10, section: 'games' },
-  { id: 'tvRemote', asset: 'tv_remote', at: [2.47, 3.38], z: 0.5, yaw: 12, section: 'games' },
+  { id: 'console', asset: 'console', at: [3.07, 3.355], z: 0.5, section: 'games' },
+  { id: 'tvGamepad', asset: 'xbox_controller', at: [3.095, 3.355], z: 0.552, on: 'console', section: 'games' },
+  { id: 'tvRemote', asset: 'tv_remote', at: [2.975, 3.355], z: 0.551, on: 'console', section: 'games' },
+  // Static collectibles flank the screen; the remote/controller ride on the small console.
+  { id: 'biliPillow', asset: 'bili_pillow', at: [2.34, 3.37], z: 0.5, bounce: false },
+  { id: 'guldan', asset: 'guldan_figure', at: [3.39, 3.38], z: 0.5, bounce: false },
+  { id: 'm1917', asset: 'm1917_figure', at: [2.68, 3.34], z: 0.5, scale: 2, bounce: false },
   // Left bay: 373 × 362 × 384 mm clear. Both consoles stand at 1:1, Xbox left / PS5 Slim right.
   // The Slim's 358 mm body + 11 mm stand leave 15 mm overhead; its 155 mm base clears the Xbox.
   { id: 'xbox', asset: 'xbox_series_x', at: [2.3685, 3.48], z: 0.098, bounce: false, section: 'games' },
@@ -150,6 +154,10 @@ export const PLACEMENTS: Placement[] = [
 
   // Left wall: single bed, nightstand, bookshelf where the side table was.
   { id: 'shelf', asset: 'shelf', at: [0.15, 3.28], yaw: 90, colors: { wood: '#ffb36b' }, section: 'projects' },
+  // 1:20 toy room on the empty bottom-left tier; scenery, independent of project hover.
+  { id: 'roomMiniature', asset: 'room_miniature', at: [0.15, 3.10], z: 0.078, yaw: 100, bounce: false },
+  { id: 'android', asset: 'android_mascot', at: [0.15, 3.33], z: 0.078, yaw: 90, bounce: false },
+  { id: 'rtx3070', asset: 'rtx3070_fe', at: [0.15, 3.505], z: 0.078, yaw: 90, bounce: false },
   { id: 'windowA', asset: 'window', at: [-0.064, 1.235], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
   { id: 'windowB', asset: 'window', at: [-0.064, 2.385], z: 0.61, yaw: 90, wall: 'W', ao: false, colors: { frame: BLUE, fabric: '#e2e4ff' } },
   // Single bed for now; the queen (`bed`) stays in the asset library for later.
