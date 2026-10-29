@@ -77,6 +77,8 @@ try{
   mkdirSync(out,{recursive:true});await send('Page.navigate',{url:site});
   await until('!!window.__fixture','room test hook');
   await until("document.querySelector('.frame.live')",'room live');await until("__fixture.scene.getObjectByName('mirror-reflection')?.visible",'mirror preparation');
+  // Assets deferred until after the room is ready (the snack stash) must be shown before any capture.
+  await evaluate('__fixture.late');
   await evaluate('document.fonts.ready');await until("!__fixtureVideos.some(v=>v.dataset.fixturePending)",'video seeks');
   const environment=await evaluate(`({fixtureVersion:2,timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone,browser:navigator.userAgent,renderer:(()=>{const g=__fixture.renderer.getContext(),e=g.getExtension('WEBGL_debug_renderer_info');return e?g.getParameter(e.UNMASKED_RENDERER_WEBGL):null;})(),viewport:[1440,900],dpr:${dpr},clock:'2026-10-28T18:34:56Z',seed:123456789,videoFrame:'min(0.5 seconds, half duration)',map:${JSON.stringify(mapCache?'recorded OpenFreeMap assets':'fixed background fixture, no map tiles')},capture:'room WebGL canvas',settledSway:'zero',settledPops:'target',hoopsHistory:'settled earlier projectiles hidden'})`);
   Object.assign(environment,{machine:digest(hostname()).slice(0,16),osRelease:release(),architecture:arch()});
@@ -85,7 +87,7 @@ try{
   // A small shader-spring residue is zeroed only after the position check has settled.
   const settle=async()=>{
     await sleep(2500);let previous='',stable=0;
-    for(let i=0;i<100;i++){
+    for(let i=0;i<300;i++){
       const state=await evaluate(`(()=>{const f=__fixture;f.scene.updateMatrixWorld(true);const values=[...f.camera.matrixWorld.elements,...f.camera.projectionMatrix.elements];for(const name of ['pillow','plush_umich','plush_uw','plush_sjtu','project-transformable-rover','drawer_1','door_R']){const o=f.scene.getObjectByName(name);if(o)values.push(...o.matrixWorld.elements);}for(const o of f.openers)values.push(o.k);let popsReady=true;for(const p of f.pops){values.push(p.c,p.t);if(Math.abs(p.t-p.c)>=.002)popsReady=false;}let sway=0,ripple=0;f.scene.traverse(o=>{for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(!m)continue;const u=f.renderer.properties.get(m).uniforms;if(u?.uSway)sway=Math.max(sway,Math.hypot(u.uSway.value.x,u.uSway.value.y));if(u?.uRipple)ripple=Math.max(ripple,Math.abs(u.uRipple.value));}});values.push(sway,ripple);return {values:values.map(x=>Math.round(x*100000)),sway,ripple,popsReady};})()`);
       const current=JSON.stringify(state.values);stable=current===previous&&state.popsReady&&state.sway<=.0001&&state.ripple<=.0005?stable+1:0;previous=current;if(stable>=3)return;await sleep(300);
     }
@@ -128,7 +130,7 @@ try{
   const focus=async(id,button=id)=>{await evaluate(`document.querySelector('[data-go="${button}"]').click()`);await until(`location.hash==='#room/${id}'`,id);if(id==='hoops')await until("document.querySelector('.hoops-turn')?.dataset.phase==='ready'",'hoops ready');};
   const back=async()=>{await evaluate("document.querySelector('[data-closeup=back]').click()");await until("location.hash==='#room'",'back');};
   const exit=async()=>{await evaluate("document.getElementById('room-exit').click()");await until("!document.querySelector('.room.full')",'exit room');};
-  for(const theme of (process.env.CAPTURE_HOOPS_ONLY?['day']:['day','night'])){
+  for(const theme of (process.env.CAPTURE_PILLOW_ONLY?[]:process.env.CAPTURE_HOOPS_ONLY?['day']:['day','night'])){
     if(theme==='night'){
       const prior=await evaluate("(window.__priorMap=document.querySelector('.map-still')?.src??'',!!window.__priorMap)");
       await evaluate("document.getElementById('theme-switch').click()");await sleep(3000);
@@ -182,6 +184,7 @@ try{
   // Physics leaves the pillow in a slightly different place each run, so this state is checked for
   // stale shadows only and is not part of the image comparison.
   if(!process.env.CAPTURE_SMOKE&&!process.env.CAPTURE_HOOPS_ONLY){
+    if(process.env.CAPTURE_PILLOW_ONLY){await evaluate("document.getElementById('theme-switch').click()");await sleep(3000);}
     await enter();await settle();
     const where=()=>evaluate(`(()=>{const f=__fixture,o=f.scene.getObjectByName('pillow');f.scene.updateMatrixWorld(true);const w=o.getWorldPosition(f.camera.position.clone()),v=w.clone().project(f.camera),r=f.renderer.domElement.getBoundingClientRect();return {x:r.x+(v.x+1)/2*r.width,y:r.y+(1-v.y)/2*r.height,world:w.toArray()};})()`);
     const from=await where(),mouse=(type,x,y,buttons)=>send('Input.dispatchMouseEvent',{type,x,y,button:type==='mouseMoved'?'none':'left',buttons,clickCount:1});

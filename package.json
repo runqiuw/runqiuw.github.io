@@ -15,7 +15,8 @@
     "profile:room": "node bin/profile-room.mjs",
     "compare:room-images": "node bin/compare-room-images.mjs",
     "capture:room": "node bin/capture-room-baseline.mjs",
-    "check:room-memory": "node bin/check-room-gl-memory.mjs"
+    "check:room-memory": "node bin/check-room-gl-memory.mjs",
+    "check:shadows": "node bin/check-room-shadows.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

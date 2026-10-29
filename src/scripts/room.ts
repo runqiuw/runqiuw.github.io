@@ -65,7 +65,6 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCoffeeSteam } from './room-coffee';
 import { addRoomMirror } from './room-mirror';
-import { roomWarmup } from './room-warmup';
 import { CLOSEUPS, COFFEE, DECOR, DOOR_OPEN, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean };
@@ -123,9 +122,15 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   frame.prepend(canvas);
 
   // Start I/O and decoding before synchronous context/environment preparation.
+  const warmupModule = import('./room-warmup');
+  const shadowModule = import('./room-shadows');
   MeshoptDecoder.useWorkers(Math.min(2, navigator.hardwareConcurrency || 2));
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const names = [...new Set([...PLACEMENTS.map(p => p.asset), ...Object.values(PROJECT_MODELS).map(p => p.asset)])];
+  // The snack stash is behind a closed cabinet door; only a sliver shows through the gap in the
+  // Games view. Unless the room opens there, it loads after the room is ready.
+  const lateAssets = new Set(opts.section === 'games' || location.hash.startsWith('#room') ? [] : ['snack_stash']);
+  const names = [...new Set([...PLACEMENTS.map(p => p.asset), ...Object.values(PROJECT_MODELS).map(p => p.asset)])]
+    .filter(n => !lateAssets.has(n));
   const downloads = Promise.all([
     fetch(ASSETS + 'manifest.json').then(r => r.json() as Promise<Manifest>),
     Promise.all(names.map(n => loader.loadAsync(`${ASSETS}${n}.glb`).catch(() => null))),
@@ -150,7 +155,8 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   const center = P(2.05, 1.85, 0.85);
 
   let dirty = true, shadowDirty = true;
-  const preparation = roomWarmup(renderer, scene, cam, () => { dirty = true; });
+  let forceShadows = false;
+  const preparation = (await warmupModule).roomWarmup(renderer, scene, cam, () => { dirty = true; });
   let active = opts.section in SHOTS ? opts.section : 'top';
   let item = document.documentElement.dataset.item ?? '';
 
@@ -383,9 +389,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   // --- furniture
   const placed: Record<string, Object3D> = {};
   const lampIds = new Set([LIGHTS.lamp, LIGHTS.bedside]);
-  for (const p of PLACEMENTS) {
-    const src = source[p.asset];
-    if (!src) continue;
+  const placeAsset = (p: (typeof PLACEMENTS)[number], src: Object3D) => {
     const g = src.clone(true);
     g.position.copy(P(p.at[0], p.at[1], p.z ?? 0));
     g.rotation.y = MathUtils.degToRad(p.yaw ?? 0);
@@ -412,6 +416,11 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
     if (p.wall) onWall.push({ n: inward[p.wall], o: g });
     scene.add(g);
     placed[p.id] = g;
+    return g;
+  };
+  for (const p of PLACEMENTS) {
+    const src = source[p.asset];
+    if (src) placeAsset(p, src);
   }
   scene.updateMatrixWorld(true);
   for (const p of PLACEMENTS) if (p.on && placed[p.id] && placed[p.on]) placed[p.on].attach(placed[p.id]);
@@ -2277,7 +2286,9 @@ uniform float uStripEnd;
           load: (name) => loader.loadAsync(`${ASSETS}${name}.glb`).then((g) => g.scene, () => null),
           dress,
           reduceMotion: opts.reduceMotion,
-          redraw: () => (dirty = true),
+          // Held and thrown props can cast shadows as they appear, move, or disappear.
+          redraw: () => (dirty = shadowDirty = true),
+          shadowChanged: () => (dirty = shadowDirty = true),
         });
         if (focused === 'hoops') hoops.enter();
       })
@@ -2614,19 +2625,26 @@ uniform float uStripEnd;
     posts.forEach((p) => ghost(p.m, !(wallOn[p.a] && wallOn[p.b])));
     onWall.forEach((w) => ghost(w.o, !interior && vp.dot(w.n) <= -0.4));
     // Keep light/shadow counts stable. Only depth/projection changes invalidate maps.
+    if (shadowDirty) shadowTracker.observe();
+    if (forceShadows) shadowTracker.invalidateAll();
     let updateShadows = false;
     for (const l of shadowLights) {
-      l.shadow.needsUpdate = l.intensity > 0 && (shadowDirty || !l.shadow.map);
+      l.shadow.needsUpdate = l.intensity > 0 && shadowTracker.needs(l);
       updateShadows ||= l.shadow.needsUpdate;
     }
     renderer.shadowMap.needsUpdate = updateShadows;
     renderer.render(scene, cam);
+    for (const l of shadowLights) if (l.intensity > 0 && shadowTracker.needs(l)) shadowTracker.rendered(l);
+    forceShadows = false;
     shadowDirty = false;
     if (full) {
       const w = canvas.clientWidth, h = canvas.clientHeight;
-      labels.querySelectorAll<HTMLElement>('[data-go]').forEach((p) => {
+      // Read every width before writing any positions, to avoid a layout per label.
+      const pins = [...labels.querySelectorAll<HTMLElement>('[data-go]')];
+      const halves = pins.map((p) => p.offsetWidth / 2 + 8);
+      pins.forEach((p, i) => {
         const a = v.copy(anchors[p.dataset.go!]).project(cam);
-        const half = p.offsetWidth / 2 + 8;
+        const half = halves[i];
         p.style.left = `${Math.min(w - half, Math.max(half, ((a.x + 1) / 2) * w))}px`;
         p.style.top = `${((1 - a.y) / 2) * h}px`;
         p.style.visibility = a.z < 1 && anchorObj[p.dataset.go!].visible ? '' : 'hidden';
@@ -2685,8 +2703,9 @@ uniform float uStripEnd;
     if (stepOpeners(real)) dirty = shadowDirty = true;
     for (let left = real; left > 1e-6; left -= 1 / 60) {
       const h = Math.min(left, 1 / 60);
-      if (stepSway(h)) dirty = shadowDirty = true;
-      if (stepRipple(h)) dirty = shadowDirty = true;
+      // Their deformation only affects the visible material, not the depth shaders.
+      if (stepSway(h)) dirty = true;
+      if (stepRipple(h)) dirty = true;
     }
     if (stepCards(dt)) dirty = true;
     if (pendingHover) updateHover();
@@ -2737,12 +2756,36 @@ uniform float uStripEnd;
   const section = document.documentElement.dataset.section;
   if (section && shots[section]) { active = section; jump(shots[section]); }
   item = document.documentElement.dataset.item ?? '';
+  // Late assets are placed hidden, prepared like the rest, then shown.
+  const loadLate = async () => {
+    const late = PLACEMENTS.filter(p => lateAssets.has(p.asset));
+    const scenes = await Promise.all(late.map(p => loader.loadAsync(`${ASSETS}${p.asset}.glb`).then(g => g.scene, () => null)));
+    const added: Object3D[] = [], meshes: Mesh[] = [];
+    late.forEach((p, i) => {
+      if (!scenes[i]) return;
+      const g = placeAsset(p, scenes[i]);
+      g.visible = false;
+      g.updateMatrixWorld(true);
+      if (p.on && placed[p.on]) placed[p.on].attach(g);
+      added.push(g);
+      g.traverse(o => { if (o instanceof Mesh) meshes.push(o); });
+    });
+    if (!meshes.length) return;
+    await preparation.prepare(meshes, null, shadowLights);
+    if (roomMirror) await preparation.prepare(meshes, roomMirror.getRenderTarget());
+    warmMeshes.push(...meshes);
+    blockers.push(...meshes);
+    added.forEach(g => (g.visible = true));
+    dirty = shadowDirty = true;
+  };
+  const late = lateAssets.size ? loadLate().catch(() => {}) : Promise.resolve();
+  const shadowTracker = (await shadowModule).roomShadows(scene, shadowLights);
   ready = true;
   warmUntil = performance.now() + 1800;
   // Opt-in access for the profiling and screenshot tools (bin/profile-room.mjs, bin/capture-room-baseline.mjs).
   (window as { __roomTestHook?: (room: object) => void }).__roomTestHook?.({
-    scene, camera: cam, renderer, controls, openers, pops,
-    draw: (forceShadows = true) => { if (forceShadows) shadowDirty = true; draw(); },
+    scene, camera: cam, renderer, controls, openers, pops, late,
+    draw: (force = true) => { if (force) forceShadows = shadowDirty = true; draw(); },
   });
   requestAnimationFrame(loop);
 

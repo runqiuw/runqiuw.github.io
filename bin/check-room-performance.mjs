@@ -117,6 +117,11 @@ try {
   await send('Debugger.disable');
   await until("document.querySelector('.frame.live')", 'live room');
   await until("__shelf.scene.getObjectByName('mirror-reflection').visible", 'prepared reflection',Number(process.env.MIRROR_PREPARE_TIMEOUT)||120000);
+  // The snack stash behind the cabinet door is requested only after the first-screen models arrive.
+  await until("performance.getEntriesByType('resource').some(e=>e.name.endsWith('/snack_stash.glb')&&e.responseEnd>0)",'deferred snack stash');
+  const late=await evaluate(`(()=>{const glb=performance.getEntriesByType('resource').filter(e=>e.name.endsWith('.glb')),snack=glb.find(e=>e.name.endsWith('/snack_stash.glb'));return {snack:snack.startTime,first:Math.max(...glb.filter(e=>e!==snack&&e.startTime<snack.startTime).map(e=>e.responseEnd))};})()`);
+  assert(late.snack>=late.first,`Snack stash was part of the first-screen download: ${JSON.stringify(late)}`);
+  console.log('PASS: snack stash loads after the first-screen models',late);
   await evaluate("document.getElementById('room-enter').click()");
   await until("location.hash==='#room'&&!document.querySelector('.room-pins').hidden", 'full room');
   await sleep(1600);
@@ -165,7 +170,7 @@ try {
     let good=0;
     for(let i=0;i<30&&good<2;i++){
       await evaluate('__shelf.shadows.forEach(s=>s.n=0)');await sleep(1000);
-      good=await evaluate('__shelf.shadows.every(s=>s.n===0)')?good+1:0;
+      good=await evaluate(`(()=>{let sway=0,ripple=0;__shelf.scene.traverse(o=>{for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(!m)continue;const u=__shelf.renderer.properties.get(m).uniforms;if(u?.uSway)sway=Math.max(sway,u.uSway.value.length());if(u?.uRipple)ripple=Math.max(ripple,Math.abs(u.uRipple.value));}});return __shelf.shadows.every(s=>s.n===0)&&sway<.0001&&ripple<.0005;})()`)?good+1:0;
     }
     assert.equal(good,2,'Depth shadows never settle');
   };
@@ -174,6 +179,17 @@ try {
   assert(lightFlags.every(Boolean));assert.equal(lightFlags.length,5);
   await evaluate(`new Promise(resolve=>{let n=0;const step=()=>{__shelf.camera.lookAt(2.05+(n%2)*.03,.8,-1.85);__shelf.redraw();if(++n<20)requestAnimationFrame(step);else resolve();};step();})`);
   assert(await evaluate('__shelf.shadows.every(s=>s.n===0)'),'A camera-only turn regenerated depth maps');
+  // Moving the camera excites the plant and tapestry shaders, whose depth materials do not sway.
+  // Their visible animation must not invalidate otherwise unchanged shadow maps.
+  // One-way sideways move across the line of sight to the plant (a there-and-back move cancels its kick).
+  const swaySize=`(()=>{let size=0;__shelf.scene.traverse(o=>{for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(!m)continue;const u=__shelf.renderer.properties.get(m).uniforms;if(u?.uSway)size=Math.max(size,u.uSway.value.length());}});return size;})()`;
+  const start=await evaluate('__shelf.camera.position.toArray()');
+  const sway=await evaluate(`new Promise(resolve=>{const c=__shelf.camera,x=c.position.x,z=c.position.z;let n=0,size=0;const step=()=>{n++;c.position.x=x-.4*n/30;c.position.z=z+.4*n/30;c.lookAt(2.05,.8,-1.85);__shelf.redraw();size=Math.max(size,${swaySize});if(n<30)requestAnimationFrame(step);else resolve(size);};step();})`);
+  assert(sway>0.0001,`Camera movement did not excite the plant spring (${sway})`);
+  await sleep(300);
+  assert(await evaluate('__shelf.shadows.every(s=>s.n===0)'),'Visible-only sway regenerated depth maps');
+  await evaluate(`(()=>{__shelf.camera.position.fromArray(${JSON.stringify(start)});__shelf.camera.lookAt(2.05,.8,-1.85);__shelf.redraw();})()`);
+  console.log('PASS: visible plant sway redraws without refreshing unchanged depth shadows');
   await evaluate("dispatchEvent(new CustomEvent('sectionchange',{detail:'projects'}));dispatchEvent(new CustomEvent('itemchange',{detail:'transformable-rover'}));");
   await sleep(400);
   assert(await evaluate('__shelf.shadows.some(s=>s.light.intensity>0&&s.n>0)'),'Moving exhibit did not refresh shadows');
@@ -182,9 +198,11 @@ try {
   console.log('PASS: camera reuses depth maps, exhibit motion invalidates, zero-intensity lights skip, five shadow lights retained');
   // Coalesce many events, and never raycast a hidden/ghosted mesh.
   const synchronousRays=await evaluate(`(()=>{let m;__shelf.scene.traverse(o=>{if(o.type==='Mesh'&&!Object.hasOwn(o,'raycast'))m=o;});const proto=Object.getPrototypeOf(m),cast=proto.raycast;__shelf.rays=0;__shelf.hiddenRays=0;proto.raycast=function(...args){__shelf.rays++;for(let p=this;p;p=p.parent)if(!p.visible||p.userData.ghost){__shelf.hiddenRays++;break;}return cast.apply(this,args);};const c=__shelf.renderer.domElement,r=c.getBoundingClientRect();for(let i=0;i<50;i++)c.dispatchEvent(new PointerEvent('pointermove',{clientX:r.x+r.width*.4,clientY:r.y+r.height*.55,pointerType:'mouse',bubbles:true}));return __shelf.rays;})()`);
-  assert.equal(synchronousRays,0,'Hover ran synchronously for every event');await sleep(200);
+  assert.equal(synchronousRays,0,'Hover ran synchronously for every event');
+  // Software rendering can take longer than a fixed delay to reach the next frame.
+  await until('__shelf.rays>0','coalesced hover',30000);await sleep(200);
   const picking=await evaluate('({rays:__shelf.rays,hidden:__shelf.hiddenRays,meshes:__shelf.scene.getObjectsByProperty("isMesh",true).length})');
-  assert(picking.rays>0&&picking.rays<=picking.meshes,'Hover performed more than one scene query');assert.equal(picking.hidden,0);
+  assert(picking.rays>0&&picking.rays<=picking.meshes,`Hover performed more than one scene query: ${JSON.stringify(picking)}`);assert.equal(picking.hidden,0);
   console.log('PASS: 50 hover events coalesced into one visible-object query',picking);
   // A real screen-space point on the model, checked against the full scene as a reference.
   await evaluate(`window.__visiblePoint=(root)=>{const {scene,camera:c,renderer}=__shelf;const meshes=[];root.traverse(o=>{if(o.isMesh)meshes.push(o);});const v=c.position.clone(),r=renderer.domElement.getBoundingClientRect(),ray=new __shelf.rayType();const shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible||p.userData.ghost)return false;return true;};for(const m of meshes){const a=m.geometry.attributes.position,idx=m.geometry.index,n=idx?idx.count:a.count;for(let i=0;i<n-2;i+=Math.max(3,Math.ceil(n/180)*3)){v.set(0,0,0);for(let j=0;j<3;j++){const k=idx?idx.getX(i+j):i+j;v.x+=a.getX(k)/3;v.y+=a.getY(k)/3;v.z+=a.getZ(k)/3;}v.applyMatrix4(m.matrixWorld).project(c);if(Math.abs(v.x)>.9||Math.abs(v.y)>.9||v.z>1)continue;ray.setFromCamera({x:v.x,y:v.y},c);const h=ray.intersectObjects(scene.children,true).find(h=>shown(h.object));if(!h)continue;for(let p=h.object;p;p=p.parent)if(p===root){return {x:r.x+(v.x+1)*.5*r.width,y:r.y+(1-v.y)*.5*r.height};}}}throw Error('No visible point on '+root?.name);};__shelf.pickPoint=__visiblePoint(__shelf.scene.getObjectByName('project-transformable-rover'));`);
@@ -203,19 +221,20 @@ try {
   for (const name of ['pillow', 'plush_umich', 'plush_uw', 'plush_sjtu']) {
     const start=await evaluate(`(()=>{const o=__shelf.scene.getObjectByName(${JSON.stringify(name)});if(!o)throw Error('Missing toy '+${JSON.stringify(name)});__shelf.toy=o;return {point:__visiblePoint(o),position:o.getWorldPosition(__shelf.camera.position.clone()).toArray(),camera:__shelf.camera.matrixWorld.elements.slice()};})()`);
     await send('Input.dispatchMouseEvent',{type:'mousePressed',...start.point,button:'left',buttons:1,clickCount:1});
-    await sleep(450);
-    assert.equal(await evaluate('__shelf.renderer.domElement.style.cursor'),'grabbing',`${name}: pointer did not grab the toy`);
+    // Poll: under software rendering, physics frames can be slower than any fixed delay.
+    const y='__shelf.toy.getWorldPosition(__shelf.camera.position.clone())';
+    await until(`__shelf.renderer.domElement.style.cursor==='grabbing'`,`${name}: pointer did not grab the toy`,15000);
+    await until(`${y}.y>${start.position[1]+.12}`,`${name}: toy did not lift`,15000);await sleep(300);
     const lifted=await evaluate('__shelf.toy.getWorldPosition(__shelf.camera.position.clone()).toArray()');
     assert(lifted[1]>start.position[1]+.12,`${name}: toy did not lift`);
     await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:start.point.x+18,y:start.point.y+10,button:'left',buttons:1});
-    await sleep(400);
+    await until(`Math.hypot(${y}.x-(${start.position[0]}),${y}.z-(${start.position[2]}))>.015`,`${name}: toy did not follow the pointer`,15000);await sleep(300);
     const carried=await evaluate('__shelf.toy.getWorldPosition(__shelf.camera.position.clone()).toArray()');
     assert(Math.hypot(carried[0]-lifted[0],carried[2]-lifted[2])>.015,`${name}: toy did not follow the pointer`);
     assert.deepEqual(await evaluate('__shelf.camera.matrixWorld.elements'),start.camera,`${name}: dragging orbited the camera`);
     await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:start.point.x+18,y:start.point.y+10,button:'left',buttons:0,clickCount:1});
-    await sleep(2200);
-    assert.equal(await evaluate('__shelf.renderer.domElement.style.cursor'),'grab',`${name}: pointer remained captured`);
-    assert((await evaluate('__shelf.toy.getWorldPosition(__shelf.camera.position.clone()).y'))<carried[1]-.08,`${name}: released toy did not fall`);
+    await until(`__shelf.renderer.domElement.style.cursor==='grab'`,`${name}: pointer remained captured`,15000);
+    await until(`${y}.y<${carried[1]-.08}`,`${name}: released toy did not fall`,15000);
     console.log('PASS: bed toy lifts, follows pointer and falls on release without camera movement',name);
   }
   const clickAt=async p=>{await send('Input.dispatchMouseEvent',{type:'mousePressed',...p,button:'left',buttons:1,clickCount:1});await send('Input.dispatchMouseEvent',{type:'mouseReleased',...p,button:'left',buttons:0,clickCount:1});};
@@ -271,6 +290,17 @@ try {
   await send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false});await sleep(400);
   await until("!!document.querySelector('[data-distance] .map .map-still')&&!document.querySelector('[data-distance] .map canvas')",'map cached snapshot',30000);
   console.log('PASS: map releases WebGL and preserves page/room snapshots across theme and resize');
+  // An offscreen theme change waits for idle; opening the room flushes the pending snapshot.
+  await evaluate("document.getElementById('room-exit').click();window.scrollTo({top:0,behavior:'instant'})");
+  await until("!document.querySelector('.room.full')",'exit before deferred map test');await sleep(1000);
+  const deferredMap=await evaluate(`(()=>{const map=document.querySelector('[data-distance] .map'),r=map.getBoundingClientRect();if(r.top<=innerHeight+300)throw Error('Map is not offscreen');window.__heldIdle={request:window.requestIdleCallback,cancel:window.cancelIdleCallback,jobs:new Map(),next:0};window.requestIdleCallback=f=>{const id=++__heldIdle.next;__heldIdle.jobs.set(id,f);return id;};window.cancelIdleCallback=id=>__heldIdle.jobs.delete(id);return map.querySelector('.map-still').src;})()`);
+  await evaluate("document.getElementById('theme-switch').click()");await sleep(700);
+  assert.equal(await evaluate("document.querySelector('[data-distance] .map .map-still')?.src"),deferredMap,'Offscreen map rebuilt before idle');
+  assert(await evaluate('__heldIdle.jobs.size>0'),'Offscreen map did not schedule idle work');
+  await evaluate(`(()=>{if(__heldIdle.request)window.requestIdleCallback=__heldIdle.request;else delete window.requestIdleCallback;if(__heldIdle.cancel)window.cancelIdleCallback=__heldIdle.cancel;else delete window.cancelIdleCallback;document.getElementById('room-enter').click();})()`);
+  await until("location.hash==='#room'&&!document.querySelector('.room-pins').hidden",'room flushes deferred map');
+  await until(`!!document.querySelector('[data-distance] .map .map-still')&&document.querySelector('[data-distance] .map .map-still').src!==${JSON.stringify(deferredMap)}`,'deferred map snapshot',30000);
+  console.log('PASS: offscreen map waits for idle and room entry flushes the pending theme');
   if(process.env.ROOM_MIRROR_PIXELS){
     const sharp=(await import('sharp')).default;
     const poses=[

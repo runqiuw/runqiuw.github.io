@@ -159,6 +159,8 @@ export interface HoopsSpec {
   dress: (o: Object3D, colors?: Partial<Record<Role, string>>) => void;
   reduceMotion: boolean;
   redraw: () => void;
+  /** The thrown bodies changed position or shadow-casting state. */
+  shadowChanged?: () => void;
 }
 
 export function createHoops(o: HoopsSpec) {
@@ -688,6 +690,7 @@ export function createHoops(o: HoopsSpec) {
             b.sleep();
           }
         }
+        o.shadowChanged?.();
         moving = true;
       }
       for (const burst of [...bursts]) {

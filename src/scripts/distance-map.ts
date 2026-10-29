@@ -164,6 +164,8 @@ function renderDistanceMap(o: MapOptions & { onSnapshot: (page: string, room: st
 export function mountDistanceMap(o: MapOptions) {
   const cache = new Map<string, { page: string; room: string; credits: HTMLElement | null }>();
   let dispose = () => {}, timer = 0, generation = 0, last = '', first = true;
+  let roomOpen = !!document.querySelector('.room.full'), deferred = false;
+  let idle = 0, idleTimer = 0;
   const display = (snapshot: { page: string; room: string; credits: HTMLElement | null }) => {
     const image = new Image(); image.src = snapshot.page; image.alt = '';
     image.className = 'map-still'; image.style.cssText = 'display:block;width:100%;height:100%;object-fit:cover';
@@ -198,10 +200,43 @@ export function mountDistanceMap(o: MapOptions) {
       first = false;
     }, 150);
   };
+  const cancelDeferred = () => {
+    if (idle) window.cancelIdleCallback(idle);
+    clearTimeout(idleTimer);
+    idle = idleTimer = 0;
+    deferred = false;
+  };
+  const flushDeferred = () => { if (deferred) { cancelDeferred(); refresh(); } };
+  const nearViewport = () => {
+    const r = o.el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && r.bottom >= -300 && r.top <= innerHeight + 300;
+  };
+  const scheduleFallback = () => window.setTimeout(flushDeferred, 1500);
+  const themeChanged = () => {
+    cancelDeferred();
+    // Invalidate a pending or in-flight snapshot immediately, including rapid theme reversals.
+    clearTimeout(timer);
+    generation++;
+    dispose();
+    last = '';
+    if (roomOpen || nearViewport()) return refresh();
+    deferred = true;
+    if ('requestIdleCallback' in window) idle = window.requestIdleCallback(flushDeferred, { timeout: 1500 });
+    else idleTimer = scheduleFallback();
+  };
+  const roomChanged = (e: Event) => {
+    roomOpen = (e as CustomEvent<number>).detail > 0;
+    if (roomOpen) flushDeferred();
+  };
+  const visibility = new IntersectionObserver((entries) => {
+    if (entries.some(e => e.isIntersecting)) flushDeferred();
+  }, { rootMargin: '300px 0px' });
+  visibility.observe(o.el);
   const observer = new ResizeObserver(refresh);
   observer.observe(o.el);
-  window.addEventListener('themechange', refresh);
+  window.addEventListener('themechange', themeChanged);
+  window.addEventListener('roomlevel', roomChanged);
   window.addEventListener('resize', refresh);
   refresh();
-  return () => { generation++; clearTimeout(timer); dispose(); observer.disconnect(); window.removeEventListener('themechange', refresh); window.removeEventListener('resize', refresh); };
+  return () => { generation++; clearTimeout(timer); cancelDeferred(); dispose(); observer.disconnect(); visibility.disconnect(); window.removeEventListener('themechange', themeChanged); window.removeEventListener('roomlevel', roomChanged); window.removeEventListener('resize', refresh); };
 }

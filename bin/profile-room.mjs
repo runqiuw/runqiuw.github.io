@@ -109,7 +109,7 @@ try {
   await until("document.querySelector('.frame.live')",'live room');
   await until('__profile.ready !== null','roomready');
   assert(await evaluate("typeof __profileTarget==='function'"),'Renderer instrumentation missing');
-  if(process.env.PROFILE_EARLY_SWITCH){await evaluate("document.getElementById('theme-switch').click()");await sleep(4000);await sample(`early switch to ${other}`);}
+  if(process.env.PROFILE_EARLY_SWITCH){await sample('initial load / warmup');await evaluate("document.getElementById('theme-switch').click()");await sleep(4000);await sample(`early switch to ${other}`);}
   else await sample('initial load / warmup');
   await sleep(3000);await sample('page top');
   if(!process.env.PROFILE_QUICK){

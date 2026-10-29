@@ -1,10 +1,24 @@
 import { Group, Mesh, Vector4, type DirectionalLight, type SpotLight, type Material, type Object3D, type PerspectiveCamera, type Scene, type Texture, type WebGLRenderer, type WebGLRenderTarget } from 'three';
 
-/** Serial GPU preparation: one outstanding compile, real draws, and bounded idle turns. */
+/** Queue GPU preparation in bounded idle turns, submitting parallel shader compiles before waiting. */
 export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera, invalidate: () => void) {
   const jobs: { run: () => void | Promise<void>; done: () => void; fail: (e: unknown) => void }[] = [];
   const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
   let scheduled = false, running = false, enabled = false;
+  const pointers = new Set<number>();
+  let lastInput = 0;
+  const noteInput = () => { lastInput = performance.now(); };
+  window.addEventListener('pointerdown', e => { pointers.add(e.pointerId); noteInput(); }, { passive: true });
+  window.addEventListener('pointerup', e => { pointers.delete(e.pointerId); noteInput(); }, { passive: true });
+  window.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); noteInput(); }, { passive: true });
+  window.addEventListener('pointermove', noteInput, { passive: true });
+  window.addEventListener('wheel', noteInput, { passive: true });
+  window.addEventListener('keydown', noteInput, { passive: true });
+  window.addEventListener('blur', () => { pointers.clear(); noteInput(); });
+  const canExpand = () => {
+    const scheduling = (navigator as Navigator & { scheduling?: { isInputPending?: () => boolean } }).scheduling;
+    return !!scheduling?.isInputPending && pointers.size === 0 && performance.now() - lastInput > 200 && !scheduling.isInputPending();
+  };
   const schedule = () => {
     if (!enabled || scheduled || running || !jobs.length) return;
     scheduled = true;
@@ -17,11 +31,11 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
     running = true;
     const start = performance.now();
     // The budget limits work BETWEEN jobs; a driver call itself cannot be interrupted.
-    for (let n = 0; jobs.length && n < 2; n++) {
+    for (let n = 0; jobs.length && n < (canExpand() ? 4 : 2); n++) {
       const job = jobs.shift()!;
       try { await job.run(); job.done(); }
       catch (e) { job.fail(e); }
-      if (performance.now() - start >= 4 || (deadline && deadline.timeRemaining() < 2)) break;
+      if (performance.now() - start >= (canExpand() ? 12 : 4) || (deadline && deadline.timeRemaining() < 2)) break;
     }
     running = false;
     schedule();
@@ -80,11 +94,14 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
     // Allocate/clear one depth map per job, with no geometry, before preparing materials.
     for (const light of lights) tasks.push(add(() => draw([], light)));
     tasks.push(...[...textures].map(upload));
-    for (const batch of byMaterial.values()) tasks.push(add(async () => {
-      // Isolate compile state from materials the live canvas may use while we await the GPU.
-      const copies: Material[] = [];
-      try {
-        if (parallel) {
+    const compiling: Promise<{ ok: true } | { ok: false; error: unknown }>[] = [];
+    const copiesByBatch = new Map<Mesh[], Material[]>();
+    if (parallel) {
+      // Submit every isolated batch before waiting: the extension can compile them concurrently.
+      // Each submission remains a separate scheduled job, so input can run between driver calls.
+      for (const batch of byMaterial.values()) tasks.push(add(() => {
+        const copies: Material[] = [];
+        try {
           const group = new Group();
           for (const o of batch) {
             const copy = o.clone(false), real = (o.userData.ghost ?? o.material) as Material | Material[];
@@ -96,13 +113,27 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
             group.add(copy);
           }
           const previous = renderer.getRenderTarget();
-          renderer.setRenderTarget(target);
-          const compiled = renderer.compileAsync(group, warmCamera, scene);
-          renderer.setRenderTarget(previous);
-          await compiled;
-        }
-        draw(batch);
-      } finally { copies.forEach(m => m.dispose()); }
+          try {
+            renderer.setRenderTarget(target);
+            const compiled = renderer.compileAsync(group, warmCamera, scene);
+            // Attach a rejection handler immediately; the queue waits only after all submissions.
+            copiesByBatch.set(batch, copies);
+            compiling.push(compiled.then(() => ({ ok: true as const }), error => ({ ok: false as const, error })));
+          } finally { renderer.setRenderTarget(previous); }
+        } catch (error) { copies.forEach(m => m.dispose()); throw error; }
+      }));
+      tasks.push(add(async () => {
+        const results = await Promise.all(compiling);
+        const failure = results.find(result => !result.ok);
+        if (failure && !failure.ok) throw failure.error;
+      }));
+    }
+    for (const batch of byMaterial.values()) tasks.push(add(() => {
+      try { draw(batch); }
+      finally {
+        copiesByBatch.get(batch)?.forEach(m => m.dispose());
+        copiesByBatch.delete(batch);
+      }
     }));
     enabled = true; schedule();
     return Promise.all(tasks);
