@@ -38,7 +38,7 @@ let withoutShadowInit=source;
 const cropNegations=[];const findCrop=n=>{if(ts.isBinaryExpression(n)&&n.operatorToken.kind===ts.SyntaxKind.SlashToken&&ts.isPrefixUnaryExpression(n.left)&&n.left.operator===ts.SyntaxKind.MinusToken&&ts.isPropertyAccessExpression(n.left.operand)&&n.left.operand.name.text==='x'&&ts.isPropertyAccessExpression(n.right)&&n.right.name.text==='w')cropNegations.push(n.left.getStart(ast));ts.forEachChild(n,findCrop);};findCrop(ast);
 if(process.env.WRONG_MIRROR_SCISSOR)assert.equal(cropNegations.length,2,'Cannot locate reflection crop coordinates');
 let wrongCrop=source;for(const at of cropNegations.sort((a,b)=>b-a))wrongCrop=wrongCrop.slice(0,at)+wrongCrop.slice(at+1);
-const omitInit=n=>{if(ts.isCallExpression(n)&&ts.isPropertyAccessExpression(n.expression)&&n.expression.name.text==='prepare'&&n.arguments.length===3)withoutShadowInit=source.slice(0,n.arguments[2].getStart(ast))+'[]'+source.slice(n.arguments[2].end);ts.forEachChild(n,omitInit);};omitInit(ast);
+const omitInit=n=>{if(ts.isCallExpression(n)&&ts.isPropertyAccessExpression(n.expression)&&n.expression.name.text==='prepare'&&n.arguments.length===3&&withoutShadowInit===source)withoutShadowInit=source.slice(0,n.arguments[2].getStart(ast))+'[]'+source.slice(n.arguments[2].end);ts.forEachChild(n,omitInit);};omitInit(ast);
 const profile = mkdtempSync(join(tmpdir(), 'check-room-performance-'));
 const chrome = spawn(process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
   '--headless=new', '--disable-gpu-shader-disk-cache', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',

@@ -1,4 +1,4 @@
-import { Box3, Frustum, Matrix4, Mesh, SpotLight, type DirectionalLight, type Material, type Scene } from 'three';
+import { Box3, Frustum, Matrix4, Mesh, SpotLight, type DirectionalLight, type Material, type Scene, type WebGLRenderer } from 'three';
 
 type ShadowLight = DirectionalLight | SpotLight;
 type Entry = { matrix: Matrix4; box: Box3 | null; visible: boolean; geometry: unknown; version: number; signature: string };
@@ -72,4 +72,29 @@ export function roomShadows(scene: Scene, lights: ShadowLight[]) {
   const needs = (light: ShadowLight) => pending.has(light) || !light.shadow.map;
   const rendered = (light: ShadowLight) => { pending.delete(light); updateFrustum(light); };
   return { observe, invalidateAll, needs, rendered };
+}
+
+/**
+ * PCF shadows only sample the depth texture, but three also gives each map a full-size RGBA color
+ * texture. Once a map exists, detach and delete that texture: a depth-only framebuffer is complete
+ * in WebGL2, and color writes to the empty attachment are discarded.
+ */
+export function dropShadowColor(renderer: WebGLRenderer, lights: ShadowLight[]) {
+  const gl = renderer.getContext() as WebGL2RenderingContext;
+  for (const light of lights) {
+    const map = light.shadow.map;
+    if (!map || map.texture.userData.dropped) continue;
+    const framebuffer = (renderer.properties.get(map) as { __webglFramebuffer?: WebGLFramebuffer }).__webglFramebuffer;
+    const texture = (renderer.properties.get(map.texture) as { __webglTexture?: WebGLTexture }).__webglTexture;
+    if (!framebuffer || !texture) continue;
+    const previous = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, null, 0);
+    const complete = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    if (!complete) gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, previous);
+    if (!complete) continue;
+    gl.deleteTexture(texture);
+    map.texture.userData.dropped = true;
+  }
 }

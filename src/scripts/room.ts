@@ -2779,7 +2779,10 @@ uniform float uStripEnd;
     dirty = shadowDirty = true;
   };
   const late = lateAssets.size ? loadLate().catch(() => {}) : Promise.resolve();
-  const shadowTracker = (await shadowModule).roomShadows(scene, shadowLights);
+  const shadows = await shadowModule;
+  // Every map exists after preparation (see room-warmup.ts); keep only their depth textures.
+  shadows.dropShadowColor(renderer, shadowLights);
+  const shadowTracker = shadows.roomShadows(scene, shadowLights);
   ready = true;
   warmUntil = performance.now() + 1800;
   // Opt-in access for the profiling and screenshot tools (bin/profile-room.mjs, bin/capture-room-baseline.mjs).
