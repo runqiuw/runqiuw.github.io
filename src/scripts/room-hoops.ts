@@ -161,6 +161,8 @@ export interface HoopsSpec {
   redraw: () => void;
   /** The thrown bodies changed position or shadow-casting state. */
   shadowChanged?: () => void;
+  /** Prepare meshes' shader programs in small background jobs (the room's warmup queue). */
+  prepare?: (meshes: Mesh[]) => Promise<unknown>;
 }
 
 export function createHoops(o: HoopsSpec) {
@@ -307,6 +309,7 @@ export function createHoops(o: HoopsSpec) {
   for (const k of Object.keys(KINDS) as Kind[])
     o.load(KINDS[k].asset).then((m) => {
       templates[k] = make(k, m);
+      warm(heldModel(templates[k]!));
       if (k === kind) showHand();
     });
 
@@ -458,6 +461,25 @@ export function createHoops(o: HoopsSpec) {
   dots.visible = false;
   dots.raycast = () => {};
   o.scene.add(dots);
+  // Draw what the first aim, throw and result would otherwise compile on the spot: each held prop
+  // with its outline, the guide dots and a celebration, hidden, through the room's warmup queue.
+  // The warm-up materials are never disposed, so their programs stay cached for the real ones.
+  let effectsWarmed = false;
+  const warm = (g: Object3D) => {
+    if (!o.prepare) return;
+    if (!effectsWarmed) {
+      effectsWarmed = true;
+      g.add(
+        new InstancedMesh(beadGeo, new MeshBasicMaterial({ transparent: true, toneMapped: false }), 1),
+        new Mesh(ringGeo, new MeshBasicMaterial({ transparent: true, toneMapped: false })),
+      );
+    }
+    g.visible = false;
+    o.scene.add(g);
+    const meshes: Mesh[] = [dots];
+    g.traverse((x) => { if (x instanceof Mesh) meshes.push(x); });
+    void o.prepare(meshes).catch(() => {}).finally(() => o.scene.remove(g));
+  };
   const dm = new Matrix4();
   const preview = (p0: Vector3, v0: Vector3) => {
     const ghost = projectileBody(kind, p0, v0), flight = [p0.clone()];

@@ -2289,6 +2289,10 @@ uniform float uStripEnd;
           // Held and thrown props can cast shadows as they appear, move, or disappear.
           redraw: () => (dirty = shadowDirty = true),
           shadowChanged: () => (dirty = shadowDirty = true),
+          prepare: (meshes) => Promise.all([
+            preparation.prepare(meshes),
+            roomMirror && preparation.prepare(meshes, roomMirror.getRenderTarget()),
+          ]),
         });
         if (focused === 'hoops') hoops.enter();
       })
@@ -2771,7 +2775,8 @@ uniform float uStripEnd;
       g.traverse(o => { if (o instanceof Mesh) meshes.push(o); });
     });
     if (!meshes.length) return;
-    await preparation.prepare(meshes, null, shadowLights);
+    // Shadow maps already exist; preparing them again would redraw each one without geometry.
+    await preparation.prepare(meshes);
     if (roomMirror) await preparation.prepare(meshes, roomMirror.getRenderTarget());
     warmMeshes.push(...meshes);
     blockers.push(...meshes);
@@ -2801,12 +2806,19 @@ uniform float uStripEnd;
   window.addEventListener('themechange', (e) => setTheme((e as CustomEvent<'light' | 'dark'>).detail));
   if (roomMirror) setTimeout(() => {
     const target = roomMirror.getRenderTarget();
-    void preparation.prepare(warmMeshes.filter(o => o !== roomMirror), target).then(() => {
+    const show = () => {
+      (roomMirror.userData.standIn as Object3D | undefined)?.removeFromParent();
       roomMirror.visible = true;
       dirty = true;
       window.dispatchEvent(new Event('roomready'));
+    };
+    // A failed batch must not leave the glass black for good: show it anyway (its remaining
+    // programs then compile on first use).
+    void preparation.prepare(warmMeshes.filter(o => o !== roomMirror), target).then(show, (e) => {
+      console.warn('Mirror preparation failed.', e);
+      show();
     });
-  }, 1500);
+  }, 300);
   else window.dispatchEvent(new Event('roomready'));
   return { canvas, enterFull, exitFull, focus, unfocus, visit };
 }

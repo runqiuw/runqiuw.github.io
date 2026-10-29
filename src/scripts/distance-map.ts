@@ -68,6 +68,10 @@ function renderDistanceMap(o: MapOptions & { onSnapshot: (page: string, room: st
   };
   let shown = o.reduceMotion ? path.length : 1;
   const line = () => ({ type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: path.slice(0, Math.max(2, shown)) } });
+  // The OpenFreeMap style names a few icons its sprite lacks; they are invisible either way.
+  map.setMissingStyleImageResolver((id) => {
+    if (!map.hasImage(id)) map.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) });
+  });
   map.on('style.load', () => {
     map.addSource('trip', { type: 'geojson', data: line() });
     map.addLayer({

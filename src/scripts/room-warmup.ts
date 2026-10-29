@@ -4,7 +4,7 @@ import { Group, Mesh, Vector4, type DirectionalLight, type SpotLight, type Mater
 export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: PerspectiveCamera, invalidate: () => void) {
   const jobs: { run: () => void | Promise<void>; done: () => void; fail: (e: unknown) => void }[] = [];
   const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
-  let scheduled = false, running = false, enabled = false;
+  let scheduled = false, running = false, enabled = false, cost = 0, inFlight = 0;
   const pointers = new Set<number>();
   let lastInput = 0;
   const noteInput = () => { lastInput = performance.now(); };
@@ -12,17 +12,20 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
   window.addEventListener('pointerup', e => { pointers.delete(e.pointerId); noteInput(); }, { passive: true });
   window.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); noteInput(); }, { passive: true });
   window.addEventListener('pointermove', noteInput, { passive: true });
-  window.addEventListener('wheel', noteInput, { passive: true });
   window.addEventListener('keydown', noteInput, { passive: true });
   window.addEventListener('blur', () => { pointers.clear(); noteInput(); });
   const canExpand = () => {
     const scheduling = (navigator as Navigator & { scheduling?: { isInputPending?: () => boolean } }).scheduling;
     return !!scheduling?.isInputPending && pointers.size === 0 && performance.now() - lastInput > 200 && !scheduling.isInputPending();
   };
+  // Idle callbacks starve while the page scrolls: they then only fire on their timeout, with no
+  // idle time left. Page scrolling runs on the compositor, so a timed-out turn still uses its
+  // budget, and wheel input does not count as input here. After an expensive turn (slow GPUs,
+  // software rendering) the timeout grows back to 120 ms to leave the page room in between.
   const schedule = () => {
     if (!enabled || scheduled || running || !jobs.length) return;
     scheduled = true;
-    if ('requestIdleCallback' in window) requestIdleCallback(turn, { timeout: 120 });
+    if ('requestIdleCallback' in window) requestIdleCallback(turn, { timeout: Math.min(120, Math.max(34, cost)) });
     else setTimeout(() => turn(), 32);
   };
   const turn = async (deadline?: IdleDeadline) => {
@@ -35,9 +38,10 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
       const job = jobs.shift()!;
       try { await job.run(); job.done(); }
       catch (e) { job.fail(e); }
-      if (performance.now() - start >= (canExpand() ? 12 : 4) || (deadline && deadline.timeRemaining() < 2)) break;
+      if (performance.now() - start >= (canExpand() ? 12 : 4) || (deadline && !deadline.didTimeout && deadline.timeRemaining() < 2)) break;
     }
     running = false;
+    cost = performance.now() - start;
     schedule();
   };
   const add = (run: () => void | Promise<void>) => new Promise<void>((done, fail) => {
@@ -99,13 +103,20 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
     if (parallel) {
       // Submit every isolated batch before waiting: the extension can compile them concurrently.
       // Each submission remains a separate scheduled job, so input can run between driver calls.
-      for (const batch of byMaterial.values()) tasks.push(add(() => {
+      for (const batch of byMaterial.values()) tasks.push(add(async () => {
+        // Bound the compiles in flight: a single-threaded GPU process (software rendering) would
+        // otherwise queue them all, and any synchronous GL call would wait for the whole queue.
+        while (inFlight >= 4) await new Promise(r => setTimeout(r, 8));
         const copies: Material[] = [];
         try {
           const group = new Group();
           for (const o of batch) {
             const copy = o.clone(false), real = (o.userData.ghost ?? o.material) as Material | Material[];
             const clone = (m: Material) => {
+              // Render-target textures cannot be cloned (three warns and drops them); such a
+              // material (the mirror's) is only used once prepared, so compile it as it is.
+              const uniforms = (m as Material & { uniforms?: Record<string, { value: unknown }> }).uniforms;
+              if (Object.values(uniforms ?? {}).some(u => (u.value as Texture | null)?.isRenderTargetTexture)) return m;
               const c = m.clone(); c.onBeforeCompile = m.onBeforeCompile; c.customProgramCacheKey = m.customProgramCacheKey;
               copies.push(c); return c;
             };
@@ -118,7 +129,8 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
             const compiled = renderer.compileAsync(group, warmCamera, scene);
             // Attach a rejection handler immediately; the queue waits only after all submissions.
             copiesByBatch.set(batch, copies);
-            compiling.push(compiled.then(() => ({ ok: true as const }), error => ({ ok: false as const, error })));
+            inFlight++;
+            compiling.push(compiled.then(() => ({ ok: true as const }), error => ({ ok: false as const, error })).finally(() => inFlight--));
           } finally { renderer.setRenderTarget(previous); }
         } catch (error) { copies.forEach(m => m.dispose()); throw error; }
       }));
