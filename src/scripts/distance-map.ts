@@ -122,10 +122,15 @@ function renderDistanceMap(o: MapOptions & { onSnapshot: (page: string, room: st
     const out = document.createElement('canvas');
     [out.width, out.height] = [cw, c.height];
     out.getContext('2d')!.drawImage(c, sx, 0, cw, c.height, 0, 0, cw, c.height);
-    const page = c.toDataURL('image/png'), room = out.toDataURL('image/jpeg', .85);
     const credits = map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-attrib-inner')?.cloneNode(true) as HTMLElement | null;
-    dispose();
-    o.onSnapshot(page, room, credits);
+    // Encode in the background (toDataURL blocked the main thread for ~75 ms); keep the map until
+    // both images are taken.
+    const encode = (canvas: HTMLCanvasElement, type: string, quality?: number) => new Promise<string>((ok, fail) =>
+      canvas.toBlob((blob) => (blob ? ok(URL.createObjectURL(blob)) : fail(new Error('Map snapshot failed'))), type, quality));
+    Promise.all([encode(c, 'image/png'), encode(out, 'image/jpeg', .85)]).then(([page, room]) => {
+      dispose();
+      o.onSnapshot(page, room, credits);
+    }, (e) => { dispose(); console.warn(e); });
   };
 
   const finish = () => {
@@ -195,9 +200,13 @@ export function mountDistanceMap(o: MapOptions) {
       o.el.replaceChildren();
       dispose = renderDistanceMap({ ...o, reduceMotion: o.reduceMotion || !first,
         onSnapshot: (page, room, credits) => {
-          if (current !== generation) return;
+          if (current !== generation) { URL.revokeObjectURL(page); URL.revokeObjectURL(room); return; }
           // Retain at most the two theme snapshots; old window sizes don't accumulate.
-          if (cache.size >= 2) cache.delete(cache.keys().next().value!);
+          if (cache.size >= 2) {
+            const [oldest, stale] = cache.entries().next().value!;
+            cache.delete(oldest);
+            URL.revokeObjectURL(stale.page); URL.revokeObjectURL(stale.room);
+          }
           const snapshot = { page, room, credits }; cache.set(key, snapshot); display(snapshot);
         },
       });

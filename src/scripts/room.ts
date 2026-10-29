@@ -154,7 +154,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   };
   const center = P(2.05, 1.85, 0.85);
 
-  let dirty = true, shadowDirty = true;
+  let dirty = true, shadowDirty = true, hoopsShadow = false, hoopsShadowAt = 0;
   let forceShadows = false;
   const preparation = (await warmupModule).roomWarmup(renderer, scene, cam, () => { dirty = true; });
   let active = opts.section in SHOTS ? opts.section : 'top';
@@ -1086,6 +1086,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
       // Sharp at a glancing angle; matte coated paper has a soft sheen, the woven tapestry none.
       tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       const mat = new MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.5, roughness: 0.62, side: (planes[0].material as Material).side });
+      mat.userData.role = 'print';
       if (FABRIC_PRINTS.includes(id)) {
         // Tiny repeating height map: the actual drape/folds are Blender geometry. No animation
         // or additional draw loop is needed for the printed cloth's woven surface.
@@ -2287,8 +2288,8 @@ uniform float uStripEnd;
           dress,
           reduceMotion: opts.reduceMotion,
           // Held and thrown props can cast shadows as they appear, move, or disappear.
-          redraw: () => (dirty = shadowDirty = true),
-          shadowChanged: () => (dirty = shadowDirty = true),
+          redraw: () => { dirty = true; hoopsShadow = true; },
+          shadowChanged: () => { dirty = true; hoopsShadow = true; },
           prepare: (meshes) => Promise.all([
             preparation.prepare(meshes),
             roomMirror && preparation.prepare(meshes, roomMirror.getRenderTarget()),
@@ -2332,10 +2333,12 @@ uniform float uStripEnd;
   let focused: string | null = null;
   let beforeFocus = { t: new Vector3(), p: new Vector3() };
   let tissues: ReturnType<typeof import('./room-tissues').addTissues>;
+  let travel: ReturnType<typeof import('./room-travel').addTravel>;
   const closeupHooks: Record<string, { enter?: () => void; leave?: () => void }> = {
     desk: { enter: () => { void import('./room-tissues').then(m => { tissues = m.addTissues(placed.tissues, canvas, cam, () => full && focused === 'desk' && !flying, surfaceAt, () => { dirty = shadowDirty = true; }); }); }, leave: () => tissues?.leave() },
     board: { leave: () => closeBoard() },
     hoops: { enter: () => enterHoops(), leave: () => hoops?.leave() },
+    map: { enter: () => { void import('./room-travel').then(m => { travel = m.addTravel(placed.travelMap, canvas, cam, () => full && focused === 'map' && !flying, () => { dirty = true; }, () => opts.onBack()); }); }, leave: () => travel?.leave() },
   };
   const flyTo = (q: { t: Vector3; p: Vector3; fov?: number }, id: string) =>
     new Promise<void>((done) => {
@@ -2716,6 +2719,13 @@ uniform float uStripEnd;
     if (hoops?.step(dt)) dirty = true;
     if (coffeeSteam.step(now, !focused || focused === 'desk', frame.clientHeight)) dirty = true;
     lastNow = now;
+    // A flying prop would otherwise redraw every shadow map each frame (the sun's 2048² one, all
+    // five at night), pushing frames past a 120 Hz budget. Its small, fast shadow follows at
+    // 20 Hz; the last change is always applied, so resting shadows stay exact.
+    if (hoopsShadow) {
+      dirty = true;
+      if (now - hoopsShadowAt >= 50) { hoopsShadow = false; hoopsShadowAt = now; shadowDirty = true; }
+    }
     // The ambilight breathes and the night clock flickers: redraw at ~30 fps while they're on. By day
     // the clock only needs a redraw when its seconds change.
     const sec = Math.floor(Date.now() / 1000);
@@ -2752,10 +2762,18 @@ uniform float uStripEnd;
     t.setSize(Math.min(2048, Math.floor(innerWidth * ratio)), Math.min(2048, Math.floor((innerHeight - (document.querySelector('.nav')?.clientHeight ?? 0)) * ratio)));
     void preparation.enqueue(() => renderer.initRenderTarget(t));
   }
-  // Prepare visible AND hidden canvas variants before the live canvas fades in.
+  // Prepare visible AND hidden canvas variants before the live canvas fades in, then the mirror's
+  // reflection-target variants: the panel keeps its loading state until nothing visible still needs
+  // compiling, rather than showing a room that stalls on its first moves.
   await preparation.prepare(warmMeshes, null, shadowLights);
   // The page remains usable while preparing; catch theme/scroll changes made during loading.
   const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+  if (roomMirror) {
+    // A failed batch must not hide the glass for good; its remaining programs compile on first use.
+    await preparation.prepare(warmMeshes.filter(o => o !== roomMirror), roomMirror.getRenderTarget())
+      .catch((e) => console.warn('Mirror preparation failed.', e));
+    roomMirror.visible = true;
+  }
   if (theme !== currentTheme) setTheme(currentTheme);
   const section = document.documentElement.dataset.section;
   if (section && shots[section]) { active = section; jump(shots[section]); }
@@ -2804,21 +2822,6 @@ uniform float uStripEnd;
     updateScreens();
   });
   window.addEventListener('themechange', (e) => setTheme((e as CustomEvent<'light' | 'dark'>).detail));
-  if (roomMirror) setTimeout(() => {
-    const target = roomMirror.getRenderTarget();
-    const show = () => {
-      (roomMirror.userData.standIn as Object3D | undefined)?.removeFromParent();
-      roomMirror.visible = true;
-      dirty = true;
-      window.dispatchEvent(new Event('roomready'));
-    };
-    // A failed batch must not leave the glass black for good: show it anyway (its remaining
-    // programs then compile on first use).
-    void preparation.prepare(warmMeshes.filter(o => o !== roomMirror), target).then(show, (e) => {
-      console.warn('Mirror preparation failed.', e);
-      show();
-    });
-  }, 300);
-  else window.dispatchEvent(new Event('roomready'));
+  window.dispatchEvent(new Event('roomready'));
   return { canvas, enterFull, exitFull, focus, unfocus, visit };
 }

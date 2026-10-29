@@ -7,8 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ts from 'typescript';
 
-// The baked gun atlas must not inherit the scan's redundant vertex colors: joining
-// unpainted stand/box geometry gives those new vertices black Color defaults.
+// The gun's colour lives in its atlas. A stray Color attribute would multiply it and give
+// joined parts without paint black vertex-colour defaults.
 const gunBuffer=readFileSync(new URL('../dist/room/assets/m1917_figure.glb',import.meta.url));
 const gunJson=JSON.parse(gunBuffer.subarray(20,20+gunBuffer.readUInt32LE(12)).toString());
 assert(gunJson.meshes.every(m=>m.primitives.every(p=>!Object.hasOwn(p.attributes,'COLOR_0'))),'M1917 inherited duplicate/black vertex colors');

@@ -3396,17 +3396,17 @@
       "catalog": "Room/Collectibles",
       "mount": "desk",
       "size": [
-        0.1191,
-        0.1017,
+        0.1193,
+        0.1014,
         0.1599
       ],
       "elevation": 0,
       "roles": [
         "Guldan painted resin"
       ],
-      "triangles": 18000,
-      "bytes": 100652,
-      "description": "Gul'dan collectible adapted from Berczihun's CC BY sculpture: 160 mm tall, simplified static sculpt, hand-painted green skin, purple robes, ivory bones and vertex-baked crevice shading. No bitmap textures.",
+      "triangles": 10000,
+      "bytes": 347684,
+      "description": "Gul'dan collectible adapted from Berczihun's CC BY sculpture: 160 mm tall, 10k-triangle display mesh with the 300k-triangle sculpt baked into 1024px normal and painted-colour maps (green skin, purple robes, ivory bones, iron chains, fel vials, crevice shading).",
       "calibration": {
         "height_m": 0.16,
         "static": true
@@ -3415,7 +3415,7 @@
       "credits": {
         "author": "Berczihun",
         "source": "https://sketchfab.com/3d-models/wo-w--guldanobj-24fb93047c6d4b668e01abe2021c070b",
-        "changes": "Scaled to 160 mm, merged/simplified static mesh, original region-painted resin palette based on Blizzard Guldan references and vertex crevice shading."
+        "changes": "Scaled to 160 mm; 10k-triangle display mesh with normal and colour maps baked from a 300k-triangle reduction; original region-painted palette based on Blizzard Guldan references, with baked ambient occlusion."
       },
       "preserve_materials": true
     },
@@ -3425,45 +3425,32 @@
       "mount": "desk",
       "size": [
         0.19,
-        0.0563,
-        0.0611
+        0.0553,
+        0.0585
       ],
       "elevation": 0,
       "roles": [
-        "M1917 accessory painted steel.002",
-        "M1917 aged brass fittings.002",
-        "M1917 ammunition box end grain.002",
-        "M1917 ammunition box warm wood.002",
-        "M1917 original scanned finish.001",
+        "M1917 ornate gilded steel.002",
+        "M1917 ornate lacquered wood.002",
         "Miniature stand charcoal.002"
       ],
-      "triangles": 18965,
-      "bytes": 350336,
-      "description": "M1917A1 miniature adapted from Anticipateants' CC BY museum scan: full upper gun with its curved cradle, sights and rear grip retained; low circular mount block, cart and wheels removed. Restored two-post exhibition base and side ammunition box; one readable 1024px source-color atlas.",
+      "triangles": 4076,
+      "bytes": 193984,
+      "description": "Ornate gilded M1917 display miniature after the user's Battlefield 1 reference: engraved blued water jacket with gold bands and floral muzzle cap, dangling chain, long receiver with rear grip, side-mounted lacquered skull-panel ammunition box and gilded folding bipod on the charcoal plinth. Original geometry; one 1024px atlas shared by two materials.",
       "calibration": {
-        "gun_length_m": 0.18,
-        "tripod": false,
         "display_base_m": [
           0.19,
           0.055,
           0.004
         ],
-        "display_support": "short_two_posts",
-        "lower_mount_block": false,
-        "cradle_plinth_clearance_m": 0.001,
-        "display_pitch_degrees": -6.5,
-        "curved_cradle": true,
+        "bore_height_m": 0.0405,
+        "bipod": true,
+        "rear_post": true,
         "side_ammunition_box": true,
-        "cart": false,
-        "wheels": false,
+        "rear_grip": true,
         "static": true
       },
-      "license": "CC-BY-4.0",
-      "credits": {
-        "author": "Anticipateants",
-        "source": "https://sketchfab.com/3d-models/m1917-machine-gun-idaho-military-history-museum-323b8d115e6b4016b40ca667d700761d",
-        "changes": "Retained complete upper gun, curved cradle, sights and grip; removed cart and wheels. Static simplification and repacked 1024px source atlas with lifted midtones. Removed the low circular mounting shoe/stub while retaining the curved cradle. Levelled the muzzle pitch and lowered the gun onto shortened posts above a thinner rectangular exhibition plinth; side wooden ammunition box retained. No tripod."
-      },
+      "license": "Original geometry and texture.",
       "preserve_materials": true
     },
     "android_mascot": {

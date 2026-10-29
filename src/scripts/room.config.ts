@@ -132,6 +132,9 @@ export const PLACEMENTS: Placement[] = [
   { id: 'pinboard', asset: 'pinboard', at: [1.42, 3.7], z: 1.4, colors: { wood: '#c4925e' }, section: 'playground' },
   { id: 'tvstand', bounce: false, asset: 'tvstand', at: [2.86, 3.477], section: 'games' },
   { id: 'tv', asset: 'tv', at: [2.86, 3.55], z: 0.5, colors: { frame: BEZEL }, section: 'games' },
+  // World map poster (0.9 × 0.6 m) on the clear wall above the TV, pinned from src/data/travel.yaml
+  // (bin/room-travel.mjs). Its close-up (`map`) fans out a place's photos from its pin.
+  { id: 'travelMap', asset: 'poster_45x30', at: [2.86, 3.697], z: 1.42, scale: 2 },
   { id: 'console', asset: 'console', at: [3.07, 3.355], z: 0.5, section: 'games' },
   { id: 'tvGamepad', asset: 'xbox_controller', at: [3.095, 3.355], z: 0.552, on: 'console', section: 'games' },
   { id: 'tvRemote', asset: 'tv_remote', at: [2.975, 3.355], z: 0.551, on: 'console', section: 'games' },
@@ -234,6 +237,8 @@ export const CLOSEUPS: Record<string, CloseUp> = {
   // Low, behind the throwing spot and a little to its side (so the arc of a throw reads), looking at
   // the bin and the taped backboard on the front wall.
   hoops: { object: 'bin', shot: { center: [3, 0.86, 0.48], r: 0.68, dir: [0, 1, 0.38], far: 2.5 } },
+  // The travel map above the TV, square on (room-travel.ts fans photos out of its pins).
+  map: { object: 'travelMap', shot: { center: [2.86, 3.69, 1.72], r: 0.48, dir: [0, -1, 0.04] } },
 };
 
 /** Mini court distances are in meters, scaled for this room; the asset's arc uses the same radius. */
@@ -285,6 +290,7 @@ export const LABELS: [section: string, title: string, anchor: string][] = [
   ['games', 'Games', 'tv'],
   ['playground', 'Playground', 'pinboard'],
   ['hoops', 'Hoops', 'bin'],
+  ['map', 'Travel', 'travelMap'],
 ];
 
 /** Night lights sit at these placements (the lamp heads, the monitor light bars, the TV); the TV
@@ -310,6 +316,7 @@ export const PRINTS: Record<string, string | Record<string, string>> = {
   posterSun: '/room/prints/sun-poster.webp',
   posterLipa: '/room/prints/lipa-poster.webp',
   posterCampus: '/room/prints/campus-poster.webp',
+  travelMap: '/room/prints/travel-map.webp',
   tvGamepad: '/room/prints/xbox-controller.webp',
   deskmat: '/room/prints/logitech-deskmat.webp',
   keyboard: '/room/prints/keychron-v2.jpg',

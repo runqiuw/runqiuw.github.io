@@ -119,6 +119,8 @@ import night from '../assets/img/room/poster-night.webp';
   });
 
   const load = () => {
+    // The still stays until the room is fully prepared; say so instead of looking frozen.
+    if (!room) loading.hidden = false;
     room ??= import('../scripts/room')
       .then(({ mountRoom }) =>
         mountRoom(frame, {
@@ -132,6 +134,7 @@ import night from '../assets/img/room/poster-night.webp';
       )
       .then((r) => {
         frame.classList.add('live');
+        loading.hidden = true;
         return r;
       });
     room.catch((err) => {
@@ -184,7 +187,7 @@ import night from '../assets/img/room/poster-night.webp';
     closeBar.hidden = true;
     exitBtn.hidden = true;
     help.hidden = true;
-    loading.hidden = true;
+    // Still loading: the label stays with the still image (the room hides it once live).
     // Start shrinking right away. On mobile a jump to a section scrolls the card off screen, so
     // fade out in the middle instead.
     const target = section && section !== 'top' && !wide.matches ? null : home();
@@ -498,6 +501,8 @@ import night from '../assets/img/room/poster-night.webp';
     white-space: nowrap;
   }
   .loading {
+    left: 14px;
+    bottom: 14px;
     font: 600 15px var(--font-display);
     color: var(--mute);
     background: var(--surface);

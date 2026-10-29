@@ -141,22 +141,17 @@ were modelled for this scene; no third-party model or product photo is redistrib
 Wo W_ Gul'dan.obj by Berczihun — CC BY 4.0
 https://sketchfab.com/3d-models/wo-w--guldanobj-24fb93047c6d4b668e01abe2021c070b
 https://creativecommons.org/licenses/by/4.0/
-Changes: uniform 160 mm miniature, static mesh simplification, region-painted green skin,
-purple robes, grey beard and ivory bones, with vertex-baked crevice shading.
+Changes: uniform 160 mm miniature; 10k-triangle display mesh with normal and colour maps baked
+from a 300k-triangle reduction of the sculpt; region-painted green skin, purple robes, grey beard,
+ivory bones, iron chains and fel vials, with baked ambient occlusion.
 Palette reference: https://heroesofthestorm.blizzard.com/en-us/heroes/guldan/
  Warcraft/Gul'dan belongs to Blizzard Entertainment.
 
-M1917 Machine Gun @Idaho Military History Museum by Anticipateants — CC BY 4.0
-https://sketchfab.com/3d-models/m1917-machine-gun-idaho-military-history-museum-323b8d115e6b4016b40ca667d700761d
-https://creativecommons.org/licenses/by/4.0/
-The source is a museum M1917A1 scan, not an extracted Battlefield game asset.
-Changes: complete upper gun retained, including the curved cradle, sights and rear grip;
-cart, wheels and the low circular mounting shoe/stub removed. Uniform 180 mm source miniature displayed at 2x (360 mm gun),
-static simplification and one 1024-pixel source-color atlas with lifted midtones.
-Redundant scanned vertex colors removed after baking to avoid multiplying the color twice.
-Added an original side-mounted wooden ammunition box with lid and carrying handle.
-Retained the rectangular exhibition plinth and two vertical support posts; no tripod.
-Levelled the gun 6.5 degrees, lowered its supports and thinned the plinth to clear the TV display; no scaling change.
+Ornate M1917 display miniature — original geometry and procedurally drawn engraving atlas,
+modelled after the ornate skull-skin water-cooled machine gun from Battlefield 1 (a design reference
+only; no game asset was used). Battlefield belongs to Electronic Arts.
+Engraved water jacket, gilded bands and muzzle cap, long receiver with rear grip, side-mounted
+lacquered ammunition box and folding bipod on the charcoal display plinth, with one rear post.
 
 Bottom-shelf technology collectibles
 ------------------------------------

@@ -1,4 +1,4 @@
-import { Color, Matrix4, Mesh, MeshStandardMaterial, PlaneGeometry, Vector3, Vector4, type Material, type Object3D, type Scene } from 'three';
+import { Color, Matrix4, Mesh, PlaneGeometry, Vector3, Vector4, type Material, type Object3D, type Scene } from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
 /** A planar mirror fitted to the leaning glass, including the room's cut-away walls. */
@@ -49,15 +49,6 @@ export function addRoomMirror(frame: Object3D, scene: Scene, ceiling: Object3D) 
   // Deliberately removed glass must not be made visible again by off-screen shader warmup.
   glass.forEach(m => m.removeFromParent());
   frame.attach(mirror);
-  // Until the reflection is ready, plain polished glass reflecting the environment light stands
-  // in for it; without it the empty frame reads as a black hole. The room removes it on reveal.
-  const standIn = new Mesh(mirror.geometry, new MeshStandardMaterial({ color: '#c9ced8', metalness: 1, roughness: 0.12 }));
-  standIn.name = 'mirror-stand-in';
-  standIn.position.copy(mirror.position);
-  standIn.quaternion.copy(mirror.quaternion);
-  standIn.raycast = () => {};
-  frame.add(standIn);
-  mirror.userData.standIn = standIn;
   mirror.geometry.computeBoundingBox();
   const box = mirror.geometry.boundingBox!, clip = new Vector4();
   const reflect = mirror.onBeforeRender.bind(mirror);

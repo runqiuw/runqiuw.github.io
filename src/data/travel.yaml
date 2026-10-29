@@ -1,0 +1,342 @@
+# Places on the travel map above the room's TV, one entry per place. Places too close to have
+# separate pins on the poster share one pin (bin/room-travel.mjs groups them). In the map's
+# close-up, clicking a pin fans out that pin's photos; clicking anywhere else folds them back.
+# After editing, run
+#   node bin/room-travel.mjs
+# which redraws the poster and writes public/room/travel/ (photos resized to 640 px, EXIF/GPS dropped).
+#
+# - id: short-slug
+#   place: Kyoto
+#   lnglat: [135.768, 35.012]        # longitude, latitude
+#   when: April 2024                 # optional
+#   photos:
+#     - src: photos/travel/kyoto/torii.jpg   # repo-relative original
+#       caption: Fushimi Inari before the crowds
+#     - placeholder: Kyoto           # a generated stand-in until the real photo exists
+#
+# Every photo below is still a placeholder: replace them with real photos.
+- id: shanghai
+  place: Shanghai
+  lnglat: [121.47, 31.23]
+  photos:
+    - placeholder: Shanghai
+- id: ann-arbor
+  place: Ann Arbor
+  lnglat: [-83.74, 42.28]
+  photos:
+    - placeholder: Ann Arbor
+- id: beijing
+  place: Beijing
+  lnglat: [116.40, 39.90]
+  photos:
+    - placeholder: Beijing
+- id: guangzhou
+  place: Guangzhou
+  lnglat: [113.26, 23.13]
+  photos:
+    - placeholder: Guangzhou
+- id: zagreb
+  place: Zagreb
+  lnglat: [15.98, 45.81]
+  photos:
+    - placeholder: Zagreb
+- id: fuzhou
+  place: Fuzhou
+  lnglat: [119.30, 26.08]
+  photos:
+    - placeholder: Fuzhou
+- id: changsha
+  place: Changsha
+  lnglat: [112.94, 28.23]
+  photos:
+    - placeholder: Changsha
+- id: yueyang
+  place: Yueyang
+  lnglat: [113.13, 29.36]
+  photos:
+    - placeholder: Yueyang
+- id: dalian
+  place: Dalian
+  lnglat: [121.61, 38.91]
+  photos:
+    - placeholder: Dalian
+- id: los-angeles
+  place: Los Angeles
+  lnglat: [-118.24, 34.05]
+  photos:
+    - placeholder: Los Angeles
+- id: madison
+  place: Madison
+  lnglat: [-89.40, 43.07]
+  photos:
+    - placeholder: Madison
+- id: miami
+  place: Miami
+  lnglat: [-80.19, 25.76]
+  photos:
+    - placeholder: Miami
+- id: miami-beach
+  place: Miami Beach
+  lnglat: [-80.13, 25.79]
+  photos:
+    - placeholder: Miami Beach
+- id: rome
+  place: Rome
+  lnglat: [12.50, 41.90]
+  photos:
+    - placeholder: Rome
+- id: velika-gorica
+  place: Velika Gorica
+  lnglat: [16.07, 45.71]
+  photos:
+    - placeholder: Velika Gorica
+- id: vienna
+  place: Vienna
+  lnglat: [16.37, 48.21]
+  photos:
+    - placeholder: Vienna
+- id: shenzhen
+  place: Shenzhen
+  lnglat: [114.06, 22.54]
+  photos:
+    - placeholder: Shenzhen
+- id: chapel-hill
+  place: Chapel Hill
+  lnglat: [-79.06, 35.91]
+  photos:
+    - placeholder: Chapel Hill
+- id: romulus
+  place: Romulus
+  lnglat: [-83.40, 42.22]
+  photos:
+    - placeholder: Romulus
+- id: budapest
+  place: Budapest
+  lnglat: [19.04, 47.50]
+  photos:
+    - placeholder: Budapest
+- id: jingdezhen
+  place: Jingdezhen
+  lnglat: [117.18, 29.27]
+  photos:
+    - placeholder: Jingdezhen
+- id: hangzhou
+  place: Hangzhou
+  lnglat: [120.16, 30.27]
+  photos:
+    - placeholder: Hangzhou
+- id: wuhan
+  place: Wuhan
+  lnglat: [114.31, 30.59]
+  photos:
+    - placeholder: Wuhan
+- id: shenyang
+  place: Shenyang
+  lnglat: [123.43, 41.80]
+  photos:
+    - placeholder: Shenyang
+- id: detroit
+  place: Detroit
+  lnglat: [-83.05, 42.33]
+  photos:
+    - placeholder: Detroit
+- id: east-lansing
+  place: East Lansing
+  lnglat: [-84.48, 42.74]
+  photos:
+    - placeholder: East Lansing
+- id: santa-cruz
+  place: Santa Cruz
+  lnglat: [-122.03, 36.97]
+  photos:
+    - placeholder: Santa Cruz
+- id: san-francisco
+  place: San Francisco
+  lnglat: [-122.42, 37.77]
+  photos:
+    - placeholder: San Francisco
+- id: santa-monica
+  place: Santa Monica
+  lnglat: [-118.49, 34.02]
+  photos:
+    - placeholder: Santa Monica
+- id: alhambra
+  place: Alhambra
+  lnglat: [-118.13, 34.10]
+  photos:
+    - placeholder: Alhambra
+- id: incheon
+  place: Incheon
+  lnglat: [126.71, 37.46]
+  photos:
+    - placeholder: Incheon
+- id: vatican-city
+  place: Vatican City
+  lnglat: [12.45, 41.90]
+  photos:
+    - placeholder: Vatican City
+- id: zadar
+  place: Zadar
+  lnglat: [15.23, 44.12]
+  photos:
+    - placeholder: Zadar
+- id: huangshan
+  place: Huangshan
+  lnglat: [118.34, 29.71]
+  photos:
+    - placeholder: Huangshan
+- id: suzhou
+  place: Suzhou
+  lnglat: [120.59, 31.30]
+  photos:
+    - placeholder: Suzhou
+- id: nanping
+  place: Nanping
+  lnglat: [118.18, 26.64]
+  photos:
+    - placeholder: Nanping
+- id: qinhuangdao
+  place: Qinhuangdao
+  lnglat: [119.60, 39.94]
+  photos:
+    - placeholder: Qinhuangdao
+- id: hong-kong
+  place: Hong Kong
+  lnglat: [114.17, 22.32]
+  photos:
+    - placeholder: Hong Kong
+- id: istanbul
+  place: Istanbul
+  lnglat: [28.98, 41.01]
+  photos:
+    - placeholder: Istanbul
+- id: dearborn
+  place: Dearborn
+  lnglat: [-83.18, 42.32]
+  photos:
+    - placeholder: Dearborn
+- id: malibu
+  place: Malibu
+  lnglat: [-118.78, 34.03]
+  photos:
+    - placeholder: Malibu
+- id: montecito
+  place: Montecito
+  lnglat: [-119.63, 34.44]
+  photos:
+    - placeholder: Montecito
+- id: santa-barbara
+  place: Santa Barbara
+  lnglat: [-119.70, 34.42]
+  photos:
+    - placeholder: Santa Barbara
+- id: del-monte-forest
+  place: Del Monte Forest
+  lnglat: [-121.95, 36.59]
+  photos:
+    - placeholder: Del Monte Forest
+- id: carmel
+  place: Carmel-by-the-Sea
+  lnglat: [-121.92, 36.56]
+  photos:
+    - placeholder: Carmel-by-the-Sea
+- id: davenport
+  place: Davenport
+  lnglat: [-122.19, 37.01]
+  photos:
+    - placeholder: Davenport
+- id: cupertino
+  place: Cupertino
+  lnglat: [-122.03, 37.32]
+  photos:
+    - placeholder: Cupertino
+- id: santa-clara
+  place: Santa Clara
+  lnglat: [-121.96, 37.35]
+  photos:
+    - placeholder: Santa Clara
+- id: mountain-view
+  place: Mountain View
+  lnglat: [-122.08, 37.39]
+  photos:
+    - placeholder: Mountain View
+- id: stanford
+  place: Stanford
+  lnglat: [-122.17, 37.43]
+  photos:
+    - placeholder: Stanford
+- id: yosemite
+  place: Yosemite Valley
+  lnglat: [-119.59, 37.75]
+  photos:
+    - placeholder: Yosemite Valley
+- id: three-rivers
+  place: Three Rivers
+  lnglat: [-118.90, 36.44]
+  photos:
+    - placeholder: Three Rivers
+- id: glendale
+  place: Glendale
+  lnglat: [-118.26, 34.14]
+  photos:
+    - placeholder: Glendale
+- id: mackinaw-city
+  place: Mackinaw City
+  lnglat: [-84.73, 45.78]
+  photos:
+    - placeholder: Mackinaw City
+- id: petoskey
+  place: Petoskey
+  lnglat: [-84.96, 45.37]
+  photos:
+    - placeholder: Petoskey
+- id: traverse-city
+  place: Traverse City
+  lnglat: [-85.62, 44.76]
+  photos:
+    - placeholder: Traverse City
+- id: suttons-bay
+  place: Suttons Bay
+  lnglat: [-85.65, 44.98]
+  photos:
+    - placeholder: Suttons Bay
+- id: alden
+  place: Alden
+  lnglat: [-85.27, 44.88]
+  photos:
+    - placeholder: Alden
+- id: grayling
+  place: Grayling
+  lnglat: [-84.71, 44.66]
+  photos:
+    - placeholder: Grayling
+- id: grapevine
+  place: Grapevine
+  lnglat: [-97.08, 32.93]
+  photos:
+    - placeholder: Grapevine
+- id: amsterdam
+  place: Amsterdam
+  lnglat: [4.90, 52.37]
+  photos:
+    - placeholder: Amsterdam
+- id: naples
+  place: Naples
+  lnglat: [14.27, 40.85]
+  photos:
+    - placeholder: Naples
+- id: pompeii
+  place: Pompeii
+  lnglat: [14.49, 40.75]
+  photos:
+    - placeholder: Pompeii
+- id: langfang
+  place: Langfang
+  lnglat: [116.68, 39.54]
+  photos:
+    - placeholder: Langfang
+- id: chaoyang
+  place: Chaoyang
+  lnglat: [120.45, 41.57]
+  photos:
+    - placeholder: Chaoyang

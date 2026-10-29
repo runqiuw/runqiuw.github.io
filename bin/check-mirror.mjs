@@ -109,13 +109,14 @@ try {
     await sleep(1200);
   };
   if (process.env.MIRROR_EARLY) {
+    // The reflection is prepared before the room goes live: entering at once, with later idle work
+    // held back, already shows it and compiles nothing.
     await turn('early');
-    assert.equal(await evaluate(`${mirror}.visible`), false, 'Reflection enabled before idle preparation');
-    assert.equal(await evaluate("__perf.frames.filter(f=>f.label==='early'&&f.target).length"), 0, 'Early turn triggered a cold reflection pass');
-    assert(await evaluate("__perf.frames.some(f=>f.label==='early'&&!f.target)"), 'Early room stopped drawing');
+    assert.equal(await evaluate(`${mirror}.visible`), true, 'Reflection not prepared when the room went live');
+    assert(await evaluate("__perf.frames.some(f=>f.label==='early'&&f.target)"), 'Early turn drew no reflection');
+    assert.equal(await evaluate("__perf.frames.filter(f=>f.label==='early').reduce((n,f)=>n+f.newPrograms,0)"), 0, 'Early entry compiled programs');
     await evaluate("__perf.label='prepare';__releaseIdle()");
-    await until(`${mirror}.visible`, 'reflection after early entry', 45000);
-    console.log('PASS: early entry keeps drawing without a cold reflection pass');
+    console.log('PASS: early entry shows the prepared reflection without new programs');
   }
   await sleep(1200);
   await turn('first');
