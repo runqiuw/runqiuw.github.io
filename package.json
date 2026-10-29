@@ -11,7 +11,11 @@
     "check:shelf": "node bin/check-shelf.mjs",
     "check:room": "node bin/check-room.mjs",
     "check:mirror": "node bin/check-mirror.mjs",
-    "check:performance": "node bin/check-room-performance.mjs"
+    "check:performance": "node bin/check-room-performance.mjs",
+    "profile:room": "node bin/profile-room.mjs",
+    "compare:room-images": "node bin/compare-room-images.mjs",
+    "capture:room": "node bin/capture-room-baseline.mjs",
+    "check:room-memory": "node bin/check-room-gl-memory.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -26,6 +30,7 @@
     "@astrojs/check": "^0.9.10",
     "@gltf-transform/cli": "^4.5.1",
     "@types/three": "^0.186.0",
+    "sharp": "^0.35.5",
     "typescript": "^6.0.3"
   }
 }

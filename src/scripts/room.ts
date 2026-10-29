@@ -2739,6 +2739,11 @@ uniform float uStripEnd;
   item = document.documentElement.dataset.item ?? '';
   ready = true;
   warmUntil = performance.now() + 1800;
+  // Opt-in access for the profiling and screenshot tools (bin/profile-room.mjs, bin/capture-room-baseline.mjs).
+  (window as { __roomTestHook?: (room: object) => void }).__roomTestHook?.({
+    scene, camera: cam, renderer, controls, openers, pops,
+    draw: (forceShadows = true) => { if (forceShadows) shadowDirty = true; draw(); },
+  });
   requestAnimationFrame(loop);
 
   updateScreens();
