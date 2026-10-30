@@ -146,7 +146,6 @@ try {
   await evaluate("document.getElementById('room-exit').click()");await until("!document.querySelector('.room.full')",'exit');await sleep(3000);await sample('exit to page');
   }
   if(process.env.PROFILE_CALIBRATE){
-    await until("__profileAccess.scene.getObjectByName('mirror-reflection')?.visible",'prepared mirror');
     const calibration=await evaluate(`(()=>{const {scene,camera,renderer:r}=__profileAccess;const lights=[];scene.traverse(o=>{if(o.isLight&&o.castShadow)lights.push(o);});const draw=forced=>{for(const o of lights)o.shadow.needsUpdate=forced;r.shadowMap.needsUpdate=forced;const before={...__profile.draw};r.render(scene,camera);return Object.fromEntries(Object.keys(before).map(k=>[k,__profile.draw[k]-before[k]]));};return {cached:draw(false),forced:draw(true),targets:__profileTargets};})()`);
     console.log('Calibration:',JSON.stringify(calibration));
     assert.equal(calibration.cached.shadow,0,'Cached render unexpectedly counted shadow draws');

@@ -64,7 +64,6 @@ import type { createHoops } from './room-hoops';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCoffeeSteam } from './room-coffee';
-import { addRoomMirror } from './room-mirror';
 import { CLOSEUPS, COFFEE, DECOR, DOOR_OPEN, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
 type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean };
@@ -424,7 +423,18 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   }
   scene.updateMatrixWorld(true);
   for (const p of PLACEMENTS) if (p.on && placed[p.id] && placed[p.on]) placed[p.on].attach(placed[p.id]);
-  const roomMirror = placed.mirror && addRoomMirror(placed.mirror, scene, ceilingSurface);
+  // The mirror's glass shows the room's environment reflection. A live planar reflection drew the
+  // scene again with its own variant of nearly every shader (twice the programs to compile on
+  // load) into a ~100 MB target, and slowed the hoops close-up; it was removed for both.
+  placed.mirror?.traverse((o) => {
+    if (!(o instanceof Mesh) || (o.material as Material).userData.role !== 'glass') return;
+    const shared = o.material as MeshStandardMaterial, m = shared.clone();
+    m.onBeforeCompile = shared.onBeforeCompile;
+    m.customProgramCacheKey = shared.customProgramCacheKey;
+    Object.assign(m, { transparent: false, opacity: 1, depthWrite: true, metalness: 1, roughness: 0.04 });
+    m.color.set('#dce3ea');
+    o.material = m;
+  });
   const coffeeSteam = createCoffeeSteam(placed[COFFEE.object], cam, opts.reduceMotion);
 
 
@@ -2292,7 +2302,6 @@ uniform float uStripEnd;
           shadowChanged: () => { dirty = shadowDirty = true; },
           prepare: (meshes) => Promise.all([
             preparation.prepare(meshes),
-            roomMirror && preparation.prepare(meshes, roomMirror.getRenderTarget()),
           ]),
         });
         if (focused === 'hoops') hoops.enter();
@@ -2585,18 +2594,13 @@ uniform float uStripEnd;
     }
     return inside;
   };
-  const viewFrustum = new Frustum(), reflectedFrustum = new Frustum(), projection = new Matrix4();
+  const viewFrustum = new Frustum(), projection = new Matrix4();
   const clockRegion = clockObj ? new Box3().setFromObject(clockObj).expandByScalar(.7) : new Box3();
   const ambRegion = new Box3().setFromCenterAndSize(ambL.position, new Vector3(ambL.distance * 2, ambL.distance * 2, ambL.distance * 2));
   const animatedLightsVisible = () => {
     cam.updateMatrixWorld();
     viewFrustum.setFromProjectionMatrix(projection.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
-    const mirrored = roomMirror?.visible && shown(roomMirror) && viewFrustum.intersectsObject(roomMirror);
-    if (mirrored) {
-      const c = roomMirror.getReflectionCamera(cam);
-      reflectedFrustum.setFromProjectionMatrix(projection.multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse));
-    }
-    const sees = (box: Box3) => viewFrustum.intersectsBox(box) || (mirrored && reflectedFrustum.intersectsBox(box));
+    const sees = (box: Box3) => viewFrustum.intersectsBox(box);
     return (theme === 'dark' && cur.clock > .02 && sees(clockRegion)) || (cur.amb > .002 && sees(ambRegion));
   };
   // Draw one frame: lights, dollhouse walls, the scene, and the label positions.
@@ -2750,23 +2754,12 @@ uniform float uStripEnd;
     const clickable = interactiveOf(o) || switchOf(o) || blindOf(o) || openerOf(o) || toyAt(o) >= 0 || (chairTop && isIn(o, chairTop));
     (clickable ? candidates : blockers).push(o);
   });
-  if (roomMirror) {
-    const t = roomMirror.getRenderTarget(), ratio = renderer.getPixelRatio();
-    t.setSize(Math.min(2048, Math.floor(innerWidth * ratio)), Math.min(2048, Math.floor((innerHeight - (document.querySelector('.nav')?.clientHeight ?? 0)) * ratio)));
-    void preparation.enqueue(() => renderer.initRenderTarget(t));
-  }
-  // Prepare visible AND hidden canvas variants before the live canvas fades in, then the mirror's
-  // reflection-target variants: the panel keeps its loading state until nothing visible still needs
-  // compiling, rather than showing a room that stalls on its first moves.
+  // Prepare visible AND hidden canvas variants before the live canvas fades in: the panel keeps its
+  // loading state until nothing visible still needs compiling, rather than showing a room that
+  // stalls on its first moves.
   await preparation.prepare(warmMeshes, null, shadowLights);
   // The page remains usable while preparing; catch theme/scroll changes made during loading.
   const currentTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
-  if (roomMirror) {
-    // A failed batch must not hide the glass for good; its remaining programs compile on first use.
-    await preparation.prepare(warmMeshes.filter(o => o !== roomMirror), roomMirror.getRenderTarget())
-      .catch((e) => console.warn('Mirror preparation failed.', e));
-    roomMirror.visible = true;
-  }
   preparation.relax();
   if (theme !== currentTheme) setTheme(currentTheme);
   const section = document.documentElement.dataset.section;
@@ -2789,7 +2782,6 @@ uniform float uStripEnd;
     if (!meshes.length) return;
     // Shadow maps already exist; preparing them again would redraw each one without geometry.
     await preparation.prepare(meshes);
-    if (roomMirror) await preparation.prepare(meshes, roomMirror.getRenderTarget());
     warmMeshes.push(...meshes);
     blockers.push(...meshes);
     added.forEach(g => (g.visible = true));

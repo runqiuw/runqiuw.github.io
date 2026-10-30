@@ -1,5 +1,4 @@
 // Performance regression against the built room, without production debug hooks.
-// ROOM_MIRROR_PIXELS also compares full/scissored reflection output at 40 poses/themes/sizes, clearing old reflection pixels before every comparison.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -35,9 +34,6 @@ assert(ts.isIdentifier(reset.left));const dirtyName=reset.left.getText(ast);
 
 let controlsName;const findControls=n=>{if(ts.isVariableDeclaration(n)&&n.initializer&&ts.isNewExpression(n.initializer)&&n.initializer.arguments?.[0]?.getText(ast)===cameraName&&n.initializer.arguments?.length===2)controlsName=n.name.getText(ast);ts.forEachChild(n,findControls);};findControls(ast);assert(controlsName);
 let withoutShadowInit=source;
-const cropNegations=[];const findCrop=n=>{if(ts.isBinaryExpression(n)&&n.operatorToken.kind===ts.SyntaxKind.SlashToken&&ts.isPrefixUnaryExpression(n.left)&&n.left.operator===ts.SyntaxKind.MinusToken&&ts.isPropertyAccessExpression(n.left.operand)&&n.left.operand.name.text==='x'&&ts.isPropertyAccessExpression(n.right)&&n.right.name.text==='w')cropNegations.push(n.left.getStart(ast));ts.forEachChild(n,findCrop);};findCrop(ast);
-if(process.env.WRONG_MIRROR_SCISSOR)assert.equal(cropNegations.length,2,'Cannot locate reflection crop coordinates');
-let wrongCrop=source;for(const at of cropNegations.sort((a,b)=>b-a))wrongCrop=wrongCrop.slice(0,at)+wrongCrop.slice(at+1);
 const omitInit=n=>{if(ts.isCallExpression(n)&&ts.isPropertyAccessExpression(n.expression)&&n.expression.name.text==='prepare'&&n.arguments.length===3&&withoutShadowInit===source)withoutShadowInit=source.slice(0,n.arguments[2].getStart(ast))+'[]'+source.slice(n.arguments[2].end);ts.forEachChild(n,omitInit);};omitInit(ast);
 const profile = mkdtempSync(join(tmpdir(), 'check-room-performance-'));
 const chrome = spawn(process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
@@ -66,7 +62,7 @@ try {
     pending.get(m.id)?.(m); pending.delete(m.id);
     if(m.method==='Fetch.requestPaused') {
       if(m.params.request.url.endsWith('/_astro/'+file)) {
-        await send('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:200,responseHeaders:[{name:'content-type',value:'application/javascript'}],body:Buffer.from(process.env.UNINITIALIZED_SHADOWS?withoutShadowInit:wrongCrop).toString('base64')});return;
+        await send('Fetch.fulfillRequest',{requestId:m.params.requestId,responseCode:200,responseHeaders:[{name:'content-type',value:'application/javascript'}],body:Buffer.from(withoutShadowInit).toString('base64')});return;
       }
       const dark=m.params.request.url.includes('/dark');
       const body=m.params.request.url.includes('geojs')
@@ -78,10 +74,6 @@ try {
     if (m.method === 'Debugger.paused') {
       try {
         await send('Debugger.evaluateOnCallFrame', { callFrameId: m.params.callFrames[0].callFrameId, expression: `window.__shelf = {scene: ${sceneName}, camera: ${cameraName}, controls: ${controlsName},renderer:${rendererName},rayType:${rayName}.constructor,redraw:()=>{${dirtyName}=true;}};(()=>{const r=${rendererName},render=r.render.bind(r);window.__perf={frames:[],label:'mount'};r.render=(...args)=>{const target=r.getRenderTarget(),t=performance.now(),p=r.info.programs.length;try{return render(...args);}finally{__perf.frames.push({label:__perf.label,target:!!target,ms:performance.now()-t,newPrograms:r.info.programs.length-p,names:r.info.programs.slice(p).map(p=>p.name)});}};})()` });
-        if (process.env.MIRROR_EARLY) await send('Debugger.evaluateOnCallFrame', {
-          callFrameId: m.params.callFrames[0].callFrameId,
-          expression: `(() => {const idle=window.requestIdleCallback.bind(window),queue=[];window.requestIdleCallback=f=>{queue.push(f);return queue.length;};window.__releaseIdle=()=>{window.requestIdleCallback=idle;queue.forEach(f=>idle(f));};})()`,
-        });
         await send('Debugger.removeBreakpoint', { breakpointId });
         await send('Debugger.resume');
         capture();
@@ -107,16 +99,14 @@ try {
   await send('Runtime.enable'); await send('Page.enable'); await send('Debugger.enable');
   const { breakpointId } = await send('Debugger.setBreakpointByUrl', { url: `${site}/_astro/${file}`, lineNumber: position.line, columnNumber: position.character });
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-  if (process.env.MIRROR_CPU_RATE) await send('Emulation.setCPUThrottlingRate', { rate:Number(process.env.MIRROR_CPU_RATE) });
   await send('Page.addScriptToEvaluateOnNewDocument', { source: "localStorage.setItem('theme', 'light');" });
   if(process.env.NO_PARALLEL)await send('Page.addScriptToEvaluateOnNewDocument',{source:`const get=WebGL2RenderingContext.prototype.getExtension;WebGL2RenderingContext.prototype.getExtension=function(name){return name==='KHR_parallel_shader_compile'?null:get.call(this,name);};`});
   if(process.env.NO_IDLE)await send('Page.addScriptToEvaluateOnNewDocument',{source:'delete window.requestIdleCallback;'});
-  await send('Fetch.enable',{patterns:[{urlPattern:'https://tiles.openfreemap.org/styles/*'},{urlPattern:'https://get.geojs.io/*'},...((process.env.UNINITIALIZED_SHADOWS||process.env.WRONG_MIRROR_SCISSOR)?[{urlPattern:`${site}/_astro/${file}`}]:[])]});
+  await send('Fetch.enable',{patterns:[{urlPattern:'https://tiles.openfreemap.org/styles/*'},{urlPattern:'https://get.geojs.io/*'},...(process.env.UNINITIALIZED_SHADOWS?[{urlPattern:`${site}/_astro/${file}`}]:[])]});
   await send('Page.navigate', { url: site });
   await Promise.race([captured, sleep(45000).then(() => { throw new Error('Room render was not captured'); })]);
   await send('Debugger.disable');
   await until("document.querySelector('.frame.live')", 'live room');
-  await until("__shelf.scene.getObjectByName('mirror-reflection').visible", 'prepared reflection',Number(process.env.MIRROR_PREPARE_TIMEOUT)||120000);
   // The snack stash behind the cabinet door is requested only after the first-screen models arrive.
   await until("performance.getEntriesByType('resource').some(e=>e.name.endsWith('/snack_stash.glb')&&e.responseEnd>0)",'deferred snack stash');
   const late=await evaluate(`(()=>{const glb=performance.getEntriesByType('resource').filter(e=>e.name.endsWith('.glb')),snack=glb.find(e=>e.name.endsWith('/snack_stash.glb'));return {snack:snack.startTime,first:Math.max(...glb.filter(e=>e!==snack&&e.startTime<snack.startTime).map(e=>e.responseEnd))};})()`);
@@ -301,49 +291,6 @@ try {
   await until("location.hash==='#room'&&!document.querySelector('.room-pins').hidden",'room flushes deferred map');
   await until(`!!document.querySelector('[data-distance] .map .map-still')&&document.querySelector('[data-distance] .map .map-still').src!==${JSON.stringify(deferredMap)}`,'deferred map snapshot',30000);
   console.log('PASS: offscreen map waits for idle and room entry flushes the pending theme');
-  if(process.env.ROOM_MIRROR_PIXELS){
-    const sharp=(await import('sharp')).default;
-    const poses=[
-      ['offset',[1.8,1.5,-1.38],[3.98,.8,-.95]],
-      ['orbit',[1,3.5,2.5],[2.05,.85,-1.85]],
-      ['front',[1.8,1.5,-1.38],[3.98,.8,-1.38]],
-      ['left',[2.25,1.35,-.6],[3.98,.8,-1.38]],
-      ['right',[2.3,1.2,-2.6],[3.98,.85,-1.38]],
-      ['close',[3.6,.9,-1.38],[3.98,.85,-1.38]],
-      ['partial',[2.9,1.1,-1.2],[4.2,.8,-.4]],
-      ['near',[3.94,1.1,-1.38],[3.98,.9,-1.38]],
-      ['back',[4.10,1.1,-1.38],[3.8,.9,-1.38]],
-      ['cutaway',[1,3.1,-.2],[3.98,.8,-1.38]],
-    ];
-    const captureCanvas=async expression=>Buffer.from(await evaluate(expression),'base64');
-    for(const size of [[1440,900],[390,844]]){
-      await send('Emulation.setDeviceMetricsOverride',{width:size[0],height:size[1],deviceScaleFactor:2,mobile:size[0]<901});await sleep(600);
-      for(const theme of ['dark','light']){
-        if(await evaluate('document.documentElement.dataset.theme')!==theme)await evaluate("document.getElementById('theme-switch').click()");await sleep(1600);
-        for(const [name,p,t]of poses){
-          await camera(p,t);
-          // Freeze animation callbacks, then render the IDENTICAL scene with full/scissored targets.
-          await evaluate(`(()=>{const raf=requestAnimationFrame,held=[];window.__resumeRaf=()=>{window.requestAnimationFrame=raf;held.forEach(f=>raf(f));};window.requestAnimationFrame=f=>{held.push(f);return held.length;};})()`);await sleep(100);
-          const full=await captureCanvas(`(()=>{const {renderer:r,scene,camera}=__shelf,t=scene.getObjectByName('mirror-reflection').getRenderTarget();window.__set=t.scissor.set;t.scissor.set=function(){return __set.call(this,0,0,t.width,t.height);};r.render(scene,camera);return r.domElement.toDataURL('image/png').split(',')[1];})()`);
-          const cropped=await captureCanvas(`(()=>{const {renderer:r,scene,camera}=__shelf,t=scene.getObjectByName('mirror-reflection').getRenderTarget(),previous=r.getRenderTarget();t.scissor.set=__set;t.scissorTest=false;r.setRenderTarget(t);r.state.buffers.color.setMask(true);r.state.buffers.depth.setMask(true);r.clear();r.setRenderTarget(previous);r.render(scene,camera);return r.domElement.toDataURL('image/png').split(',')[1];})()`);
-          const coverage=await evaluate(`(()=>{const m=__shelf.scene.getObjectByName('mirror-reflection'),t=m.getRenderTarget(),c=__shelf.camera,v=c.position.clone(),n=v.clone().set(0,0,1).transformDirection(m.matrixWorld);if(m.userData.ghost||v.sub(m.getWorldPosition(v.clone())).dot(n)<=0)return null;const b=m.geometry.boundingBox,uv=[];for(const x of [b.min.x,b.max.x])for(const y of [b.min.y,b.max.y])uv.push(v.clone().set(x,y,0).applyMatrix4(m.material.uniforms.textureMatrix.value));const clamp=x=>Math.max(0,Math.min(1,x)),xs=uv.map(p=>clamp(p.x)*t.width),ys=uv.map(p=>clamp(p.y)*t.height),box=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)],r=t.scissor;return {box,scissor:r.toArray(),ok:r.x<=box[0]+.01&&r.y<=box[1]+.01&&r.x+r.z>=box[2]-.01&&r.y+r.w>=box[3]-.01};})()`);
-          if(coverage&&name==='offset')assert(coverage.ok,`${theme}/${size}/${name}: scissor excludes glass texture coordinates: ${JSON.stringify(coverage)}`);
-          const [a,b]=await Promise.all([sharp(full).ensureAlpha().raw().toBuffer({resolveWithObject:true}),sharp(cropped).ensureAlpha().raw().toBuffer()]);
-          if(name==='front') {
-            const region=await sharp(cropped).extract({left:Math.floor(a.info.width*.41),top:Math.floor(a.info.height*.3),width:Math.floor(a.info.width*.16),height:Math.floor(a.info.height*.5)}).stats();
-            assert(region.channels.slice(0,3).some(c=>c.mean>12&&c.stdev>10),'Mirror image is black or blank');
-          }
-          let changed=0;
-          for(let i=0;i<b.length;i+=4)if(Math.max(...[0,1,2,3].map(c=>Math.abs(a.data[i+c]-b[i+c])))>2)changed++;
-          const fraction=changed/(a.info.width*a.info.height);
-          assert(fraction<.0005,`${theme}/${size}/${name}: cropped reflection differs on ${(fraction*100).toFixed(3)}% of pixels`);
-          if(process.env.ROOM_SCREENSHOTS&&name==='front'&&size[0]===1440){mkdirSync(process.env.ROOM_SCREENSHOTS,{recursive:true});writeFileSync(join(process.env.ROOM_SCREENSHOTS,`mirror-${theme}.png`),cropped);}
-          await evaluate('__resumeRaf()');
-          console.log('PASS: mirror pixels',theme,size.join('x'),name,changed,'pixels > 2/255');
-        }
-      }
-    }
-  }
   }
   await camera([2.86,.90,-1.8],[2.86,.59,-3.36]);
   const screenGap=await evaluate(`(()=>{const {scene,camera:c,renderer}=__shelf;scene.updateMatrixWorld(true);const screen=scene.getObjectByName('tv').parent.getObjectByName('screen');if(!screen)throw Error('TV screen missing');const ys=root=>{const values=[],v=c.position.clone();root.traverse(o=>{if(!o.isMesh)return;const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){v.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld).project(c);values.push(v.y);}});return values;};return (Math.min(...ys(screen))-Math.max(...ys(scene.getObjectByName('m1917_figure'))))*renderer.domElement.getBoundingClientRect().height/2;})()`);

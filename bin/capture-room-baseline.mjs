@@ -76,7 +76,7 @@ try{
   await send('Fetch.enable',{patterns:[{urlPattern:mapCache?'https://tiles.openfreemap.org/*':'https://tiles.openfreemap.org/styles/*'},{urlPattern:'https://get.geojs.io/*'}]});
   mkdirSync(out,{recursive:true});await send('Page.navigate',{url:site});
   await until('!!window.__fixture','room test hook');
-  await until("document.querySelector('.frame.live')",'room live');await until("__fixture.scene.getObjectByName('mirror-reflection')?.visible",'mirror preparation');
+  await until("document.querySelector('.frame.live')",'room live');
   // Assets deferred until after the room is ready (the snack stash) must be shown before any capture.
   await evaluate('__fixture.late');
   await evaluate('document.fonts.ready');await until("!__fixtureVideos.some(v=>v.dataset.fixturePending)",'video seeks');
@@ -111,7 +111,7 @@ try{
     const scale=await evaluate('__fixture.renderer.domElement.width / __fixture.renderer.domElement.clientWidth');
     await evaluate('__fixtureThaw()');const record={file:`${name}.png`,...meta};if(name.endsWith('-desk'))record.crops=[{name:'keyboard',left:Math.round(650*scale),top:Math.round(570*scale),width:Math.round(260*scale),height:Math.round(120*scale)},{name:'screen-title',left:Math.round(780*scale),top:Math.round(180*scale),width:Math.round(440*scale),height:Math.round(260*scale)}];else if(name.endsWith('-board'))record.crops=[{name:'map-labels',left:Math.round(620*scale),top:Math.round(310*scale),width:Math.round(220*scale),height:Math.round(220*scale)}];else if(name.endsWith('-drawer-open'))record.crops=[{name:'nightstand-products',left:Math.round(400*scale),top:Math.round(70*scale),width:Math.round(640*scale),height:Math.round(300*scale)}];else if(/-(snacks-door-open|graphics-card|graphics-label|m1917|poster)$/.test(name))record.crops=[{name:name.split('-').slice(1).join('-')+'-detail',left:Math.round(300*scale),top:Math.round(120*scale),width:Math.round(840*scale),height:Math.round(600*scale)}];images.push(record);console.log(`Captured ${name}`);
   };
-  // Controlled camera sequence checks frame-to-frame mirror/cutaway stability without waiting on wall time.
+  // Controlled camera sequence checks frame-to-frame cutaway stability without waiting on wall time.
   const turnSequence=async name=>{
     await settle();
     await evaluate(`(()=>{__fixtureFreeze();const f=__fixture;f.controls.enabled=false;f.turnStart=f.camera.position.clone();f.turnTarget=f.controls.target.clone();for(const p of f.pops){p.c=p.t;p.o.position.copy(p.base.p).addScaledVector(p.d.p,p.c);p.o.rotation.x=p.base.r+p.d.r*p.c;if(p.d.s)p.o.scale.setScalar(p.base.s+p.d.s*p.c);}const steam=f.scene.getObjectByName('mug-steam');if(steam?.material.uniforms?.uTime)steam.material.uniforms.uTime.value=1000;f.scene.traverse(o=>{for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(!m)continue;const u=f.renderer.properties.get(m).uniforms;if(u?.uSway)u.uSway.value.set(0,0);if(u?.uRipple)u.uRipple.value=0;}});f.draw();})()`);
@@ -174,8 +174,6 @@ try{
       await view([2.09,2.0,-.8],[2.09,2.0,-.003],[]);await snap(`${theme}-poster`);
       await view([1.8,1.5,-1.38],[3.98,.8,-1.38],[]);
       await evaluate(`(()=>{const f=__fixture;f.savedTarget=f.controls.target.clone();f.controls.target.set(3.98,.8,-1.38);})()`);
-      const mirror=await evaluate(`(()=>{const f=__fixture,o=f.scene.getObjectByName('mirror-reflection');f.scene.updateMatrixWorld(true);const v=o.getWorldPosition(f.camera.position.clone()).project(f.camera);return {visible:o.visible,x:v.x,y:v.y,z:v.z};})()`);
-      assert(mirror.visible&&Math.abs(mirror.x)<1&&Math.abs(mirror.y)<1&&mirror.z<1,`Mirror outside fixture view: ${JSON.stringify(mirror)}`);
       await snap(`${theme}-mirror-view`);await turnSequence(`${theme}-mirror-turn`);
       await evaluate(`(()=>{const f=__fixture;f.controls.target.copy(f.savedTarget);f.controls.enabled=true;})()`);
     }

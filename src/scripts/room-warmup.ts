@@ -94,7 +94,7 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
     const warmCamera = camera.clone();
     const draw = (batch: Mesh[], light?: DirectionalLight | SpotLight) => {
       const masks = all.map(o => o.layers.mask), hidden = new Set<Object3D>();
-      const saved = batch.map(o => ({ o, material: o.material, culled: o.frustumCulled, before: o.onBeforeRender }));
+      const saved = batch.map(o => ({ o, material: o.material, culled: o.frustumCulled }));
       const previous = renderer.getRenderTarget(), shadow = renderer.shadowMap;
       const automatic = shadow.autoUpdate, needed = shadow.needsUpdate;
       const viewport = renderer.getViewport(new Vector4()), scissor = renderer.getScissor(new Vector4()), clipped = renderer.getScissorTest();
@@ -103,7 +103,6 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
         for (let p: Object3D | null = o; p; p = p.parent) if (!p.visible) hidden.add(p), (p.visible = true);
         o.layers.mask = warmCamera.layers.mask; o.frustumCulled = false;
         o.material = o.userData.ghost ?? o.material;
-        if ('isReflector' in o) o.onBeforeRender = () => {};
       }
       try {
         shadow.autoUpdate = false;
@@ -117,7 +116,7 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
         renderer.setViewport(viewport); renderer.setScissor(scissor); renderer.setScissorTest(clipped);
         shadow.autoUpdate = automatic; shadow.needsUpdate = needed;
         all.forEach((o, i) => o.layers.mask = masks[i]);
-        saved.forEach(({ o, material, culled, before }) => { o.material = material; o.frustumCulled = culled; o.onBeforeRender = before; });
+        saved.forEach(({ o, material, culled }) => { o.material = material; o.frustumCulled = culled; });
         hidden.forEach(o => o.visible = false);
       }
     };
@@ -140,10 +139,6 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
           for (const o of batch) {
             const copy = o.clone(false), real = (o.userData.ghost ?? o.material) as Material | Material[];
             const clone = (m: Material) => {
-              // Render-target textures cannot be cloned (three warns and drops them); such a
-              // material (the mirror's) is only used once prepared, so compile it as it is.
-              const uniforms = (m as Material & { uniforms?: Record<string, { value: unknown }> }).uniforms;
-              if (Object.values(uniforms ?? {}).some(u => (u.value as Texture | null)?.isRenderTargetTexture)) return m;
               const c = m.clone(); c.onBeforeCompile = m.onBeforeCompile; c.customProgramCacheKey = m.customProgramCacheKey;
               copies.push(c); return c;
             };
