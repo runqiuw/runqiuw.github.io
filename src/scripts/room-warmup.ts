@@ -22,25 +22,19 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
   // idle time left. Page scrolling runs on the compositor, so a timed-out turn still uses its
   // budget, and wheel input does not count as input here. After an expensive turn (slow GPUs,
   // software rendering) the timeout grows back to 120 ms to leave the page room in between.
-  // Until the room first goes live nothing is drawn but the still, so turns follow each other
-  // straight away: an idle callback fires at most once a frame, which alone added ~1.6 s.
-  // Each waits on a fence for the GPU to finish the previous turn's work, so a slow GPU never
-  // builds a backlog that a later synchronous GL call would have to wait out in one block. A
-  // fence slower than 50 ms means a slow GPU: idle pacing from then on, which overlaps its work
-  // with the CPU's (software rendering was 4× slower with fences). A turn over 16 ms is still
-  // followed by an idle-paced gap.
-  let urgent = true, fence: WebGLSync | null = null, fencedAt = 0;
+  // Until the room first goes live nothing is drawn but the still, so turns of up to 12 ms follow
+  // each other straight away: an idle callback fires at most once a frame, which alone added
+  // ~1.6 s. Each waits on a fence for the GPU to finish the previous turn's work, so the GPU never
+  // builds a backlog that a later synchronous GL call would have to wait out in one block. Slow
+  // shader links (D3D on Windows) only make fences wait longer; they must not switch to frame-
+  // paced turns. A software renderer keeps idle pacing, which overlaps its work with the CPU's
+  // (with per-turn fences SwiftShader was 4× slower).
   const gl = renderer.getContext() as WebGL2RenderingContext;
+  const software = /swiftshader|llvmpipe|software|basic render/i.test(String(gl.getParameter(gl.RENDERER)) + ' ' +
+    String(gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info')?.UNMASKED_RENDERER_WEBGL ?? gl.RENDERER)));
+  let urgent = !software, fence: WebGLSync | null = null;
   const next = new MessageChannel();
-  next.port1.onmessage = () => {
-    if (gpuDone()) return void turn();
-    if (performance.now() - fencedAt < 50) return void setTimeout(() => next.port2.postMessage(0), 1);
-    urgent = false;
-    gl.deleteSync(fence);
-    fence = null;
-    scheduled = false;
-    schedule();
-  };
+  next.port1.onmessage = () => gpuDone() ? turn() : setTimeout(() => next.port2.postMessage(0), 1);
   const gpuDone = () => {
     if (fence && gl.getSyncParameter(fence, gl.SYNC_STATUS) !== gl.SIGNALED) return false;
     if (fence) gl.deleteSync(fence);
@@ -50,7 +44,7 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
   const schedule = () => {
     if (!enabled || scheduled || running || !jobs.length) return;
     scheduled = true;
-    if (urgent && cost < 16) next.port2.postMessage(0);
+    if (urgent) next.port2.postMessage(0);
     else if ('requestIdleCallback' in window) requestIdleCallback(turn, { timeout: Math.min(120, Math.max(34, cost)) });
     else setTimeout(() => turn(), 32);
   };
@@ -60,15 +54,15 @@ export function roomWarmup(renderer: WebGLRenderer, scene: Scene, camera: Perspe
     running = true;
     const start = performance.now();
     // The budget limits work BETWEEN jobs; a driver call itself cannot be interrupted.
-    for (let n = 0; jobs.length && n < (canExpand() ? 4 : 2); n++) {
+    for (let n = 0; jobs.length && n < (urgent ? 8 : canExpand() ? 4 : 2); n++) {
       const job = jobs.shift()!;
       try { await job.run(); job.done(); }
       catch (e) { job.fail(e); }
-      if (performance.now() - start >= (canExpand() ? 12 : 4) || (deadline && !deadline.didTimeout && deadline.timeRemaining() < 2)) break;
+      if (performance.now() - start >= (urgent || canExpand() ? 12 : 4) || (deadline && !deadline.didTimeout && deadline.timeRemaining() < 2)) break;
     }
     running = false;
     cost = performance.now() - start;
-    if (urgent && !fence) { fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); fencedAt = performance.now(); gl.flush(); }
+    if (urgent && !fence) { fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush(); }
     schedule();
   };
   const add = (run: () => void | Promise<void>) => new Promise<void>((done, fail) => {
