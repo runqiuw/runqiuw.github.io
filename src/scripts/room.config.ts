@@ -63,6 +63,9 @@ export interface Shot {
   far?: number;
   /** Fit this horizontal half-width; widen the lens at `far` on portrait screens. */
   fitWidth?: boolean;
+  /** With `center`, instead of `r`: fit a flat width × height (meters) facing the camera, filling
+   * the screen in whichever direction is tighter (a wall poster). */
+  box?: [width: number, height: number];
 }
 
 export const SHELL = {
@@ -135,13 +138,15 @@ export const PLACEMENTS: Placement[] = [
   // World map poster (0.9 × 0.6 m) on the clear wall above the TV, pinned from src/data/travel.yaml
   // (bin/room-travel.mjs). Its close-up (`map`) fans out a place's photos from its pin.
   { id: 'travelMap', asset: 'poster_45x30', at: [2.86, 3.697], z: 1.42, scale: 2 },
-  { id: 'console', asset: 'console', at: [3.07, 3.355], z: 0.5, section: 'games' },
-  { id: 'tvGamepad', asset: 'xbox_controller', at: [3.095, 3.355], z: 0.552, on: 'console', section: 'games' },
-  { id: 'tvRemote', asset: 'tv_remote', at: [2.975, 3.355], z: 0.551, on: 'console', section: 'games' },
+  // The console stands well back: its rear slides under the TV panel (0.59 m up) between the feet,
+  // keeping the remote and controller in front of the screen and its front edge on the cabinet.
+  { id: 'console', asset: 'console', at: [3.07, 3.42], z: 0.5, section: 'games' },
+  { id: 'tvGamepad', asset: 'xbox_controller', at: [3.095, 3.42], z: 0.552, on: 'console', section: 'games' },
+  { id: 'tvRemote', asset: 'tv_remote', at: [2.975, 3.42], z: 0.551, on: 'console', section: 'games' },
   // Static collectibles flank the screen; the remote/controller ride on the small console.
   { id: 'biliPillow', asset: 'bili_pillow', at: [2.34, 3.37], z: 0.5, bounce: false },
   { id: 'guldan', asset: 'guldan_figure', at: [3.39, 3.38], z: 0.5, bounce: false },
-  { id: 'm1917', asset: 'm1917_figure', at: [2.68, 3.34], z: 0.5, scale: 2, bounce: false },
+  { id: 'm1917', asset: 'm1917_figure', at: [2.68, 3.37], z: 0.5, scale: 2, bounce: false },
   // Left bay: 373 × 362 × 384 mm clear. Both consoles stand at 1:1, Xbox left / PS5 Slim right.
   // The Slim's 358 mm body + 11 mm stand leave 15 mm overhead; its 155 mm base clears the Xbox.
   { id: 'xbox', asset: 'xbox_series_x', at: [2.3685, 3.48], z: 0.098, bounce: false, section: 'games' },
@@ -238,7 +243,7 @@ export const CLOSEUPS: Record<string, CloseUp> = {
   // the bin and the taped backboard on the front wall.
   hoops: { object: 'bin', shot: { center: [3, 0.86, 0.48], r: 0.68, dir: [0, 1, 0.38], far: 2.5 } },
   // The travel map above the TV, square on (room-travel.ts fans photos out of its pins).
-  map: { object: 'travelMap', shot: { center: [2.86, 3.69, 1.72], r: 0.48, dir: [0, -1, 0.04] } },
+  map: { object: 'travelMap', shot: { center: [2.86, 3.697, 1.72], box: [0.96, 0.66], dir: [0, -1, 0.04] } },
 };
 
 /** Mini court distances are in meters, scaled for this room; the asset's arc uses the same radius. */

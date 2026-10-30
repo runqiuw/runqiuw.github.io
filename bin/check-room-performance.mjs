@@ -140,13 +140,27 @@ try {
       if(p===q)continue;
       if(p.box.intersectsBox(q.box))throw Error(p.name+' overlaps '+q.name);
     }
-    return props.map(({box,...p})=>p);
+    // The cabinet top's real front/back edges (its body, without the doors) and the TV panel.
+    const top=new Box().setFromObject(scene.getObjectByName('tvstand'),true),screen=new Box().setFromObject(scene.getObjectByName('tv').parent.getObjectByName('screen'),true);
+    const items=['console','tv_remote','xbox_controller'].map(n=>{const b=new Box().setFromObject(scene.getObjectByName(n).parent,true);return {name:n,min:b.min.toArray(),max:b.max.toArray()};});
+    // The console body alone (its placement also carries the remote and controller).
+    const body=new Box().setFromObject(scene.getObjectByName('console'),true);
+    return {props:props.map(({box,...p})=>p),items,body:{min:body.min.toArray(),max:body.max.toArray()},top:{min:top.min.toArray(),max:top.max.toArray()},screen:{min:screen.min.toArray(),max:screen.max.toArray()}};
   })()`);
-  for(const p of collectibles){
+  const {top,screen}=collectibles;
+  // Everything on the cabinet stays at least 1 cm inside its top's front edge and within its back.
+  for(const p of [...collectibles.props,...collectibles.items]){
     assert(p.min[0]>=2.265&&p.max[0]<=3.455,`${p.name} overhangs the cabinet sides`);
-    assert(p.min[1]>=.4995&&p.min[1]<=.503&&p.max[1]<.69,`${p.name} floats or penetrates the cabinet top`);
-    assert(p.min[2]>-3.672&&p.max[2]<-3.282,`${p.name} overhangs the cabinet front/back`);
+    // The remote and controller ride on the console; the rest stand on the cabinet top itself.
+    if(!['tv_remote','xbox_controller'].includes(p.name))assert(p.min[1]>=.4995&&p.min[1]<=.503&&p.max[1]<.69,`${p.name} floats or penetrates the cabinet top`);
+    assert(p.min[2]>top.min[2]&&p.max[2]<top.max[2]-.01,`${p.name} overhangs the cabinet front/back: front ${(-p.max[2]).toFixed(3)} m, cabinet front ${(-top.max[2]).toFixed(3)} m`);
   }
+  // The console's rear tucks under the TV panel, between its feet (x 2.488–3.232 m, measured from
+  // tv.glb); the remote and controller on it stay in front of the screen.
+  const [,...riders]=collectibles.items,body=collectibles.body;
+  assert(body.max[1]<screen.min[1]-.01&&body.min[0]>2.488&&body.max[0]<3.232,`Console reaches the TV panel or its feet: ${JSON.stringify({body,screen})}`);
+  for(const r of riders)assert(r.min[2]>screen.max[2],`${r.name} reaches behind the TV screen`);
+  console.log('PASS: cabinet-top items stay 1 cm inside its front edge',Object.fromEntries([...collectibles.props,...collectibles.items].map(p=>[p.name,+(-p.max[2]-(-top.max[2])).toFixed(3)])));
   const tech=await evaluate(`(()=>{const {scene}=__shelf,Box=scene.getObjectByName('mattress_mesh').geometry.boundingBox.constructor,shelf=scene.getObjectByName('project-transformable-rover').parent,inv=shelf.matrixWorld.clone().invert();scene.updateMatrixWorld(true);return ['android_mascot','rtx3070_fe'].map(n=>{const o=scene.getObjectByName(n);if(!o)throw Error('Missing '+n);const b=new Box().setFromObject(o,true).applyMatrix4(inv);return {name:n,min:b.min.toArray(),max:b.max.toArray()};});})()`);
   for(const p of tech){assert(p.min[0]>0&&p.max[0]<.36,`${p.name} crosses the bottom-right slot sides: ${JSON.stringify(p)}`);assert(p.min[1]>=.075&&p.max[1]<.431,`${p.name} crosses a shelf board`);assert(p.min[2]>-.16&&p.max[2]<.15,`${p.name} crosses the shelf back/front`);}
   assert(tech[0].max[0]<tech[1].min[0],'Android and graphics card intersect');

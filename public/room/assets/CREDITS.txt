@@ -150,8 +150,9 @@ Palette reference: https://heroesofthestorm.blizzard.com/en-us/heroes/guldan/
 Ornate M1917 display miniature — original geometry and procedurally drawn engraving atlas,
 modelled after the ornate skull-skin water-cooled machine gun from Battlefield 1 (a design reference
 only; no game asset was used). Battlefield belongs to Electronic Arts.
-Engraved water jacket, gilded bands and muzzle cap, long receiver with rear grip, side-mounted
-lacquered ammunition box and folding bipod on the charcoal display plinth, with one rear post.
+Engraved aubergine water jacket with silver collars and brass bands, floral muzzle cap with ring sight,
+engraved receiver with rear grip, skull feed plate, small side ammunition box and brass folding bipod
+on the charcoal display plinth, with one rear post.
 
 Bottom-shelf technology collectibles
 ------------------------------------

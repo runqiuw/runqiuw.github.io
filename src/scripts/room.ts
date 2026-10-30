@@ -66,7 +66,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createCoffeeSteam } from './room-coffee';
 import { CLOSEUPS, COFFEE, DECOR, DOOR_OPEN, FABRIC_PRINTS, HOOPS, LABELS, LAMP_AIM, LIGHTS, PLACEMENTS, PRINTS, PROJECT_MODELS, WINDOWS, type Role, SCREENS, SHELL, SHOTS, type Shot as ShotDef } from './room.config';
 
-type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean };
+type Shot = { t: Vector3; dir: Vector3; r: number; far?: number; fitWidth?: boolean; box?: [number, number] };
 type Manifest = {
   assets: Record<string, { size: number[]; mount?: string; preserve_materials?: boolean; tiers?: number[]; tier_clear?: number; screen?: { aspect: number }; cover?: { aspect: number } }>;
 };
@@ -1657,7 +1657,7 @@ uniform float uStripEnd;
 
   // --- camera shots from the config
   const shot = (d: ShotDef): Shot => {
-    if (d.center) return { t: P(...d.center), dir: PD(d.dir), r: d.r ?? 3, far: d.far, fitWidth: d.fitWidth };
+    if (d.center) return { t: P(...d.center), dir: PD(d.dir), r: d.r ?? 3, far: d.far, fitWidth: d.fitWidth, box: d.box };
     const b = bounds(d.frame ?? []);
     const t = b.getCenter(new Vector3());
     t.y += d.lift ?? 0;
@@ -1721,7 +1721,9 @@ uniform float uStripEnd;
   // canvas will have at the end of the morph.
   const place = (s: Shot, aspect = cam.aspect) => {
     const v = MathUtils.degToRad(ROOM_FOV) / 2, h = Math.atan(Math.tan(v) * aspect);
-    const distance = Math.min(s.far ?? Infinity, s.r / Math.sin(s.fitWidth ? h : Math.min(v, h)));
+    const distance = Math.min(s.far ?? Infinity, s.box
+      ? Math.max(s.box[0] / 2 / Math.tan(h), s.box[1] / 2 / Math.tan(v))
+      : s.r / Math.sin(s.fitWidth ? h : Math.min(v, h)));
     const fov = s.fitWidth ? Math.max(ROOM_FOV, MathUtils.radToDeg(2 * Math.atan(Math.tan(Math.asin(s.r / distance)) / aspect))) : ROOM_FOV;
     return { t: s.t.clone(), p: s.t.clone().addScaledVector(s.dir, distance), fov };
   };

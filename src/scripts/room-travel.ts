@@ -1,11 +1,15 @@
-import { CanvasTexture, Matrix4, Mesh, PlaneGeometry, Raycaster, SRGBColorSpace, Vector2, Vector3, type Material, type MeshStandardMaterial, type Object3D, type PerspectiveCamera } from 'three';
+import { CanvasTexture, Matrix4, Mesh, PlaneGeometry, Raycaster, SRGBColorSpace, Texture, Vector2, Vector3, type Material, type MeshStandardMaterial, type Object3D, type PerspectiveCamera } from 'three';
 
-// The travel map's close-up (`map`): clicking a pin printed on the poster fans that place's photos
-// out over the map as little prints; clicking a print enlarges it, clicking anywhere else folds them
-// back into the pin. Data and photos come from bin/room-travel.mjs. Loaded on the first visit; it
-// runs its own animation frames only while prints move, and draws nothing extra when idle.
+// The travel map's close-up (`map`): the poster shows the world, with nearby places sharing a pin.
+// Clicking one zooms the poster into its region (the contiguous US, Europe, China) and swaps in the
+// region's own sharper map, with a named pin per place. Clicking a place's pin fans its photos out over the map as little prints; clicking a print
+// enlarges it, clicking anywhere else folds them back into the pin, and clicking again goes back out
+// to the world. Data, maps and photos come from bin/room-travel.mjs. Loaded on the first visit; it
+// runs its own animation frames only while the map zooms or prints move, and draws nothing when idle.
 type Photo = { src: string; w: number; h: number; place: string; note: string };
 type Place = { id: string; place: string; uv: [number, number]; photos: Photo[] };
+type Region = { id: string; name: string; map: string; rect: [number, number, number, number]; places: Place[] };
+type WorldPin = { region: string; places: string[]; uv: [number, number] };
 type Card = { mesh: Mesh; tex: CanvasTexture; ctx: CanvasRenderingContext2D; slot: [number, number]; size: number; rot: number; k: number; kv: number; z: number; zv: number; delay: number };
 
 const CARD_W = 512, CARD_H = 604, PHOTO = { x: 24, y: 24, w: 464, h: 348 };
@@ -48,12 +52,63 @@ export function addTravel(poster: Object3D, canvas: HTMLCanvasElement, camera: P
   const plane = new PlaneGeometry(1, 1);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ray = new Raycaster(), ndc = new Vector2();
-  let places: Place[] = [];
+  // The world picture is the poster's own print texture; each region's map loads up front (small
+  // WebP files) so the swap at the end of a zoom never waits.
+  const worldMap = base.map!;
+  const maps = new Map<string, Texture>();
+  let regions: Region[] = [], worldPins: WorldPin[] = [], region: Region | null = null;
   fetch('/room/travel/travel.json').then((r) => r.json()).then((d) => {
-    places = d.places;
+    regions = d.regions;
+    worldPins = d.pins;
+    for (const g of regions) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        // Same orientation and colour handling as the print it replaces (glTF UVs, not flipped).
+        const tex = new Texture(img);
+        tex.flipY = false;
+        tex.colorSpace = worldMap.colorSpace;
+        tex.anisotropy = worldMap.anisotropy;
+        tex.needsUpdate = true;
+        maps.set(g.id, tex);
+      };
+      img.src = g.map;
+    }
   }).catch(() => {});
 
   let open: Place | null = null, cards: Card[] = [], zoomed = -1, raf = 0, last = 0, down: [number, number] | null = null;
+
+  // --- zooming between the world and a region: the world picture's UV window eases from the whole
+  // print to the region's rectangle (or back); at the region end its own map takes over. Both are the
+  // same projection, so the swap only sharpens the picture and trades region pins for place pins.
+  let zoom = { from: 0, to: 0, t0: 0, raf: 0 };
+  const ZOOM_MS = reduced ? 0 : 520;
+  const ease = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+  const frame = (g: Region, k: number) => {
+    const [u0, v0, u1, v1] = g.rect;
+    worldMap.offset.set(u0 * k, v0 * k);
+    worldMap.repeat.set(1 + (u1 - u0 - 1) * k, 1 + (v1 - v0 - 1) * k);
+  };
+  const zoomTo = (g: Region, inward: boolean) => {
+    cancelAnimationFrame(zoom.raf);
+    base.map = worldMap;
+    zoom = { from: inward ? 0 : 1, to: inward ? 1 : 0, t0: performance.now(), raf: 0 };
+    const step = (now: number) => {
+      const t = ZOOM_MS ? Math.min(1, (now - zoom.t0) / ZOOM_MS) : 1;
+      frame(g, zoom.from + (zoom.to - zoom.from) * ease(t));
+      if (t < 1) zoom.raf = requestAnimationFrame(step);
+      else {
+        zoom.raf = 0;
+        const sharp = inward && maps.get(g.id);
+        if (sharp) base.map = sharp;
+        if (!inward) { region = null; frame(g, 0); }
+      }
+      changed();
+    };
+    if (inward) region = g;
+    zoom.raf = requestAnimationFrame(step);
+  };
+  const zooming = () => zoom.raf !== 0;
 
   const font = '"Fredoka Variable", "Nunito Variable", system-ui, sans-serif';
   // Drawn at CARD_W × CARD_H units; small cards (many photos) get a smaller canvas.
@@ -132,12 +187,15 @@ export function addTravel(poster: Object3D, canvas: HTMLCanvasElement, camera: P
   };
 
   let folding = false;
+  // Springs advance by real elapsed time in fixed 1/120 s steps, so a slow frame rate neither
+  // slows the motion down nor makes the stiff springs overshoot.
   const tick = (now: number) => {
-    const dt = Math.min(0.033, (now - (last || now)) / 1000);
+    const elapsed = Math.min(0.25, (now - (last || now)) / 1000);
     last = now;
     let moving = false;
+    const steps = Math.max(1, Math.round(elapsed * 120));
     cards.forEach((c, i) => {
-      moving = spring(c, folding ? 0 : 1, !folding && i === zoomed ? 1 : 0, dt) || moving;
+      for (let n = 0; n < steps; n++) moving = spring(c, folding ? 0 : 1, !folding && i === zoomed ? 1 : 0, elapsed / steps) || moving;
       place(c, i === zoomed ? cards.length : i);
     });
     changed();
@@ -211,10 +269,11 @@ export function addTravel(poster: Object3D, canvas: HTMLCanvasElement, camera: P
   const mapHit = () => ray.intersectObject(map, false)[0];
   // A pin is hit within a fixed distance on screen (the printed heads are small on a phone).
   const screen = new Vector3();
-  const pinAt = (ev: PointerEvent) => {
+  // The pins on the picture shown now: places in a region, shared pins on the world map.
+  const pinAt = <T extends { uv: [number, number] }>(ev: PointerEvent, list: T[]) => {
     const r = canvas.getBoundingClientRect(), reach = 24;
-    let best: Place | null = null, bestD = reach;
-    for (const pl of places) {
+    let best: T | null = null, bestD = reach;
+    for (const pl of list) {
       map.localToWorld(screen.copy(at(pl.uv[0], pl.uv[1]))).project(camera);
       const d = Math.hypot((screen.x + 1) / 2 * r.width + r.left - ev.clientX, (1 - screen.y) / 2 * r.height + r.top - ev.clientY);
       if (d < bestD) { best = pl; bestD = d; }
@@ -226,25 +285,33 @@ export function addTravel(poster: Object3D, canvas: HTMLCanvasElement, camera: P
   const onUp = (ev: PointerEvent) => {
     const d = down;
     down = null;
-    if (!enabled() || !d || Math.hypot(ev.clientX - d[0], ev.clientY - d[1]) >= 6) return;
+    if (!enabled() || zooming() || !d || Math.hypot(ev.clientX - d[0], ev.clientY - d[1]) >= 6) return;
     pointAt(ev);
     const i = cardAt();
     if (i >= 0 && !folding) {
       zoomed = zoomed === i ? -1 : i;
       return animate();
     }
-    const hit = mapHit(), pl = pinAt(ev);
+    if (!region) {
+      const g = regions.find((x) => x.id === pinAt(ev, worldPins)?.region);
+      if (g) zoomTo(g, true);
+      else if (!mapHit()) back();
+      return;
+    }
+    const pl = pinAt(ev, region.places);
     if (pl) {
       if (open !== pl || folding) show(pl);
       return;
     }
-    if (open) return fold();
-    if (!hit) back();
+    // An empty click folds the prints; another (even mid-fold) goes back out to the world.
+    if (open && !folding) return fold();
+    clear();
+    zoomTo(region, false);
   };
   const onMove = (ev: PointerEvent) => {
-    if (!enabled() || down) return;
+    if (!enabled() || down || zooming()) return;
     pointAt(ev);
-    canvas.style.cursor = cardAt() >= 0 || pinAt(ev) ? 'pointer' : '';
+    canvas.style.cursor = cardAt() >= 0 || (region ? pinAt(ev, region.places) : pinAt(ev, worldPins)) ? 'pointer' : '';
   };
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointerup', onUp);
@@ -256,6 +323,13 @@ export function addTravel(poster: Object3D, canvas: HTMLCanvasElement, camera: P
       if (raf) cancelAnimationFrame(raf);
       raf = 0; last = 0; down = null;
       clear();
+      // Leave the poster showing the whole world again, for the room and the next visit.
+      cancelAnimationFrame(zoom.raf);
+      zoom.raf = 0;
+      base.map = worldMap;
+      worldMap.offset.set(0, 0);
+      worldMap.repeat.set(1, 1);
+      region = null;
       canvas.style.cursor = '';
     },
   };

@@ -3425,29 +3425,30 @@
       "mount": "desk",
       "size": [
         0.19,
-        0.0553,
-        0.0585
+        0.0552,
+        0.0595
       ],
       "elevation": 0,
       "roles": [
-        "M1917 ornate gilded steel.002",
-        "M1917 ornate lacquered wood.002",
-        "Miniature stand charcoal.002"
+        "M1917 ornate gilded steel.001",
+        "M1917 ornate lacquered wood.001",
+        "Miniature stand charcoal.001"
       ],
-      "triangles": 4076,
-      "bytes": 193984,
-      "description": "Ornate gilded M1917 display miniature after the user's Battlefield 1 reference: engraved blued water jacket with gold bands and floral muzzle cap, dangling chain, long receiver with rear grip, side-mounted lacquered skull-panel ammunition box and gilded folding bipod on the charcoal plinth. Original geometry; one 1024px atlas shared by two materials.",
+      "triangles": 4920,
+      "bytes": 192304,
+      "description": "Ornate M1917 display miniature after the user's Battlefield 1 'An Escalation' references: dark aubergine water jacket with two silver engraved collars and green stones, wide brass bipod band and floral brass muzzle cap with a spoked ring sight and dangling chain; narrow engraved receiver with ember diamond inlay, ring rear sight and wooden rear grip; skull feed plate below; small lacquered skull ammunition box mounted by its short end on the left side, sticking out sideways above the feed plate; brass folding bipod on the charcoal plinth. Original geometry; one 1024px atlas shared by two materials.",
       "calibration": {
         "display_base_m": [
           0.19,
           0.055,
           0.004
         ],
-        "bore_height_m": 0.0405,
+        "bore_height_m": 0.0385,
         "bipod": true,
         "rear_post": true,
         "side_ammunition_box": true,
         "rear_grip": true,
+        "ring_sights": true,
         "static": true
       },
       "license": "Original geometry and texture.",

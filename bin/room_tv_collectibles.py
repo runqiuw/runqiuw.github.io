@@ -349,7 +349,7 @@ if 'guldan_figure' in args.assets:
     c['calibration'] = json.dumps({'height_m': .16, 'static': True})
 
 if 'm1917_figure' in args.assets:
-    c = collection('m1917_figure', "Ornate gilded M1917 display miniature after the user's Battlefield 1 reference: engraved blued water jacket with gold bands and floral muzzle cap, dangling chain, long receiver with rear grip, side-mounted lacquered skull-panel ammunition box and gilded folding bipod on the charcoal plinth. Original geometry; one 1024px atlas shared by two materials.", True)
+    c = collection('m1917_figure', "Ornate M1917 display miniature after the user's Battlefield 1 'An Escalation' references: dark aubergine water jacket with two silver engraved collars and green stones, wide brass bipod band and floral brass muzzle cap with a spoked ring sight and dangling chain; narrow engraved receiver with ember diamond inlay, ring rear sight and wooden rear grip; skull feed plate below; small lacquered skull ammunition box mounted by its short end on the left side, sticking out sideways above the feed plate; brass folding bipod on the charcoal plinth. Original geometry; one 1024px atlas shared by two materials.", True)
     import numpy as np
     # ---------- engraved atlas (1024²): every textured part samples one image ----------
     N=1024
@@ -391,41 +391,56 @@ if 'm1917_figure' in args.assets:
         eye=((abs(x)-.2)/.15)**2+((y-.02)/.13)**2<1; nose=(abs(x)<.07-(y+.15)*.3)&(y<-.07)&(y>-.2)
         teeth=(y<-.3)&(y>-.48)&(abs(x)<.26)&((np.floor((x+.26)/.087)%2)==0)
         s[eye|nose]=dark; s[teeth]=dark*1.6
-    GOLD=hexc('#d7a640'); DGOLD=hexc('#8a6220'); STEEL=hexc('#2b2626'); WOOD=hexc('#7c3a1d'); BONE=hexc('#e8e2d2')
-    # A: water jacket, length along u, circumference along v. Dark blued steel with gold scrollwork bands.
-    A=rect(0,0,.5,.5); fill(A,STEEL,.08)
-    for v0 in (.04,.29,.54,.79):
-        band=rect(0,v0*.5,.5,(v0+.17)*.5); scroll(band,GOLD,9,.3,1.5,phase=v0*7)
-    for v0 in (.0,.25,.5,.75):
-        sl=img[rect(0,(v0+.205)*.5,.5,(v0+.215)*.5)]; sl[:]=DGOLD
-    # B1: wooden box sides with gold inlay border, corner flourishes and a central skull medallion.
-    B1=rect(.5,0,1,.3); fill(B1,WOOD,.05)
+    BRASS=hexc('#c99a45'); DBRASS=hexc('#6e4b1f'); JACKET=hexc('#2f1c26'); STEEL=hexc('#272426')
+    SILVER=hexc('#b9b2a2'); DSILVER=hexc('#5d5750'); EMBER=hexc('#b65a2c'); GEM=hexc('#2bb08d')
+    WOOD=hexc('#8a4523'); BONE=hexc('#e8e2d2')
+    def gem(r,cx,cy,rad,col):
+        rs,cs=r; s=img[r]; h,w=s.shape[:2]; yy,xx=np.mgrid[0:h,0:w]
+        d=np.hypot((xx-cx*w),(yy-cy*h)); s[d<rad+3]=DBRASS; s[d<rad]=col; s[d<rad*.45]=col*1.6
+    # A: water jacket (length along u, circumference along v; v .5 faces the viewer, .25 the top).
+    # Dark aubergine steel with fine ember engraving, two silver engraved collars set with green
+    # stones, as in the reference; the wide brass band at the bipod is its own geometry.
+    A=rect(0,0,.5,.5); fill(A,JACKET,.07)
+    for v0 in (.06,.31,.56,.81):
+        scroll(rect(0,v0*.5,.5,(v0+.13)*.5),EMBER*.55,14,.3,.7,curls=False,phase=v0*9)
+    for u0,u1 in ((.06,.2),(.55,.69)):
+        col=rect(u0*.5,0,u1*.5,.5); fill(col,SILVER,.05); hc=col[0].stop-col[0].start
+        for v0 in np.arange(0,1,.125):
+            scroll((slice(col[0].start+int(v0*hc),col[0].start+int((v0+.125)*hc)),col[1]),DSILVER,2.5,.32,1.2,phase=v0*5)
+        for k in (3,4,col[1].stop-col[1].start-5,col[1].stop-col[1].start-4):
+            img[col[0],col[1].start+k]=BRASS
+        for v in (.0,.25,.5,.75): gem(col,.5,v+.02 if v==0 else v,7,GEM)
+    # B1: the ammunition box's outer face (box-shaped region): lacquered wood, brass inlay border,
+    # an engraved skull; B2: plain grain for the lid, ends, bottom and the rear grip.
+    B1=rect(.5,0,.75,.3); fill(B1,WOOD,.05)
     s=img[B1]; h,w=s.shape[:2]; yy,xx=np.mgrid[0:h,0:w]
-    s*= (1+.07*np.sin(xx/w*160+np.sin(yy/h*11)*1.5)+.04*np.sin(xx/w*37))[...,None]  # grain along the box
-    border(B1,GOLD,3,8); border(B1,DGOLD,1,15)
-    skull(B1,.5,.5,.26,GOLD,hexc('#3a1c0c'))
-    for cx in (.2,.8):
-        sub=(slice(B1[0].start+int(.3*h),B1[0].start+int(.7*h)),slice(B1[1].start+int((cx-.12)*w),B1[1].start+int((cx+.12)*w)))
-        scroll(sub,GOLD,1.5,.25,1.3)
-    # B2: plain wood grain for the box top, ends and stock.
+    s*= (1+.07*np.sin(xx/w*90+np.sin(yy/h*11)*1.5)+.04*np.sin(yy/h*37))[...,None]
+    border(B1,BRASS,3,7); border(B1,DBRASS,1,14)
+    skull(B1,.5,.52,.42,BONE*.92,hexc('#3a1c0c'))
     B2=rect(.5,.3,1,.5); fill(B2,WOOD,.05); s=img[B2]; h,w=s.shape[:2]; yy,xx=np.mgrid[0:h,0:w]; s*=(1+.07*np.sin(xx/w*160+np.sin(yy/h*9)*1.5))[...,None]
-    border(B2,GOLD,2,6)
-    # C1: gold muzzle cap face, engraved floral ring around a small skull.
-    C1=rect(0,.5,.25,.75); fill(C1,GOLD,.05)
+    border(B2,DBRASS,2,6)
+    # P: the dark feed plate under the receiver, brass-rimmed with a pale skull (lower half shows).
+    P=rect(.75,0,1,.25); fill(P,STEEL,.05)
+    s=img[P]; h,w=s.shape[:2]; yy,xx=np.mgrid[0:h,0:w]; rr=np.hypot(xx/w-.5,yy/h-.5)
+    s[abs(rr-.41)<.018]=BRASS; s[abs(rr-.36)<.006]=DBRASS
+    skull(P,.5,.27,.2,SILVER,STEEL*.5)
+    # C1: brass muzzle cap face, engraved floral ring; C2: brass bands, lightly engraved.
+    C1=rect(0,.5,.25,.75); fill(C1,BRASS,.05)
     s=img[C1]; h,w=s.shape[:2]; yy,xx=np.mgrid[0:h,0:w]; rr=np.hypot(xx/w-.5,yy/h-.5); an=np.arctan2(yy/h-.5,xx/w-.5)
-    s[(abs(rr-.44)<.012)|(abs(rr-.30)<.008)]=DGOLD
-    petal=(rr>.31)&(rr<.43)&(np.cos(an*8)>.55+((rr-.37)/.06)**2*.4); s[petal]=DGOLD
-    skull(C1,.5,.5,.22,BONE,hexc('#4a3410'))
-    # C2: gold bands, lightly engraved.
-    C2=rect(0,.75,.5,1); fill(C2,GOLD,.05); scroll(C2,DGOLD,10,.3,1.2,curls=False)
-    # E: solid polished gold; F: solid dark steel.
-    E=rect(.26,.51,.49,.74); fill(E,GOLD,.02)
-    F=rect(.5,.5,1,.6); fill(F,hexc('#1d1b1c'),.02)
-    # D: engraved receiver / drum steel.
-    D=rect(.5,.6,1,1); fill(D,STEEL,.06); border(D,GOLD,3,6)
-    for v0 in (.2,.5,.8):
-        sub=(slice(D[0].start+int((v0-.12)*(D[0].stop-D[0].start)),D[0].start+int((v0+.12)*(D[0].stop-D[0].start))),D[1])
-        scroll(sub,GOLD,4,.3,1.4,phase=v0*3)
+    s[(abs(rr-.44)<.012)|(abs(rr-.30)<.008)|(abs(rr-.17)<.006)]=DBRASS
+    petal=(rr>.31)&(rr<.43)&(np.cos(an*8)>.55+((rr-.37)/.06)**2*.4); s[petal]=DBRASS
+    s[(rr<.16)&(np.cos(an*6)>.3)]=DBRASS
+    C2=rect(0,.75,.5,1); fill(C2,BRASS,.05); scroll(C2,DBRASS,10,.3,1.2,curls=False)
+    # E: plain brass; F: dark steel (sights, rails, legs, plate edges).
+    E=rect(.26,.51,.49,.74); fill(E,BRASS,.03)
+    F=rect(.5,.5,1,.6); fill(F,hexc('#1f1c1e'),.02)
+    # D: engraved receiver steel: silver scrollwork and, mid-side, the ember diamond inlay.
+    D=rect(.5,.6,1,1); fill(D,STEEL,.05); border(D,DSILVER,2,6)
+    for v0 in (.18,.82):
+        sub=(slice(D[0].start+int((v0-.1)*(D[0].stop-D[0].start)),D[0].start+int((v0+.1)*(D[0].stop-D[0].start))),D[1])
+        scroll(sub,DSILVER,5,.3,1.1,phase=v0*3)
+    s=img[D]; h,w=s.shape[:2]; yy,xx=np.mgrid[0:h,0:w]; dx=abs(xx/w-.62)/.2; dy=abs(yy/h-.5)/.17
+    s[dx+dy<1.12]=BRASS; s[dx+dy<1]=EMBER; s[dx+dy<.55]=EMBER*1.35; s[(dx+dy<.22)]=BRASS
     atlas=bpy.data.images.new('M1917 ornate atlas',N,N,alpha=False)
     px=np.ones((N,N,4),np.float32); px[...,:3]=np.clip(img,0,1)**(1/2.2)
     atlas.pixels.foreach_set(px.ravel()); atlas.pack()
@@ -487,57 +502,87 @@ if 'm1917_figure' in args.assets:
             return in_rect(r_rest,(co.y-(cy-sy/2))/sy,v)
         return f
 
-    Z=.0405   # bore axis height above the plinth base
+    Z=.0385   # bore axis height above the plinth base
     JR=.0088 # water jacket radius
     J0,J1=-.060,.018
-    # Water jacket with engraved scrollwork, and its end bulkheads.
-    tube('Water jacket',(J0,0,Z),(J1,0,Z),JR,JR,METAL,40,cyl_x(A,J0,J1,0,Z,solid(F)))
-    for x0,x1,r in [(-.064,-.059,JR*1.06),(-.0395,-.0335,JR*1.07),(-.016,-.012,JR*1.05),(.015,.021,JR*1.08)]:
-        tube('Gold jacket band',(x0,0,Z),(x1,0,Z),r,r,METAL,40,cyl_x(C2,x0,x1,0,Z,solid(E)))
-    # Gilded muzzle cap face and the barrel muzzle protruding through it.
-    cap=tube('Muzzle cap',(-.0655,0,Z),(-.064,0,Z),JR*1.04,JR*1.06,METAL,40,disc(C1,0,Z,JR*1.06))
-    tube('Muzzle',(-.081,0,Z-.0035),(-.065,0,Z-.0035),.0027,.0027,METAL,20,solid(F))
-    tube('Muzzle ring',(-.081,0,Z-.0035),(-.0785,0,Z-.0035),.0031,.0031,METAL,20,solid(F))
-    tube('Front sight',(-.058,0,Z+JR),(-.058,0,Z+JR+.0042),.0011,.0007,METAL,8,solid(F))
+    jacket=cyl_x(A,J0,J1,0,Z,solid(F))
+    # Water jacket, its two raised silver collars (same engraving as painted on the jacket) and brass
+    # rings: the muzzle collar, the wide band the bipod clamps to, and the rear ring at the receiver.
+    tube('Water jacket',(J0,0,Z),(J1,0,Z),JR,JR,METAL,40,jacket)
+    for u0,u1 in ((.06,.2),(.55,.69)):
+        tube('Silver jacket collar',(J0+u0*(J1-J0),0,Z),(J0+u1*(J1-J0),0,Z),JR*1.03,JR*1.03,METAL,40,jacket)
+    for x0,x1,r in [(-.064,-.0595,JR*1.08),(-.0405,-.0305,JR*1.09),(.0155,.0205,JR*1.08)]:
+        tube('Brass jacket band',(x0,0,Z),(x1,0,Z),r,r,METAL,40,cyl_x(C2,x0,x1,0,Z,solid(E)))
+    # Brass muzzle cap face and the barrel muzzle protruding through it.
+    tube('Muzzle cap',(-.0655,0,Z),(-.064,0,Z),JR*1.06,JR*1.08,METAL,40,disc(C1,0,Z,JR*1.08))
+    tube('Muzzle',(-.080,0,Z-.0030),(-.065,0,Z-.0030),.0026,.0026,METAL,20,solid(F))
+    tube('Muzzle ring',(-.080,0,Z-.0030),(-.0775,0,Z-.0030),.0030,.0030,METAL,20,solid(F))
+    # Spoked ring sight standing on the muzzle collar (the reference's tall wheel sight).
+    SX,SR=-.0618,.0046
+    SC=Vector((SX,0,Z+JR*1.08+.0018+SR))
+    tube('Ring sight post',(SX,0,Z+JR*1.04),(SX,0,SC.z-SR+.0003),.0008,.0008,METAL,8,solid(E))
+    bpy.ops.mesh.primitive_torus_add(major_radius=SR,minor_radius=.00045,major_segments=28,minor_segments=6,location=SC,rotation=(0,math.pi/2,0))
+    o=bpy.context.object; o.name='Ring sight'; put(o,METAL); uvmap(o,solid(F))
+    for k in range(4):
+        a=k*math.pi/4; d=Vector((0,math.cos(a),math.sin(a)))*SR
+        tube('Ring sight spoke',SC-d,SC+d,.00022,.00022,METAL,6,solid(F))
+    tube('Ring sight hub',SC-Vector((.0005,0,0)),SC+Vector((.0005,0,0)),.0009,.0009,METAL,10,solid(E))
     # Short decorative chain hanging under the cap, ending in a small pendant.
     for k in range(5):
         bpy.ops.mesh.primitive_torus_add(major_radius=.0011,minor_radius=.00032,major_segments=10,minor_segments=5,
             location=(-.0668,0,Z-.0098-k*.0019),rotation=(0,math.pi/2*(k%2),0))
         o=bpy.context.object; o.name='Cap chain link'; put(o,METAL); uvmap(o,solid(F))
     tube('Chain pendant',(-.0668,0,Z-.0205),(-.0668,0,Z-.0175),.0002,.0012,METAL,8,solid(E))
-    # Long engraved receiver behind the jacket: gilded top cover, rear sight and a wooden rear grip.
-    RX0,RX1=.018,.080
-    RC=((RX0+RX1)/2,0,Z+.0005); RS=(RX1-RX0,.0168,.019)
+    # Long, narrow engraved receiver (ember diamond inlay on its sides), top rails, a brass knob
+    # at the front, a small ring rear sight, and the wooden rear grip with its trigger lever.
+    RX0,RX1=.0205,.080
+    RC=((RX0+RX1)/2,0,Z+.0006); RS=(RX1-RX0,.0125,.0156)
     box('Receiver',RC,RS,METAL,side_box(D,D,RC,RS))
-    box('Top cover',(.041,0,Z+.0115),(.038,.0118,.003),METAL,solid(E))
-    box('Rear sight base',(.072,0,Z+.0117),(.007,.0056,.0034),METAL,solid(F))
-    box('Rear sight leaf',(.073,0,Z+.0157),(.0016,.005,.0046),METAL,solid(E),bevel=.0003)
-    box('Rear plate',(.0815,0,Z+.0005),(.003,.0150,.0175),METAL,solid(E),bevel=.0005)
-    tube('Rear grip',(.083,0,Z-.001),(.091,0,Z-.0125),.0028,.0034,WOODM,12,lambda co,n: in_rect(B2,.5,.5))
+    top=RC[2]+RS[2]/2
+    for y in (-.0042,.0042):
+        box('Receiver top rail',(.052,y,top+.0006),(.052,.0018,.0012),METAL,solid(F),bevel=.0003)
+    tube('Receiver brass knob',(.0255,0,top),(.0255,0,top+.0024),.0023,.0021,METAL,16,solid(E))
+    box('Rear sight base',(.064,0,top+.0011),(.006,.0040,.0022),METAL,solid(F),bevel=.0003)
+    tube('Rear sight post',(.064,0,top+.0022),(.064,0,top+.0040),.0005,.0005,METAL,8,solid(F))
+    bpy.ops.mesh.primitive_torus_add(major_radius=.0019,minor_radius=.00042,major_segments=18,minor_segments=6,location=(.064,0,top+.0059),rotation=(0,math.pi/2,0))
+    o=bpy.context.object; o.name='Rear ring sight'; put(o,METAL); uvmap(o,solid(E))
+    box('Rear plate',(.0815,0,RC[2]),(.003,.0118,.0150),METAL,solid(F),bevel=.0005)
+    tube('Rear grip',(.083,0,Z-.001),(.0905,0,Z-.0125),.0026,.0032,WOODM,12,lambda co,n: in_rect(B2,.5,.5))
     tube('Trigger lever',(.083,0,Z+.004),(.088,0,Z+.001),.0007,.0007,METAL,8,solid(E))
-    box('Charging handle',(.074,-.0102,Z-.001),(.006,.0034,.0032),METAL,solid(E),bevel=.0005)
-    # Dark feed-sprocket cover below the receiver front, partly behind the ammunition box.
-    DR=.0085
-    tube('Feed cover disc',(.028,-.0045,Z-.012),(.028,.0045,Z-.012),DR,DR,METAL,36,
-         lambda co,n: in_rect(D,.5+(co.x-.028)/(2.4*DR),.5+(co.z-(Z-.012))/(2.4*DR)) if abs(n.y)>.7 else in_rect(E,.5,.5))
-    # Side-mounted wooden ammunition box hanging on the viewer side of the receiver,
-    # with gilded corners, a skull panel and a carrying handle on its lid.
-    BX=(.050,-.0178,Z-.004); BS=(.036,.019,.024)
-    box('Ammunition box',BX,BS,WOODM,side_box(B1,B2,BX,BS),bevel=.001)
+    box('Charging handle',(.074,-.0074,Z-.001),(.006,.0028,.0030),METAL,solid(F),bevel=.0005)
+    # Dark feed plate hanging under the receiver front, its upper half inside the receiver.
+    DR=.0105; DC=(.031,0,RC[2]-RS[2]/2+.0008)
+    tube('Feed plate',(DC[0],-.0016,DC[2]),(DC[0],.0016,DC[2]),DR,DR,METAL,40,
+         lambda co,n: in_rect(P,.5+(co.x-DC[0])/(2.4*DR)*(-1 if n.y>0 else 1),.5+(co.z-DC[2])/(2.4*DR)) if abs(n.y)>.7 else in_rect(E,.5,.5))
+    # The lacquered ammunition box, mounted by its short end on the receiver's left (viewer) side
+    # just behind the jacket and sticking straight out sideways: its long side runs across the gun.
+    # The skull face looks toward the muzzle. It sits level with the receiver, above the feed plate,
+    # so the plate's lower half shows below it.
+    BS=(.012,.021,.020); BX=(.0205+.0075,-(RS[1]/2+BS[1]/2),RC[2]-RS[2]/2+BS[2]/2)
+    def box_faces(cx,cy,cz,sx,sy,sz):
+        def f(co,n):
+            u=(cy+sy/2-co.y)/sy; v=(co.z-(cz-sz/2))/sz
+            if n.x<-.7: return in_rect(B1,u,v)
+            if abs(n.z)>.7: return in_rect(B2,(co.x-(cx-sx/2))/sx,u)
+            if abs(n.y)>.7: return in_rect(B2,(co.x-(cx-sx/2))/sx,v)
+            return in_rect(B2,1-u,v)
+        return f
+    box('Ammunition box',BX,BS,WOODM,box_faces(*BX,*BS),bevel=.0008)
     for x in (BX[0]-BS[0]/2+.0006,BX[0]+BS[0]/2-.0006):
         for y in (BX[1]-BS[1]/2+.0006,BX[1]+BS[1]/2-.0006):
-            box('Ammunition box brass corner',(x,y,BX[2]),(.0018,.0018,BS[2]+.0008),METAL,solid(E),bevel=.0004)
-    box('Ammunition box lid',(BX[0],BX[1],BX[2]+BS[2]/2+.0006),(BS[0]+.001,BS[1]+.001,.0012),WOODM,lambda co,n: in_rect(B2,.5,.5),bevel=.0003)
-    top=BX[2]+BS[2]/2+.0012
-    for x in (BX[0]-.007,BX[0]+.007):
-        tube('Ammunition box handle lug',(x,BX[1],top),(x,BX[1],top+.0035),.0007,.0007,METAL,8,solid(F))
-    tube('Ammunition box handle',(BX[0]-.0075,BX[1],top+.0035),(BX[0]+.0075,BX[1],top+.0035),.0009,.0009,METAL,10,solid(F))
-    # Clamp collar and folding bipod: gilded legs, dark lower tubes and claw feet.
-    tube('Bipod collar',(-.0395,0,Z),(-.0335,0,Z),JR*1.12,JR*1.12,METAL,40,cyl_x(C2,-.0395,-.0335,0,Z,solid(E)))
-    box('Bipod yoke',(-.0365,0,Z-JR-.0018),(.006,.008,.004),METAL,solid(E),bevel=.0005)
+            box('Ammunition box brass corner',(x,y,BX[2]),(.0016,.0016,BS[2]+.0008),METAL,solid(E),bevel=.0004)
+    box('Ammunition box lid',(BX[0],BX[1],BX[2]+BS[2]/2+.0005),(BS[0]+.0008,BS[1]+.0008,.0011),WOODM,lambda co,n: in_rect(B2,.5,.5),bevel=.0003)
+    lid=BX[2]+BS[2]/2+.0011
+    # Strap handle along the box's long side, on lugs near its two ends.
+    for y in (BX[1]-.0055,BX[1]+.0055):
+        tube('Ammunition box handle lug',(BX[0],y,lid),(BX[0],y,lid+.0024),.0006,.0006,METAL,8,solid(E))
+    box('Ammunition box strap',(BX[0],BX[1],lid+.0028),(.0042,.0128,.0009),WOODM,lambda co,n: in_rect(B2,.2,.5),bevel=.0003)
+    # Folding bipod clamped under the wide brass band: brass legs, dark lower tubes and claw feet.
+    BPX=-.0355
+    box('Bipod yoke',(BPX,0,Z-JR-.0018),(.006,.008,.004),METAL,solid(E),bevel=.0005)
     FOOT_Z=.004
     for s in (-1,1):
-        top=Vector((-.0365,s*.0035,Z-JR-.003)); foot=Vector((-.046,s*.0235,FOOT_Z+.0012))
+        top=Vector((BPX,s*.0035,Z-JR-.003)); foot=Vector((BPX-.0095,s*.0235,FOOT_Z+.0012))
         knee=top.lerp(foot,.55)
         tube('Bipod leg upper',top,knee,.0013,.0012,METAL,12,solid(E))
         tube('Bipod leg lower',knee,foot,.0010,.0009,METAL,12,solid(F))
@@ -550,9 +595,9 @@ if 'm1917_figure' in args.assets:
     tube('Rear display post',(.070,0,.004),(.070,0,RC[2]-RS[2]/2),.0018,.0018,METAL,12,solid(E))
     for p in c.objects:
         for f in p.data.polygons:
-            if len(f.vertices)!=4 and p.name.startswith(('Water','Gold jacket','Muzzle','Feed cover','Bipod collar')): f.use_smooth=False
+            if len(f.vertices)!=4 and p.name.startswith(('Water','Silver jacket','Brass jacket','Muzzle','Feed plate')): f.use_smooth=False
     c['license'] = 'Original geometry and texture.'
-    c['calibration'] = json.dumps({'display_base_m':[.19,.055,.004],'bore_height_m':Z,'bipod':True,'rear_post':True,'side_ammunition_box':True,'rear_grip':True,'static':True})
+    c['calibration'] = json.dumps({'display_base_m':[.19,.055,.004],'bore_height_m':Z,'bipod':True,'rear_post':True,'side_ammunition_box':True,'rear_grip':True,'ring_sights':True,'static':True})
 
 args.out.parent.mkdir(parents=True, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=str(args.out))
