@@ -297,6 +297,20 @@ export function createHoops(o: HoopsSpec) {
     g.add(mask, rim);
     return g;
   };
+  // The transparent copies a cleared prop fades out with. Prepared with the hand and never
+  // disposed, so their programs stay compiled: each fade's own copies were the only users and
+  // released them, which recompiled them on every later clear (a 0.5 s stall on fast GPUs).
+  const fadeModel = (t: Template) => {
+    const g = t.g.clone(true);
+    g.traverse((c) => {
+      if (!(c instanceof Mesh)) return;
+      const m = (c.material as Material).clone();
+      m.transparent = true;
+      c.material = m;
+      c.castShadow = false;
+    });
+    return g;
+  };
   const showHand = () => {
     hand.clear();
     const t = templates[kind];
@@ -310,7 +324,7 @@ export function createHoops(o: HoopsSpec) {
   for (const k of Object.keys(KINDS) as Kind[])
     o.load(KINDS[k].asset).then((m) => {
       templates[k] = make(k, m);
-      warm(heldModel(templates[k]!));
+      if (o.prepare) warm(new Group().add(heldModel(templates[k]!), fadeModel(templates[k]!)));
       if (k === kind) showHand();
     });
 
@@ -596,7 +610,7 @@ export function createHoops(o: HoopsSpec) {
     });
     world.addBody(body);
     thrown.push(s);
-    if (thrown.length > MAX) retire(thrown[0]);
+    if (thrown.length > MAX) retire(thrown[0]); // only if turns were skipped
     tries++;
     score();
     pending = s;
@@ -687,6 +701,8 @@ export function createHoops(o: HoopsSpec) {
       const now = performance.now();
       let moving = fading.length > 0 || bursts.length > 0;
       if (on && nextAt && now >= nextAt) {
+        // Clear the oldest prop between turns, while the camera moves on, never at a release.
+        while (thrown.length >= MAX) retire(thrown[0]);
         nextRound(true);
         moving = true;
       }
