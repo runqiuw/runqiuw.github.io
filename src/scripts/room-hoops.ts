@@ -159,7 +159,7 @@ export interface HoopsSpec {
   dress: (o: Object3D, colors?: Partial<Record<Role, string>>) => void;
   reduceMotion: boolean;
   redraw: () => void;
-  /** The thrown bodies changed position or shadow-casting state. */
+  /** A thrown prop started or stopped casting a shadow. */
   shadowChanged?: () => void;
   /** Prepare meshes' shader programs in small background jobs (the room's warmup queue). */
   prepare?: (meshes: Mesh[]) => Promise<unknown>;
@@ -286,7 +286,8 @@ export function createHoops(o: HoopsSpec) {
   };
   const heldModel = (t: Template) => {
     const g = t.g.clone(true);
-    g.traverse((part) => { if (part instanceof Mesh) part.renderOrder = 12; });
+    // The held prop casts no shadow: showing or hiding it then never redraws the shadow maps.
+    g.traverse((part) => { if (part instanceof Mesh) { part.renderOrder = 12; part.castShadow = false; } });
     const mask = new Mesh(t.silhouette, outlineMask), rim = new Mesh(t.silhouette, outlineNeon);
     mask.name = 'held-mask';
     rim.name = 'held-outline';
@@ -523,7 +524,7 @@ export function createHoops(o: HoopsSpec) {
   };
 
   // --- throws in the air and on the floor
-  type Throw = { kind: Kind; body: Body; obj: Group; scored: boolean; scorable: boolean; bank: boolean; ended: boolean; t: number; points: 2 | 3; previous: Vec3 };
+  type Throw = { kind: Kind; body: Body; obj: Group; casts: Mesh[]; shadow: boolean; settled: boolean; scored: boolean; scorable: boolean; bank: boolean; ended: boolean; t: number; points: 2 | 3; previous: Vec3 };
   const thrown: Throw[] = [];
   const fading: { obj: Group; mats: Material[]; t: number }[] = [];
   const finish = (s: Throw, made = false, reason: 'contact' | 'timeout' = 'contact') => {
@@ -560,6 +561,7 @@ export function createHoops(o: HoopsSpec) {
     thrown.splice(thrown.indexOf(s), 1);
     if (o.reduceMotion) return void o.scene.remove(s.obj);
     const list: Material[] = [];
+    if (s.shadow) o.shadowChanged?.();
     s.obj.traverse((c) => {
       if (!(c instanceof Mesh)) return;
       const m = (c.material as Material).clone();
@@ -577,7 +579,11 @@ export function createHoops(o: HoopsSpec) {
     obj.position.copy(at);
     obj.quaternion.copy(hand.quaternion);
     o.scene.add(obj);
-    const s: Throw = { kind, body, obj, scored: false, scorable: true, bank: false, ended: false, t: performance.now(), points: shotPoints, previous: body.position.clone() };
+    // No shadow in flight: redrawing the shadow maps (the sun's 2048², all five at night) as the
+    // prop moves stalled the release on slower GPUs. Its shadow appears once it has nearly stopped.
+    const casts: Mesh[] = [];
+    obj.traverse((c) => { if (c instanceof Mesh && c.castShadow) { casts.push(c); c.castShadow = false; } });
+    const s: Throw = { kind, body, obj, casts, shadow: false, settled: false, scored: false, scorable: true, bank: false, ended: false, t: performance.now(), points: shotPoints, previous: body.position.clone() };
     body.addEventListener('collide', (e: { body: Body }) => {
       const b = o.backboard, p = body.position;
       if (e.body === frontWall && b && p.x >= b.min.x && p.x <= b.max.x && p.y >= b.min.y && p.y <= b.max.y) s.bank = true;
@@ -712,8 +718,19 @@ export function createHoops(o: HoopsSpec) {
             b.sleep();
           }
         }
-        o.shadowChanged?.();
         moving = true;
+      }
+      // A prop that has nearly stopped casts its shadow (hysteresis keeps a slow roll from
+      // toggling it), redrawn once more when it falls asleep; knocked away again, it stops.
+      for (const s of thrown) {
+        const b = s.body, speed = b.velocity.length(), asleep = b.sleepState === Body.SLEEPING;
+        const cast = asleep || speed < (s.shadow ? 0.6 : 0.15);
+        if (cast !== s.shadow) {
+          s.shadow = cast;
+          s.casts.forEach((c) => (c.castShadow = cast));
+          o.shadowChanged?.();
+        } else if (cast && asleep && !s.settled) o.shadowChanged?.();
+        s.settled = asleep;
       }
       for (const burst of [...bursts]) {
         const t = (now - burst.t) / 1000, k = t / burst.duration;

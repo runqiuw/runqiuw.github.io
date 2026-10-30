@@ -154,7 +154,7 @@ export async function mountRoom(frame: HTMLElement, opts: RoomOptions) {
   };
   const center = P(2.05, 1.85, 0.85);
 
-  let dirty = true, shadowDirty = true, hoopsShadow = false, hoopsShadowAt = 0;
+  let dirty = true, shadowDirty = true;
   let forceShadows = false;
   const preparation = (await warmupModule).roomWarmup(renderer, scene, cam, () => { dirty = true; });
   let active = opts.section in SHOTS ? opts.section : 'top';
@@ -2287,9 +2287,9 @@ uniform float uStripEnd;
           load: (name) => loader.loadAsync(`${ASSETS}${name}.glb`).then((g) => g.scene, () => null),
           dress,
           reduceMotion: opts.reduceMotion,
-          // Held and thrown props can cast shadows as they appear, move, or disappear.
-          redraw: () => { dirty = true; hoopsShadow = true; },
-          shadowChanged: () => { dirty = true; hoopsShadow = true; },
+          redraw: () => { dirty = true; },
+          // A thrown prop's shadow appears when it comes to rest and goes when it is cleared.
+          shadowChanged: () => { dirty = shadowDirty = true; },
           prepare: (meshes) => Promise.all([
             preparation.prepare(meshes),
             roomMirror && preparation.prepare(meshes, roomMirror.getRenderTarget()),
@@ -2719,13 +2719,6 @@ uniform float uStripEnd;
     if (hoops?.step(dt)) dirty = true;
     if (coffeeSteam.step(now, !focused || focused === 'desk', frame.clientHeight)) dirty = true;
     lastNow = now;
-    // A flying prop would otherwise redraw every shadow map each frame (the sun's 2048² one, all
-    // five at night), pushing frames past a 120 Hz budget. Its small, fast shadow follows at
-    // 20 Hz; the last change is always applied, so resting shadows stay exact.
-    if (hoopsShadow) {
-      dirty = true;
-      if (now - hoopsShadowAt >= 50) { hoopsShadow = false; hoopsShadowAt = now; shadowDirty = true; }
-    }
     // The ambilight breathes and the night clock flickers: redraw at ~30 fps while they're on. By day
     // the clock only needs a redraw when its seconds change.
     const sec = Math.floor(Date.now() / 1000);
@@ -2774,6 +2767,7 @@ uniform float uStripEnd;
       .catch((e) => console.warn('Mirror preparation failed.', e));
     roomMirror.visible = true;
   }
+  preparation.relax();
   if (theme !== currentTheme) setTheme(currentTheme);
   const section = document.documentElement.dataset.section;
   if (section && shots[section]) { active = section; jump(shots[section]); }
